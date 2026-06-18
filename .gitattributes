@@ -1,0 +1,6 @@
+# Normalize line endings to LF in the repo (ComfyCloud runs Linux).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.mp3 binary
+*.wav binary

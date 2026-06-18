@@ -1,0 +1,3 @@
+# Difforum runtime deps (kept minimal for ComfyCloud / Python 3.12 compatibility).
+# numpy is already provided by ComfyUI; listed for standalone installs.
+numpy

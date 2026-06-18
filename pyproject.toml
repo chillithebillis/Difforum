@@ -1,0 +1,25 @@
+[project]
+name = "difforum"
+description = "Modern Deforum-style animation toolkit for ComfyUI: math-driven keyframe schedules, audio reactivity, depth-aware camera warping and a Wan 2.2 video bridge."
+version = "0.5.0"
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+# Intentionally minimal: numpy ships with ComfyUI. No librosa/numexpr/pandas
+# so the node installs cleanly on ComfyCloud and Python 3.12+.
+dependencies = [
+    "numpy",
+]
+
+[project.urls]
+Repository = "https://github.com/chillithebillis/Difforum"
+
+[tool.comfy]
+# Set PublisherId to your Comfy Registry publisher handle before `comfy node publish`.
+PublisherId = "chillithebillis"
+DisplayName = "Difforum"
+Icon = ""
+
+[tool.setuptools]
+# Pure-source custom node; no build step required.
+packages = ["core", "nodes"]

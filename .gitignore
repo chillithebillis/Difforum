@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.DS_Store
+*.egg-info/
+build/
+dist/
+
+# local smoke-test artifacts (machine-specific paths / rendered output)
+examples/_render_out/
+examples/_test_model_paths.yaml
+examples/_e_models.yaml
+examples/_promo_frames/
+examples/_palette.png
+examples/_server.log
+examples/_server.log.err
+
+# comfy-cli publish artifact + private notes
+node.zip
+*.zip
+NEXT_STEPS.md
+REVIEW.md
