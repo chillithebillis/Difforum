@@ -1,0 +1,306 @@
+{
+  "last_node_id": 6,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "anchor.png"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "DifforumAnimSetup",
+      "pos": [
+        40,
+        360
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "links": [
+            1,
+            4
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumAnimSetup"
+      },
+      "widgets_values": [
+        832,
+        480,
+        16,
+        81,
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "DifforumCamera",
+      "pos": [
+        360,
+        360
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "link": 1
+        },
+        {
+          "name": "audio",
+          "type": "DIFFORUM_AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "camera",
+          "type": "DIFFORUM_CAMERA",
+          "links": [
+            3
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumCamera"
+      },
+      "widgets_values": [
+        "3d",
+        40.0,
+        "0:(0)",
+        "0:(0)",
+        "0:(1.2)",
+        "0:(0)",
+        "0:(0.3*sin(2*pi*t/160))",
+        "0:(0)",
+        "0:(1.0)"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "DifforumGuideBuilder",
+      "pos": [
+        760,
+        120
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anchor_image",
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "camera",
+          "type": "DIFFORUM_CAMERA",
+          "link": 3
+        },
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "link": 4
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "guide_frames",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "occlusion_masks",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumGuideBuilder"
+      },
+      "widgets_values": [
+        "force_2d",
+        1.0,
+        100.0,
+        false
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        1140,
+        120
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 6,
+      "type": "Note",
+      "pos": [
+        40,
+        -210
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "READ ME - models needed",
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "Difforum: Hybrid bridge -> Wan 2.2 VACE.\n\nThis builds camera-warped GUIDE frames. To actually render, wire `guide_frames` into a Wan 2.2 VACE graph.\n\nModels:\n- anchor image -> Load Image\n- Wan 2.2 5B GGUF -> models/unet  (hf: QuantStack/Wan2.2-TI2V-5B-GGUF)\n- umt5 text encoder -> models/text_encoders  (hf: Comfy-Org/Wan_2.1_ComfyUI_repackaged)\n- wan_2.1_vae.safetensors -> models/vae\n- nodes: ComfyUI-WanVideoWrapper + ComfyUI-GGUF"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      2,
+      1,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      1,
+      "DIFFORUM_CAMERA"
+    ],
+    [
+      4,
+      2,
+      0,
+      4,
+      2,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      5,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

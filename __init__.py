@@ -1,0 +1,77 @@
+"""
+Difforum - a modern, Deforum-style animation toolkit for ComfyUI.
+
+Phase 1 ships the GPU-free schedule engine (keyframe parser + safe math
+evaluator + audio-reactive hooks). Later phases add depth warping, the
+feedback sampler (Classic+ mode) and the Wan 2.2 VACE video bridge
+(Hybrid mode). See DESIGN.md.
+"""
+
+from .nodes.schedule_nodes import (
+    NODE_CLASS_MAPPINGS as _SCHED_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _SCHED_NAMES,
+)
+from .nodes.audio_nodes import (
+    NODE_CLASS_MAPPINGS as _AUDIO_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _AUDIO_NAMES,
+)
+from .nodes.hybrid_nodes import (
+    NODE_CLASS_MAPPINGS as _HYBRID_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _HYBRID_NAMES,
+)
+from .nodes.catalog_nodes import (
+    NODE_CLASS_MAPPINGS as _CATALOG_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _CATALOG_NAMES,
+)
+from .nodes.warp_nodes import (
+    NODE_CLASS_MAPPINGS as _WARP_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _WARP_NAMES,
+)
+from .nodes.sampler_nodes import (
+    NODE_CLASS_MAPPINGS as _SAMPLER_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _SAMPLER_NAMES,
+)
+from .nodes.guide_nodes import (
+    NODE_CLASS_MAPPINGS as _GUIDE_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _GUIDE_NAMES,
+)
+from .nodes.prompt_nodes import (
+    NODE_CLASS_MAPPINGS as _PROMPT_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _PROMPT_NAMES,
+)
+from .nodes.live_nodes import (
+    NODE_CLASS_MAPPINGS as _LIVE_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _LIVE_NAMES,
+)
+from .nodes.effects_nodes import (
+    NODE_CLASS_MAPPINGS as _EFFECTS_CLASSES,
+    NODE_DISPLAY_NAME_MAPPINGS as _EFFECTS_NAMES,
+)
+
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}
+
+NODE_CLASS_MAPPINGS.update(_SCHED_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_SCHED_NAMES)
+NODE_CLASS_MAPPINGS.update(_AUDIO_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_AUDIO_NAMES)
+NODE_CLASS_MAPPINGS.update(_HYBRID_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_HYBRID_NAMES)
+NODE_CLASS_MAPPINGS.update(_CATALOG_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_CATALOG_NAMES)
+NODE_CLASS_MAPPINGS.update(_WARP_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_WARP_NAMES)
+NODE_CLASS_MAPPINGS.update(_SAMPLER_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_SAMPLER_NAMES)
+NODE_CLASS_MAPPINGS.update(_GUIDE_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_GUIDE_NAMES)
+NODE_CLASS_MAPPINGS.update(_PROMPT_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_PROMPT_NAMES)
+NODE_CLASS_MAPPINGS.update(_LIVE_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_LIVE_NAMES)
+NODE_CLASS_MAPPINGS.update(_EFFECTS_CLASSES)
+NODE_DISPLAY_NAME_MAPPINGS.update(_EFFECTS_NAMES)
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+
+print(f"[Difforum] loaded {len(NODE_CLASS_MAPPINGS)} nodes")

@@ -1,0 +1,314 @@
+{
+  "last_node_id": 7,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "DifforumModelProfile",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "profile",
+          "type": "DIFFORUM_PROFILE",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "summary",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "segment_frames",
+          "type": "INT",
+          "links": [],
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumModelProfile"
+      },
+      "widgets_values": [
+        "wan22",
+        "balanced",
+        true,
+        12,
+        "sdpa"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "DifforumModelCatalog",
+      "pos": [
+        40,
+        360
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "recipe",
+          "type": "DIFFORUM_RECIPE",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "guide",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumModelCatalog"
+      },
+      "widgets_values": [
+        "wan22_12gb"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "DifforumAnimSetup",
+      "pos": [
+        440,
+        360
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumAnimSetup"
+      },
+      "widgets_values": [
+        768,
+        768,
+        24,
+        60,
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "DifforumSchedule",
+      "pos": [
+        440,
+        560
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "link": 1
+        },
+        {
+          "name": "audio",
+          "type": "DIFFORUM_AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "schedule",
+          "type": "DIFFORUM_SCHEDULE",
+          "links": [
+            2,
+            3
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "values",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumSchedule"
+      },
+      "widgets_values": [
+        "0:(0.2), 30:(0.8), 59:(0.2)",
+        "ease_in_out"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "DifforumSampleSchedule",
+      "pos": [
+        840,
+        560
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "schedule",
+          "type": "DIFFORUM_SCHEDULE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumSampleSchedule"
+      },
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 6,
+      "type": "DifforumScheduleInfo",
+      "pos": [
+        840,
+        360
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "schedule",
+          "type": "DIFFORUM_SCHEDULE",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumScheduleInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "Note",
+      "pos": [
+        40,
+        -210
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "READ ME - models needed",
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "Difforum: Reference card.\n\nNo models needed. Model Profile auto-detects your VRAM; Model Catalog lists recipes + download links."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      3,
+      0,
+      4,
+      0,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      2,
+      4,
+      0,
+      5,
+      0,
+      "DIFFORUM_SCHEDULE"
+    ],
+    [
+      3,
+      4,
+      0,
+      6,
+      0,
+      "DIFFORUM_SCHEDULE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

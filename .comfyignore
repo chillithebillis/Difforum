@@ -1,0 +1,6 @@
+# Dev-only files - kept in git, excluded from the published registry package.
+tests/
+examples/_*
+*.log
+*.log.err
+_e_models.yaml

@@ -1,0 +1,818 @@
+{
+  "last_node_id": 14,
+  "last_link_id": 21,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            3,
+            11
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            1,
+            2
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            8,
+            14
+          ],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "dreamshaper_8.safetensors"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        40,
+        260
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            20
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "pattern.png"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "ControlNetLoader",
+      "pos": [
+        40,
+        480
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CONTROL_NET",
+          "type": "CONTROL_NET",
+          "links": [
+            19
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ControlNetLoader"
+      },
+      "widgets_values": [
+        "control_v1p_sd15_qrcode_monster.safetensors"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "pos": [
+        360,
+        20
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            4,
+            12
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "ornate fractal mandala, molten gold and emerald, intricate"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CLIPTextEncode",
+      "pos": [
+        360,
+        200
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            5,
+            13
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "blurry, low quality, flat"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "EmptyLatentImage",
+      "pos": [
+        360,
+        360
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        768,
+        432,
+        1
+      ]
+    },
+    {
+      "id": 7,
+      "type": "KSampler",
+      "pos": [
+        660,
+        120
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 5
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            7
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        0,
+        "fixed",
+        20,
+        7.0,
+        "euler",
+        "normal",
+        1.0
+      ]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecode",
+      "pos": [
+        980,
+        120
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 7
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            17
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "DifforumAnimSetup",
+      "pos": [
+        40,
+        660
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "links": [
+            9,
+            10,
+            15
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumAnimSetup"
+      },
+      "widgets_values": [
+        768,
+        432,
+        24,
+        48,
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "DifforumCameraMove",
+      "pos": [
+        360,
+        560
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "link": 9
+        },
+        {
+          "name": "audio",
+          "type": "DIFFORUM_AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "camera",
+          "type": "DIFFORUM_CAMERA",
+          "links": [
+            16
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumCameraMove"
+      },
+      "widgets_values": [
+        "zoom_in",
+        0.5,
+        0.6,
+        "2d",
+        40.0
+      ]
+    },
+    {
+      "id": 11,
+      "type": "DifforumSchedule",
+      "pos": [
+        360,
+        780
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "link": 10
+        },
+        {
+          "name": "audio",
+          "type": "DIFFORUM_AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "schedule",
+          "type": "DIFFORUM_SCHEDULE",
+          "links": [
+            18
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "values",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumSchedule"
+      },
+      "widgets_values": [
+        "0:(0.4)",
+        "linear"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "DifforumFeedbackSampler",
+      "pos": [
+        1280,
+        300
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 11
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 12
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 13
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 14
+        },
+        {
+          "name": "params",
+          "type": "DIFFORUM_PARAMS",
+          "link": 15
+        },
+        {
+          "name": "camera",
+          "type": "DIFFORUM_CAMERA",
+          "link": 16
+        },
+        {
+          "name": "init_image",
+          "type": "IMAGE",
+          "link": 17
+        },
+        {
+          "name": "strength_schedule",
+          "type": "DIFFORUM_SCHEDULE",
+          "link": 18
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "cfg_schedule",
+          "type": "DIFFORUM_SCHEDULE",
+          "link": null
+        },
+        {
+          "name": "positive_schedule",
+          "type": "DIFFORUM_PROMPT",
+          "link": null
+        },
+        {
+          "name": "control_net",
+          "type": "CONTROL_NET",
+          "link": 19
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": [
+            21
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumFeedbackSampler"
+      },
+      "widgets_values": [
+        20,
+        7.0,
+        "euler",
+        "normal",
+        0.85,
+        "lab",
+        1.0,
+        100.0,
+        false,
+        1.0,
+        1.2
+      ]
+    },
+    {
+      "id": 13,
+      "type": "SaveImage",
+      "pos": [
+        1640,
+        300
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 21
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "Difforum_illusion"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "Note",
+      "pos": [
+        40,
+        -210
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "READ ME - models needed",
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "Difforum: Hidden-pattern illusion (QR Monster).\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints\n- control_v1p_sd15_qrcode_monster -> models/controlnet  (hf: monster-labs/control_v1p_sd15_qrcode_monster)\n- a grayscale pattern image (spiral/logo/mask) -> Load Image\ncontrol_strength ~1.2 = strong illusion; lower for subtle."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      1,
+      4,
+      0,
+      "CLIP"
+    ],
+    [
+      2,
+      1,
+      1,
+      5,
+      0,
+      "CLIP"
+    ],
+    [
+      3,
+      1,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      4,
+      4,
+      0,
+      7,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      5,
+      0,
+      7,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      6,
+      6,
+      0,
+      7,
+      3,
+      "LATENT"
+    ],
+    [
+      7,
+      7,
+      0,
+      8,
+      0,
+      "LATENT"
+    ],
+    [
+      8,
+      1,
+      2,
+      8,
+      1,
+      "VAE"
+    ],
+    [
+      9,
+      9,
+      0,
+      10,
+      0,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      10,
+      9,
+      0,
+      11,
+      0,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      11,
+      1,
+      0,
+      12,
+      0,
+      "MODEL"
+    ],
+    [
+      12,
+      4,
+      0,
+      12,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      13,
+      5,
+      0,
+      12,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      14,
+      1,
+      2,
+      12,
+      3,
+      "VAE"
+    ],
+    [
+      15,
+      9,
+      0,
+      12,
+      4,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      16,
+      10,
+      0,
+      12,
+      5,
+      "DIFFORUM_CAMERA"
+    ],
+    [
+      17,
+      8,
+      0,
+      12,
+      6,
+      "IMAGE"
+    ],
+    [
+      18,
+      11,
+      0,
+      12,
+      7,
+      "DIFFORUM_SCHEDULE"
+    ],
+    [
+      19,
+      3,
+      0,
+      12,
+      11,
+      "CONTROL_NET"
+    ],
+    [
+      20,
+      2,
+      0,
+      12,
+      12,
+      "IMAGE"
+    ],
+    [
+      21,
+      12,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
