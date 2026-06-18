@@ -89,7 +89,8 @@ print("hole fill (3d):")
 # an expanding dolly leaves speckle holes; fill should clean colour, keep mask
 img = gradient_img(48, 48)
 depth = torch.ones(48, 48)
-Tm = torch.eye(4); Tm[2, 3] = -8.0  # pull scene closer -> pixels spread -> holes
+Tm = torch.eye(4)
+Tm[2, 3] = -8.0  # pull scene closer -> pixels spread -> holes
 filled, mask = warp_3d(img, depth, Tm, fov_deg=50, near=10, far=10, fill_holes=True)
 raw, mask2 = warp_3d(img, depth, Tm, fov_deg=50, near=10, far=10, fill_holes=False)
 m = mask.squeeze(-1) > 0.5
