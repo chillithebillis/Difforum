@@ -1089,6 +1089,48 @@ def build_mesmerize():
     return w.dump()
 
 
+def build_vj_footage():
+    """Give video footage the 'VJ look' - no model needed. Footage -> beat-reactive
+    VJ Look (grade + glow + chroma + grain) -> Echo Trails -> out. Swap Load Image
+    for a VHS Load Video (or insert a Feedback/Live Sampler before Look to also
+    re-style with diffusion)."""
+    w = WF()
+    footage = w.node("LoadImage", [40, 40], inputs=[],
+                     outputs=[("IMAGE", "IMAGE"), ("MASK", "MASK")],
+                     widgets=["example.png", "image"])
+    setup = w.node("DifforumAnimSetup", [40, 300], inputs=[],
+                   outputs=[("params", "DIFFORUM_PARAMS")], widgets=[512, 512, 24, 64, 0, "fixed"])
+    audio = w.node("LoadAudio", [40, 520], inputs=[],
+                   outputs=[("AUDIO", "AUDIO")], widgets=["your_track.mp3"])
+    analyzer = w.node("DifforumAudioAnalyzer", [340, 460],
+                      inputs=[("params", "DIFFORUM_PARAMS"), ("audio", "AUDIO")],
+                      outputs=[("audio_curves", "DIFFORUM_AUDIO"), ("amp", "FLOAT"),
+                               ("low", "FLOAT"), ("mid", "FLOAT"), ("high", "FLOAT"),
+                               ("onset", "FLOAT"), ("beat", "FLOAT")],
+                      widgets=[0.2, True, 1.5])
+    beat = w.node("DifforumAudioSchedule", [660, 500],
+                  inputs=[("params", "DIFFORUM_PARAMS"), ("audio", "DIFFORUM_AUDIO")],
+                  outputs=[("schedule", "DIFFORUM_SCHEDULE"), ("values", "FLOAT")],
+                  # beat -> intensity that pulses ~0.6 to ~1.4
+                  widgets=["beat", "add", 0.6, 0.8, 0.2])
+    look = w.node("DifforumLook", [400, 40],
+                  inputs=[("image", "IMAGE"), ("intensity_schedule", "DIFFORUM_SCHEDULE")],
+                  outputs=[("image", "IMAGE")], widgets=["neon", 1.0, 0])
+    echo = w.node("DifforumEchoTrails", [720, 40], inputs=[("frames", "IMAGE")],
+                  outputs=[("frames", "IMAGE")], widgets=[0.5, 0.4])
+    save = w.node("SaveImage", [1040, 40], inputs=[("images", "IMAGE")],
+                  outputs=[], widgets=["Difforum_vj"], is_output=True)
+    w.link(footage, 0, look, 0, "IMAGE")
+    w.link(setup, 0, analyzer, 0, "DIFFORUM_PARAMS")
+    w.link(audio, 0, analyzer, 1, "AUDIO")
+    w.link(setup, 0, beat, 0, "DIFFORUM_PARAMS")
+    w.link(analyzer, 0, beat, 1, "DIFFORUM_AUDIO")
+    w.link(beat, 0, look, 1, "DIFFORUM_SCHEDULE")
+    w.link(look, 0, echo, 0, "IMAGE")
+    w.link(echo, 0, save, 0, "IMAGE")
+    return w.dump()
+
+
 def add_note(data, text, pos=(40, -210)):
     """Append a frontend Note node (yellow sticky) with a model checklist."""
     nid = data["last_node_id"] + 1
@@ -1191,6 +1233,15 @@ NOTES = {
         "warped frame, then the diffusion heals the seams, so the pattern grows and\n"
         "stays symmetric. Echo Trails adds smooth motion-blur trails.\n"
         "Try symmetry mirror_h/mirror_v/mirror_quad, or raise symmetry_segments.",
+    "difforum_vj_footage.json":
+        "Difforum: VJ look for video footage (NO model needed).\n\n"
+        "Footage -> beat-reactive VJ Look (grade + glow + chroma + grain) ->\n"
+        "Echo Trails -> out. Pure post, runs realtime-friendly.\n\nNeeds:\n"
+        "- a video/clip -> swap Load Image for VHS 'Load Video' (ComfyUI-VideoHelperSuite)\n"
+        "- an audio track -> Load Audio (drives the beat-pulsed intensity)\n\n"
+        "VJ Look presets: neon / cinematic / vaporwave / film / noir / psychedelic.\n"
+        "Want it re-styled by diffusion too? Insert a Feedback Sampler or Live\n"
+        "Sampler BEFORE the VJ Look. Export an MP4 with VHS 'Video Combine'.",
 }
 
 
@@ -1211,6 +1262,7 @@ def main():
         "difforum_deluxe_travel_controlnet_video.json": build_deluxe(),
         "difforum_mesmerize_kaleidoscope.json": build_mesmerize(),
         "difforum_realtime_live.json": build_realtime(),
+        "difforum_vj_footage.json": build_vj_footage(),
     }
     for name, data in out.items():
         if name in NOTES:

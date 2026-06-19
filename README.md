@@ -42,7 +42,7 @@ What you get:
   re-diffuse, LAB colour match), **Hybrid** (drives Wan 2.2 VACE), and
   **AnimateDiff** (feeds prompt travel and schedules into AnimateDiff-Evolved).
 - No `eval()`, no exotic dependencies (safe AST evaluator, numpy FFT audio, torch
-  warps), 10 test suites, and a clean install on Python 3.12 and the Comfy Registry.
+  warps), 11 test suites, and a clean install on Python 3.12 and the Comfy Registry.
 
 See [DESIGN.md](DESIGN.md) for the architecture and [REALTIME.md](REALTIME.md)
 for the live-performance direction.
@@ -91,6 +91,18 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 |---|---|
 | **Difforum · Symmetry / Kaleidoscope** | Mirror H/V, 4-fold quad, or N-segment kaleidoscope on a frame or batch |
 | **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
+
+**VJ look (done).** Grade video footage for live visuals, no model required:
+
+| Node | What it does |
+|---|---|
+| **Difforum · VJ Look (presets)** | One-shot grade: neon / cinematic / vaporwave / film / noir / psychedelic, with an intensity that an audio schedule can pulse to the beat |
+| **Difforum · Colour Grade** | Exposure, contrast, saturation, white balance, lift/gamma/gain |
+| **Difforum · Glow** | Neon bloom (blur the bright areas, screen-blend them back) |
+
+These are plain IMAGE to IMAGE, so they work on a still, a feedback render or a
+whole footage batch. Drop them after a Load Video for the polished VJ look
+(`difforum_vj_footage.json`), with no checkpoint needed.
 
 Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
 applied *inside* the loop it compounds each frame and the diffusion heals the
@@ -176,6 +188,7 @@ In `examples/` (drag the `.json` onto the ComfyUI canvas):
 | `difforum_qrcode_illusion.json` (16:9) | SD1.5 ckpt + QR-Monster ControlNet + pattern image | Locks a spiral/logo/mask in the scene while the loop morphs - hidden-pattern illusions. |
 | `difforum_mesmerize_kaleidoscope.json` | SD1.5 checkpoint | **Living kaleidoscope**: in-loop symmetry folds each warped frame, the diffusion heals the seams, Echo Trails smooths the motion. |
 | `difforum_realtime_live.json` | SD-Turbo / LCM ckpt | **Native realtime**: Live Sampler internal loop (resident model, warp + kaleidoscope + 1-step re-diffuse) with a live preview in the node. See Realtime below. |
+| `difforum_vj_footage.json` | a video + audio (no model) | **VJ look for footage**: beat-reactive VJ Look (grade + glow + chroma + grain) → Echo Trails. Pure post, runs without a checkpoint. |
 
 Templates exercise every node. Regenerate with
 `python examples/_build_examples.py`.
@@ -277,12 +290,12 @@ Easing between keyframes: `linear`, `ease_in`, `ease_out`, `ease_in_out`, `step`
 
 ## Develop / test
 
-No GPU or ComfyUI needed - 10 suites cover the engine, warp, colour, effects,
+No GPU or ComfyUI needed - 11 suites cover the engine, warp, colour, effects, look,
 model catalog, and a full end-to-end orchestration (stub diffusion):
 
 ```powershell
 $py = "D:\ComfyUI-victor\venv\Scripts\python.exe"
-foreach ($t in "core","audio","hybrid","models","warp","color","effects","prompt","plot","integration") {
+foreach ($t in "core","audio","hybrid","models","warp","color","effects","look","prompt","plot","integration") {
   & $py "custom_nodes\difforum\tests\test_$t.py"
 }
 ```

@@ -10,7 +10,7 @@ Thanks for your interest. Difforum is MIT-licensed and built to be extended.
 - **Run the tests** before opening a PR (no GPU needed):
 
   ```bash
-  for t in core audio hybrid models warp color effects prompt plot integration; do
+  for t in core audio hybrid models warp color effects look prompt plot integration; do
     python tests/test_$t.py
   done
   ```
