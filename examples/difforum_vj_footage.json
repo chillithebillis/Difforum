@@ -1,10 +1,10 @@
 {
-  "last_node_id": 9,
-  "last_link_id": 8,
+  "last_node_id": 5,
+  "last_link_id": 4,
   "nodes": [
     {
       "id": 1,
-      "type": "LoadImage",
+      "type": "DifforumLoadVideo",
       "pos": [
         40,
         40
@@ -19,7 +19,7 @@
       "inputs": [],
       "outputs": [
         {
-          "name": "IMAGE",
+          "name": "frames",
           "type": "IMAGE",
           "links": [
             1
@@ -27,226 +27,32 @@
           "slot_index": 0
         },
         {
-          "name": "MASK",
-          "type": "MASK",
+          "name": "frame_count",
+          "type": "INT",
           "links": [],
           "slot_index": 1
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [
+            4
+          ],
+          "slot_index": 2
         }
       ],
       "properties": {
-        "Node name for S&R": "LoadImage"
+        "Node name for S&R": "DifforumLoadVideo"
       },
       "widgets_values": [
-        "example.png",
-        "image"
+        "footage.mp4",
+        0,
+        1,
+        0
       ]
     },
     {
       "id": 2,
-      "type": "DifforumAnimSetup",
-      "pos": [
-        40,
-        300
-      ],
-      "size": [
-        320,
-        200
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "params",
-          "type": "DIFFORUM_PARAMS",
-          "links": [
-            2,
-            4
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "DifforumAnimSetup"
-      },
-      "widgets_values": [
-        512,
-        512,
-        24,
-        64,
-        0,
-        "fixed"
-      ]
-    },
-    {
-      "id": 3,
-      "type": "LoadAudio",
-      "pos": [
-        40,
-        520
-      ],
-      "size": [
-        320,
-        200
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": [
-            3
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadAudio"
-      },
-      "widgets_values": [
-        "your_track.mp3"
-      ]
-    },
-    {
-      "id": 4,
-      "type": "DifforumAudioAnalyzer",
-      "pos": [
-        340,
-        460
-      ],
-      "size": [
-        320,
-        200
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "params",
-          "type": "DIFFORUM_PARAMS",
-          "link": 2
-        },
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 3
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio_curves",
-          "type": "DIFFORUM_AUDIO",
-          "links": [
-            5
-          ],
-          "slot_index": 0
-        },
-        {
-          "name": "amp",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 1
-        },
-        {
-          "name": "low",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 2
-        },
-        {
-          "name": "mid",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 3
-        },
-        {
-          "name": "high",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 4
-        },
-        {
-          "name": "onset",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 5
-        },
-        {
-          "name": "beat",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 6
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "DifforumAudioAnalyzer"
-      },
-      "widgets_values": [
-        0.2,
-        true,
-        1.5
-      ]
-    },
-    {
-      "id": 5,
-      "type": "DifforumAudioSchedule",
-      "pos": [
-        660,
-        500
-      ],
-      "size": [
-        320,
-        200
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "params",
-          "type": "DIFFORUM_PARAMS",
-          "link": 4
-        },
-        {
-          "name": "audio",
-          "type": "DIFFORUM_AUDIO",
-          "link": 5
-        }
-      ],
-      "outputs": [
-        {
-          "name": "schedule",
-          "type": "DIFFORUM_SCHEDULE",
-          "links": [
-            6
-          ],
-          "slot_index": 0
-        },
-        {
-          "name": "values",
-          "type": "FLOAT",
-          "links": [],
-          "slot_index": 1
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "DifforumAudioSchedule"
-      },
-      "widgets_values": [
-        "beat",
-        "add",
-        0.6,
-        0.8,
-        0.2
-      ]
-    },
-    {
-      "id": 6,
       "type": "DifforumLook",
       "pos": [
         400,
@@ -257,18 +63,13 @@
         200
       ],
       "flags": {},
-      "order": 5,
+      "order": 1,
       "mode": 0,
       "inputs": [
         {
           "name": "image",
           "type": "IMAGE",
           "link": 1
-        },
-        {
-          "name": "intensity_schedule",
-          "type": "DIFFORUM_SCHEDULE",
-          "link": 6
         }
       ],
       "outputs": [
@@ -276,7 +77,7 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            7
+            2
           ],
           "slot_index": 0
         }
@@ -286,12 +87,12 @@
       },
       "widgets_values": [
         "neon",
-        1.0,
+        1.2,
         0
       ]
     },
     {
-      "id": 7,
+      "id": 3,
       "type": "DifforumEchoTrails",
       "pos": [
         720,
@@ -302,13 +103,13 @@
         200
       ],
       "flags": {},
-      "order": 6,
+      "order": 2,
       "mode": 0,
       "inputs": [
         {
           "name": "frames",
           "type": "IMAGE",
-          "link": 7
+          "link": 2
         }
       ],
       "outputs": [
@@ -316,7 +117,7 @@
           "name": "frames",
           "type": "IMAGE",
           "links": [
-            8
+            3
           ],
           "slot_index": 0
         }
@@ -325,13 +126,13 @@
         "Node name for S&R": "DifforumEchoTrails"
       },
       "widgets_values": [
-        0.5,
-        0.4
+        0.4,
+        0.3
       ]
     },
     {
-      "id": 8,
-      "type": "SaveImage",
+      "id": 4,
+      "type": "DifforumSaveVideo",
       "pos": [
         1040,
         40
@@ -341,25 +142,39 @@
         200
       ],
       "flags": {},
-      "order": 7,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
-          "name": "images",
+          "name": "frames",
           "type": "IMAGE",
-          "link": 8
+          "link": 3
+        },
+        {
+          "name": "fps_in",
+          "type": "FLOAT",
+          "link": 4
         }
       ],
-      "outputs": [],
+      "outputs": [
+        {
+          "name": "path",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
       "properties": {
-        "Node name for S&R": "SaveImage"
+        "Node name for S&R": "DifforumSaveVideo"
       },
       "widgets_values": [
-        "Difforum_vj"
+        "Difforum_vj",
+        24.0,
+        8
       ]
     },
     {
-      "id": 9,
+      "id": 5,
       "type": "Note",
       "pos": [
         40,
@@ -370,7 +185,7 @@
         300
       ],
       "flags": {},
-      "order": 8,
+      "order": 4,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -379,7 +194,7 @@
         "text": ""
       },
       "widgets_values": [
-        "Difforum: VJ look for video footage (NO model needed).\n\nFootage -> beat-reactive VJ Look (grade + glow + chroma + grain) ->\nEcho Trails -> out. Pure post, runs realtime-friendly.\n\nNeeds:\n- a video/clip -> swap Load Image for VHS 'Load Video' (ComfyUI-VideoHelperSuite)\n- an audio track -> Load Audio (drives the beat-pulsed intensity)\n\nVJ Look presets: neon / cinematic / vaporwave / film / noir / psychedelic.\nWant it re-styled by diffusion too? Insert a Feedback Sampler or Live\nSampler BEFORE the VJ Look. Export an MP4 with VHS 'Video Combine'."
+        "Difforum: VJ look for video footage. Complete + self-contained, NO model\nand NO external nodes.\n\nLoad Video -> VJ Look (grade + glow + chroma + grain) -> Echo Trails ->\nSave Video (MP4). Pure post, runs fast.\n\nSetup:\n- put your clip in ComfyUI/input, pick it in Load Video\n- Load Video / Save Video need opencv-python + imageio-ffmpeg (usually\n  already in ComfyUI). Set resize_to (e.g. 720) to cap resolution.\n\nVJ Look presets: neon / cinematic / vaporwave / film / noir / psychedelic.\nBeat-reactive: add Anim Setup + Load Audio + Audio Analyzer + Audio Schedule\n(source=beat, base=1.0, amount=0.5) and wire its schedule into the VJ Look's\nintensity_schedule. Re-style with diffusion? Insert a Feedback/Live Sampler\nbefore the VJ Look."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -390,7 +205,7 @@
       1,
       1,
       0,
-      6,
+      2,
       0,
       "IMAGE"
     ],
@@ -398,57 +213,25 @@
       2,
       2,
       0,
-      4,
+      3,
       0,
-      "DIFFORUM_PARAMS"
+      "IMAGE"
     ],
     [
       3,
       3,
       0,
       4,
-      1,
-      "AUDIO"
+      0,
+      "IMAGE"
     ],
     [
       4,
+      1,
       2,
-      0,
-      5,
-      0,
-      "DIFFORUM_PARAMS"
-    ],
-    [
-      5,
       4,
-      0,
-      5,
       1,
-      "DIFFORUM_AUDIO"
-    ],
-    [
-      6,
-      5,
-      0,
-      6,
-      1,
-      "DIFFORUM_SCHEDULE"
-    ],
-    [
-      7,
-      6,
-      0,
-      7,
-      0,
-      "IMAGE"
-    ],
-    [
-      8,
-      7,
-      0,
-      8,
-      0,
-      "IMAGE"
+      "FLOAT"
     ]
   ],
   "groups": [],
