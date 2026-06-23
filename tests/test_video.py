@@ -61,6 +61,27 @@ try:
 except Exception:
     pass
 
+print("path safety:")
+import os  # noqa: E402
+
+from core.video import safe_input_path  # noqa: E402
+
+base = tempfile.gettempdir()
+check("plain filename allowed", safe_input_path(base, "clip.mp4").startswith(os.path.realpath(base)))
+check("subdir allowed", safe_input_path(base, "a/clip.mp4").startswith(os.path.realpath(base)))
+
+
+def _rejects(name):
+    try:
+        safe_input_path(base, name)
+        return False
+    except ValueError:
+        return True
+
+
+check("rejects .. traversal", _rejects("../../etc/passwd"))
+check("rejects absolute path", _rejects(os.path.join(os.path.abspath(os.sep), "etc", "passwd")))
+
 print()
 if _failures:
     print(f"FAILED ({len(_failures)}): {', '.join(_failures)}")

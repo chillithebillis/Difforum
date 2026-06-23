@@ -7,10 +7,26 @@ Imports are lazy so the package still loads without them.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import torch
 
 VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".avi", ".m4v", ".gif")
+
+
+def safe_input_path(base_dir, name):
+    """Resolve `name` strictly inside `base_dir`. Rejects absolute paths and
+    `..` traversal (cloud-safe: a user-supplied filename can't read elsewhere)."""
+    base = os.path.realpath(base_dir)
+    cand = os.path.realpath(os.path.join(base, str(name)))
+    try:
+        inside = os.path.commonpath([base, cand]) == base
+    except ValueError:          # different drive on Windows
+        inside = False
+    if not inside:
+        raise ValueError(f"path {name!r} escapes the allowed folder")
+    return cand
 
 
 def read_video(path, max_frames=0, frame_skip=1, resize_to=0):

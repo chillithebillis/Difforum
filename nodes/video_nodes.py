@@ -14,7 +14,7 @@ _PKG_ROOT = Path(__file__).resolve().parent.parent
 if str(_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_PKG_ROOT))
 
-from core.video import VIDEO_EXTS, read_video, write_video  # noqa: E402
+from core.video import VIDEO_EXTS, read_video, safe_input_path, write_video  # noqa: E402
 
 CATEGORY = "Difforum/video"
 
@@ -50,13 +50,11 @@ class DifforumLoadVideo:
     CATEGORY = CATEGORY
 
     def run(self, video, max_frames, frame_skip, resize_to):
-        path = video
-        if not os.path.isabs(path):
-            try:
-                import folder_paths
-                path = os.path.join(folder_paths.get_input_directory(), video)
-            except Exception:
-                pass
+        import folder_paths
+        # only read files inside the ComfyUI input folder (no abs paths, no ..)
+        path = safe_input_path(folder_paths.get_input_directory(), video)
+        if not os.path.isfile(path):
+            raise FileNotFoundError(f"Load Video: {video!r} not found in the input folder")
         frames, fps = read_video(path, max_frames=int(max_frames),
                                  frame_skip=int(frame_skip), resize_to=int(resize_to))
         return (frames, int(frames.shape[0]), float(fps))
@@ -92,9 +90,10 @@ class DifforumSaveVideo:
         except Exception:
             out_dir = "."
         os.makedirs(out_dir, exist_ok=True)
+        prefix = os.path.basename(str(filename_prefix)) or "Difforum_vj"  # no path escape
         i = 0
         while True:
-            name = f"{filename_prefix}_{i:05d}.mp4"
+            name = f"{prefix}_{i:05d}.mp4"
             path = os.path.join(out_dir, name)
             if not os.path.exists(path):
                 break
