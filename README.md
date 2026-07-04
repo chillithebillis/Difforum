@@ -47,9 +47,12 @@ What you get:
 See [DESIGN.md](DESIGN.md) for the architecture and [REALTIME.md](REALTIME.md)
 for the live-performance direction.
 
-## Status
+## The nodes
 
-**Phase 1 - Schedule Engine (done).** GPU-free. The animation "brain":
+29 nodes in six groups. Everything below is schedulable, and any schedule
+can be driven by audio.
+
+**Schedules.** The GPU-free animation brain:
 
 | Node | What it does |
 |---|---|
@@ -59,7 +62,7 @@ for the live-performance direction.
 | **Difforum · Schedule Info** | Debug summary + ASCII sparkline of a curve |
 | **Difforum · Schedule Plot** | Renders the computed curve as an IMAGE (Preview-ready) |
 
-**Phase Audio - Reactivity (done).** Pure numpy (no librosa):
+**Audio reactivity.** Pure numpy (no librosa):
 
 | Node | What it does |
 |---|---|
@@ -70,7 +73,7 @@ Connect Audio Analyzer's `audio_curves` to Schedule's `audio` input, then use
 the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 `0:(2*low - high)`.
 
-**Hybrid foundation + render (done).**
+**Camera, models and rendering.**
 
 | Node | What it does |
 |---|---|
@@ -87,7 +90,7 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Prompt Schedule (travel)** | Prompt travel from a `frame: prompt` schedule |
 | **Difforum · Prompt Batch (→ AnimateDiff)** | Stacks prompt travel into one batched CONDITIONING for AnimateDiff |
 
-**Effects (done).** Mirror, kaleidoscope and smooth temporal trails:
+**Effects.** Mirror, kaleidoscope, temporal trails and detail recovery:
 
 | Node | What it does |
 |---|---|
@@ -95,7 +98,7 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
 | **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
 
-**VJ look (done).** Grade video footage for live visuals, no model required:
+**VJ look and video.** Grade video footage for live visuals, no model required:
 
 | Node | What it does |
 |---|---|
@@ -117,7 +120,7 @@ seams, giving a living kaleidoscope (`difforum_mesmerize_kaleidoscope.json`).
 
 ![Difforum living kaleidoscope](examples/difforum_kaleidoscope.gif)
 
-*In-loop kaleidoscope symmetry on an SD1.5 feedback render, smoothed with Echo
+*In-loop kaleidoscope symmetry on an SDXL feedback render, smoothed with Echo
 Trails. The pattern folds every frame and the diffusion reseals the seams, so it
 keeps growing on itself. Made entirely with the Difforum nodes.*
 
@@ -246,7 +249,12 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
 - **Mushy after many frames?** The Feedback Sampler's `sharpen` (~0.2-0.5) and
   `noise` (~0.02-0.05) re-inject detail each frame so the sampler resolves it
   into structure instead of amplifying blur; `border = reflection` (default)
-  stops black edges creeping in on zoom-out and rotation.
+  stops black edges creeping in on zoom-out and rotation. Same seed, same
+  camera, frame 48 of a spiral move:
+
+![Detail guard off vs on](examples/difforum_detail_ab_final.png)
+
+![Detail guard A/B](examples/difforum_detail_ab.gif)
 - **Audio-reactive** is one node: `Difforum · Audio Schedule` turns a band
   (bass/beat/onset) into a curve for zoom, strength, cfg - any schedule input.
 - **Illusions / hidden patterns:** feed a grayscale pattern (spiral, logo, mask)
@@ -304,11 +312,10 @@ Easing between keyframes: `linear`, `ease_in`, `ease_out`, `ease_in_out`, `step`
 No GPU or ComfyUI needed - 14 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
 model catalog, and a full end-to-end orchestration (stub diffusion):
 
-```powershell
-$py = "D:\ComfyUI-victor\venv\Scripts\python.exe"
-foreach ($t in "core","audio","hybrid","models","warp","color","effects","look","video","detail","shots","prompt","plot","integration") {
-  & $py "custom_nodes\difforum\tests\test_$t.py"
-}
+```bash
+for t in core audio hybrid models warp color effects look video detail shots prompt plot integration; do
+  python tests/test_$t.py
+done
 ```
 
 `test_integration.py` wires every node together (AnimSetup → Audio → Camera →
