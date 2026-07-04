@@ -22,7 +22,7 @@ from core import build_schedule  # noqa: E402
 from core.camera import CAMERA_MODES, build_camera  # noqa: E402
 from core.camera_presets import CAMERA_PRESETS, preset_schedules  # noqa: E402
 from core.plot import render_camera_path  # noqa: E402
-from core.profiles import FAMILIES, QUALITIES, resolve_profile, summarize  # noqa: E402
+from core.profiles import FAMILIES, QUALITIES, detect_device, resolve_profile, summarize  # noqa: E402
 from core.shots import shots_to_axis_values  # noqa: E402
 
 CATEGORY = "Difforum/hybrid"
@@ -139,22 +139,16 @@ class DifforumModelProfile:
     OUTPUT_NODE = True
     CATEGORY = CATEGORY
 
-    def _detect_vram(self, fallback: int) -> int:
-        try:
-            import torch
-            if torch.cuda.is_available():
-                total = torch.cuda.get_device_properties(0).total_memory
-                return max(4, int(total / (1024 ** 3)))
-        except Exception:  # noqa: BLE001
-            pass
-        return fallback
-
     def run(self, family, quality, auto_detect_vram, vram_gb, attention):
-        vram = self._detect_vram(vram_gb) if auto_detect_vram else int(vram_gb)
-        prof = resolve_profile(vram, family=family, quality=quality, attention=attention)
-        text = f"VRAM={vram}GB\n" + summarize(prof)
+        device, detected = detect_device()
+        vram = int(detected) if auto_detect_vram else int(vram_gb)
+        prof = resolve_profile(vram, family=family, quality=quality,
+                               attention=attention, device=device)
+        mem_label = "unified" if device == "mps" else "VRAM"
+        text = f"device={device}  {mem_label}={vram}GB\n" + summarize(prof)
         bundle = prof.as_dict()
         bundle["vram_gb"] = vram
+        bundle["device"] = device
         return {
             "ui": {"text": [text]},
             "result": (bundle, text, prof.width, prof.height, prof.segment_frames),

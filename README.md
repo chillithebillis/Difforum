@@ -266,6 +266,39 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
   after the sampler for smooth motion blur (`difforum_mesmerize_kaleidoscope.json`).
   A slow rotation/zoom on the camera keeps feeding the kaleidoscope new material.
 
+## Performance
+
+Difforum's pixel-effect chain (warp, symmetry, sharpen, noise) runs on the best
+available device automatically: CUDA, then Apple **MPS**, then CPU, with a safe
+per-session fallback. The Model Profile node detects the device and adapts its
+recommendations. Platform notes:
+
+**Apple Silicon (M-series).**
+- **fp8 checkpoints do not work on MPS** (no fp8 kernels). Use **fp16/bf16 or
+  GGUF** versions instead; the Model Profile swaps its recommendation
+  automatically on Macs.
+- Launch with `--use-pytorch-cross-attention` and set
+  `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` to unlock the full unified-memory pool.
+- fp16 halves memory but is **not faster** than fp32 on M-series ALUs, so the
+  real speed lever is **few-step models**: SD-Turbo / LCM / Lightning at 1-4
+  steps. The Live Sampler and Turbo templates are the best fit for Macs.
+- Memory is unified: a 32GB Mac behaves like ~22GB of usable "VRAM" once the OS
+  and CPU take their share.
+
+**AnimateDiff (via the Prompt Batch bridge).**
+- **AnimateLCM**: `lcm` beta schedule + LCM LoRA + `lcm` sampler, cfg 1.0-2.0,
+  ~4 steps - the fastest good-looking AnimateDiff path.
+- For long clips use AnimateDiff-Evolved's **Context Options** (sliding windows)
+  and set Sample Settings `noise_type = FreeNoise` so window transitions stop
+  popping.
+
+**Wan 2.2.**
+- **Lightning LoRA (lightx2v)**: 4 steps on the High model + 4 on the Low model,
+  cfg 1 - the standard fast setup our Model Profile recommends.
+- **MagCache** (better than TeaCache in our reading) and **SageAttention**
+  (CUDA-only) stack more speed on top.
+- Keep resolutions divisible by 16 or the VAE will fail at decode time.
+
 ## Realtime / live
 
 The **Difforum Live Sampler** is a native realtime engine. Stock ComfyUI re-runs

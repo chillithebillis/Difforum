@@ -127,11 +127,45 @@ def _pick_tier(table: dict[int, dict], vram_gb: float) -> dict:
     return table[chosen]
 
 
+def detect_device() -> tuple[str, float]:
+    """Best available device and its usable memory in GB.
+
+    cuda -> dedicated VRAM. mps (Apple Silicon) -> unified memory, counted at
+    ~70% because CPU, OS and the model runner share the same pool. cpu -> RAM.
+    """
+    try:
+        import torch
+        if torch.cuda.is_available():
+            total = torch.cuda.get_device_properties(0).total_memory
+            return "cuda", max(4.0, total / (1024 ** 3))
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            try:
+                import psutil
+                total = psutil.virtual_memory().total
+            except Exception:
+                total = 16 * (1024 ** 3)
+            return "mps", max(8.0, total / (1024 ** 3) * 0.7)
+    except Exception:  # noqa: BLE001
+        pass
+    return "cpu", 8.0
+
+
+_MPS_NOTES = (
+    "Apple Silicon: fp8 kernels do not exist on MPS, so fp8 checkpoints fail - "
+    "use fp16/bf16 or GGUF instead. Launch ComfyUI with "
+    "--use-pytorch-cross-attention and set PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 "
+    "to unlock the full unified-memory pool. fp16 saves memory but is not "
+    "faster than fp32 on M-series, so few-step models (Lightning/LCM/Turbo) "
+    "are the real speed lever."
+)
+
+
 def resolve_profile(
     vram_gb: float,
     family: str = "wan22",
     quality: str = "balanced",
     attention: str = "sdpa",
+    device: str = "cuda",
 ) -> RenderProfile:
     """Resolve a RenderProfile for the given GPU and model family."""
     if family not in FAMILIES:
@@ -141,6 +175,16 @@ def resolve_profile(
 
     tier = _pick_tier(_TABLES[family], float(vram_gb))
     q = _QUALITY[quality]
+
+    # Apple Silicon: MPS has no fp8 kernels -> swap fp8 tiers for fp16/GGUF.
+    # SageAttention is CUDA-only, so fall back to sdpa there too.
+    if device == "mps":
+        tier = dict(tier)
+        if "fp8" in str(tier.get("quant", "")).lower():
+            tier["quant"] = "gguf-q6" if family == "wan22" else "fp16"
+        tier["notes"] = (tier.get("notes", "") + " " + _MPS_NOTES).strip()
+        if attention == "sage":
+            attention = "sdpa"
 
     # SD1.5/SDXL don't use the Wan/LTXV lightning distill LoRA
     use_ll = q["use_lightning_lora"] and family in ("wan22", "ltxv")

@@ -27,6 +27,7 @@ if str(_PKG_ROOT) not in sys.path:
 from core.color import COLOR_MODES, match_color  # noqa: E402
 from core.detail import add_noise as _add_noise  # noqa: E402
 from core.detail import sharpen as _sharpen  # noqa: E402
+from core.fx import FxRunner  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 from core.warp import warp_2d, warp_3d  # noqa: E402
 
@@ -321,36 +322,38 @@ class DifforumLiveSampler:
             pbar.update_absolute(0, int(duration_frames), _to_preview(prev))
 
         min_dt = (1.0 / target_fps) if target_fps and target_fps > 0 else 0.0
+        fx = FxRunner()   # pixel-effect chain on cuda/mps when available
         try:
             for i in range(1, int(duration_frames)):
                 t0 = _time.perf_counter()
                 idx = (i % n_cam) if loop_camera else min(i, n_cam - 1)
                 delta = torch.as_tensor(camera.deltas[idx], dtype=torch.float32)
                 zoom, fov = float(camera.zoom[idx]), float(camera.fov[idx])
+                cam_frame = src.read(w, h) if src.active else None
 
-                if camera.mode == "3d" and depth_b is not None:
-                    d = depth_b.mean(dim=-1) if depth_b.shape[-1] == 3 else depth_b[..., 0]
-                    warped, _m = warp_3d(prev, d, delta, fov_deg=fov)
-                else:
-                    tx, ty = float(delta[0, 3]), float(delta[1, 3])
-                    angle = math.degrees(math.atan2(float(delta[1, 0]), float(delta[0, 0])))
-                    warped, _m = warp_2d(prev, tx, ty, angle, zoom,
-                                         padding_mode="reflection")
-
-                # live "magic mirror": blend a fresh camera/video frame over the
-                # warped feedback, then the symmetry below kaleidoscopes it
-                if src.active:
-                    cam = src.read(w, h)
-                    if cam is not None:
+                def _chain(img, i=i, delta=delta, zoom=zoom, fov=fov, cam_frame=cam_frame):
+                    if camera.mode == "3d" and depth_b is not None:
+                        d = depth_b.mean(dim=-1) if depth_b.shape[-1] == 3 else depth_b[..., 0]
+                        out, _m = warp_3d(img, d.to(img.device), delta, fov_deg=fov)
+                    else:
+                        tx, ty = float(delta[0, 3]), float(delta[1, 3])
+                        angle = math.degrees(math.atan2(float(delta[1, 0]), float(delta[0, 0])))
+                        out, _m = warp_2d(img, tx, ty, angle, zoom,
+                                          padding_mode="reflection")
+                    # live "magic mirror": blend a fresh camera/video frame over
+                    # the warped feedback, then the symmetry kaleidoscopes it
+                    if cam_frame is not None:
                         b = float(source_blend)
-                        warped = cam.to(warped.dtype) * b + warped * (1.0 - b)
+                        out = cam_frame.to(out.device, out.dtype) * b + out * (1.0 - b)
+                    if symmetry != "none":
+                        out = apply_symmetry(out, mode=symmetry, segments=int(symmetry_segments))
+                    if sharpen > 0.0:
+                        out = _sharpen(out, float(sharpen))
+                    if noise > 0.0:
+                        out = _add_noise(out, float(noise), seed=int(seed) + i)
+                    return out
 
-                if symmetry != "none":
-                    warped = apply_symmetry(warped, mode=symmetry, segments=int(symmetry_segments))
-                if sharpen > 0.0:
-                    warped = _sharpen(warped, float(sharpen))
-                if noise > 0.0:
-                    warped = _add_noise(warped, float(noise), seed=int(seed) + i)
+                warped = fx(_chain, prev)
 
                 pos_f = positive
                 if positive_schedule is not None and len(positive_schedule) > 0:

@@ -25,6 +25,7 @@ if str(_PKG_ROOT) not in sys.path:
 from core.color import COLOR_MODES, match_color  # noqa: E402
 from core.detail import add_noise as _add_noise  # noqa: E402
 from core.detail import sharpen as _sharpen  # noqa: E402
+from core.fx import FxRunner  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 from core.warp import warp_2d, warp_3d  # noqa: E402
 
@@ -132,35 +133,40 @@ class DifforumFeedbackSampler:
         pbar = comfy.utils.ProgressBar(n)
         pbar.update(1)
 
+        fx = FxRunner()   # run the pixel-effect chain on cuda/mps when available
+
         for f in range(1, n):
             delta = torch.as_tensor(camera.deltas[f], dtype=torch.float32)
             zoom = float(camera.zoom[f])
             fov = float(camera.fov[f])
 
-            if camera.mode == "3d" and depth_b is not None:
-                warped, _mask = warp_3d(
-                    prev, depth_b[..., 0], delta, fov_deg=fov,
-                    near=float(near), far=float(far), invert_depth=bool(invert_depth),
-                    translation_scale=float(translation_scale),
-                )
-            else:
-                tx, ty = float(delta[0, 3]), float(delta[1, 3])
-                warped, _mask = warp_2d(prev, tx, ty, _z_angle_deg(delta), zoom,
-                                        padding_mode=border)
+            def _chain(img, f=f, delta=delta, zoom=zoom, fov=fov):
+                if camera.mode == "3d" and depth_b is not None:
+                    d = depth_b[..., 0].to(img.device)
+                    out, _m = warp_3d(
+                        img, d, delta, fov_deg=fov,
+                        near=float(near), far=float(far), invert_depth=bool(invert_depth),
+                        translation_scale=float(translation_scale),
+                    )
+                else:
+                    tx, ty = float(delta[0, 3]), float(delta[1, 3])
+                    out, _m = warp_2d(img, tx, ty, _z_angle_deg(delta), zoom,
+                                      padding_mode=border)
+                # symmetry inside the loop: it compounds frame to frame and the
+                # diffusion below heals the seams = a living kaleidoscope
+                if symmetry != "none":
+                    out = apply_symmetry(out, mode=symmetry,
+                                         segments=int(symmetry_segments))
+                # detail guard: every warp + VAE round-trip softens the frame,
+                # so re-sharpen and inject fresh noise for the sampler to
+                # resolve into detail (the classic anti-mush trick)
+                if sharpen > 0.0:
+                    out = _sharpen(out, float(sharpen))
+                if noise > 0.0:
+                    out = _add_noise(out, float(noise), seed=seed + f)
+                return out
 
-            # symmetry inside the loop: it compounds frame to frame and the
-            # diffusion below heals the seams = a living kaleidoscope
-            if symmetry != "none":
-                warped = apply_symmetry(warped, mode=symmetry,
-                                        segments=int(symmetry_segments))
-
-            # detail guard: every warp + VAE round-trip softens the frame, so
-            # re-sharpen and inject fresh noise for the sampler to resolve into
-            # detail (the classic anti-mush trick)
-            if sharpen > 0.0:
-                warped = _sharpen(warped, float(sharpen))
-            if noise > 0.0:
-                warped = _add_noise(warped, float(noise), seed=seed + f)
+            warped = fx(_chain, prev)
 
             # img2img re-diffuse the warped frame
             denoise = max(0.0, min(1.0, float(strength_schedule.at(f))))
