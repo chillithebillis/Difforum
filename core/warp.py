@@ -41,12 +41,15 @@ def warp_2d(
     translation_y: float = 0.0,
     angle: float = 0.0,
     zoom: float = 1.0,
+    padding_mode: str = "zeros",
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     2D affine warp (the classic Deforum 2D mode), inverse-sampled.
 
     translation in pixels, angle in degrees (CCW), zoom > 1 magnifies. Returns
     (warped [.,H,W,3], mask [.,H,W,1]) where mask=1 means a valid sampled pixel.
+    padding_mode: "zeros" (black), "reflection" or "border" - in a feedback loop
+    reflection avoids dragging black edges in that the sampler then amplifies.
     """
     img, squeezed = _as_bhwc(image)
     b, h, w, c = img.shape
@@ -76,7 +79,7 @@ def warp_2d(
 
     chw = img.permute(0, 3, 1, 2)
     warped = torch.nn.functional.grid_sample(
-        chw, grid, mode="bilinear", padding_mode="zeros", align_corners=True
+        chw, grid, mode="bilinear", padding_mode=padding_mode, align_corners=True
     )
     # validity: where the source coord fell inside the image
     inside = (

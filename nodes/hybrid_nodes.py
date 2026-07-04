@@ -21,7 +21,9 @@ if str(_PKG_ROOT) not in sys.path:
 from core import build_schedule  # noqa: E402
 from core.camera import CAMERA_MODES, build_camera  # noqa: E402
 from core.camera_presets import CAMERA_PRESETS, preset_schedules  # noqa: E402
+from core.plot import render_camera_path  # noqa: E402
 from core.profiles import FAMILIES, QUALITIES, resolve_profile, summarize  # noqa: E402
+from core.shots import shots_to_axis_values  # noqa: E402
 
 CATEGORY = "Difforum/hybrid"
 
@@ -159,14 +161,74 @@ class DifforumModelProfile:
         }
 
 
+class DifforumCameraShots:
+    """Direct the camera like an edit: a shot list of preset moves over frame
+    ranges. One line per cut: `frame: preset [speed] [intensity]`."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "params": ("DIFFORUM_PARAMS",),
+                "shots": ("STRING", {"multiline": True, "default":
+                          "0: dolly_in 1.0 1.0\n48: orbit_right 1.2 0.8\n96: spiral"}),
+                "mode": (list(CAMERA_MODES), {"default": "2d"}),
+                "fov": ("FLOAT", {"default": 40.0, "min": 1.0, "max": 170.0, "step": 1.0}),
+            },
+            "optional": {"audio": ("DIFFORUM_AUDIO",)},
+        }
+
+    RETURN_TYPES = ("DIFFORUM_CAMERA", "STRING")
+    RETURN_NAMES = ("camera", "info")
+    FUNCTION = "run"
+    CATEGORY = CATEGORY
+
+    def run(self, params, shots, mode, fov, audio=None):
+        extra = audio.get("curves") if isinstance(audio, dict) else None
+        n = params["max_frames"]
+        values, summary = shots_to_axis_values(shots, max_frames=n,
+                                               fps=params["fps"], extra_vars=extra)
+        cam = build_camera(values, max_frames=n, mode=mode, fov=fov)
+        info = f"camera shots ({mode}, {n} frames):\n{summary}"
+        return (cam, info)
+
+
+class DifforumCameraPreview:
+    """See the camera direction before rendering: top-down path + zoom strip."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "camera": ("DIFFORUM_CAMERA",),
+                "size": ("INT", {"default": 512, "min": 128, "max": 2048, "step": 64}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("path_image",)
+    FUNCTION = "run"
+    CATEGORY = CATEGORY
+
+    def run(self, camera, size):
+        import torch
+        img = render_camera_path(camera.poses, camera.zoom, mode=camera.mode,
+                                 width=int(size), height=int(size))
+        return (torch.from_numpy(img).unsqueeze(0),)
+
+
 NODE_CLASS_MAPPINGS = {
     "DifforumCamera": DifforumCamera,
     "DifforumCameraMove": DifforumCameraMove,
+    "DifforumCameraShots": DifforumCameraShots,
+    "DifforumCameraPreview": DifforumCameraPreview,
     "DifforumModelProfile": DifforumModelProfile,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DifforumCamera": "Difforum · Camera (advanced)",
     "DifforumCameraMove": "Difforum · Camera Move (presets)",
+    "DifforumCameraShots": "Difforum · Camera Shots (director)",
+    "DifforumCameraPreview": "Difforum · Camera Path Preview",
     "DifforumModelProfile": "Difforum · Model Profile",
 }

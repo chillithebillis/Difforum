@@ -42,7 +42,7 @@ What you get:
   re-diffuse, LAB colour match), **Hybrid** (drives Wan 2.2 VACE), and
   **AnimateDiff** (feeds prompt travel and schedules into AnimateDiff-Evolved).
 - No `eval()`, no exotic dependencies (safe AST evaluator, numpy FFT audio, torch
-  warps), 12 test suites, and a clean install on Python 3.12 and the Comfy Registry.
+  warps), 14 test suites, and a clean install on Python 3.12 and the Comfy Registry.
 
 See [DESIGN.md](DESIGN.md) for the architecture and [REALTIME.md](REALTIME.md)
 for the live-performance direction.
@@ -75,6 +75,8 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | Node | What it does |
 |---|---|
 | **Difforum · Camera Move (presets)** | Intuitive camera: pick a move (zoom/orbit/spiral/shake…) + speed + intensity |
+| **Difforum · Camera Shots (director)** | Direct the camera like an edit: a shot list (`frame: preset speed intensity`) chains moves across the clip |
+| **Difforum · Camera Path Preview** | See the camera direction before rendering: top-down trajectory + zoom strip as an IMAGE |
 | **Difforum · Camera (advanced)** | Deforum 2D/3D camera schedules → per-frame poses (audio-reactive) |
 | **Difforum · Model Profile** | Auto-resolve model/quant/res/steps for the GPU (12→32GB+, GGUF) |
 | **Difforum · Model Catalog** | Classic, trainable model recipes + download/training guide |
@@ -91,6 +93,7 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 |---|---|
 | **Difforum · Symmetry / Kaleidoscope** | Mirror H/V, 4-fold quad, or N-segment kaleidoscope on a frame or batch |
 | **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
+| **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
 
 **VJ look (done).** Grade video footage for live visuals, no model required:
 
@@ -240,6 +243,10 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
   cleaner than SD1.5 - it's model-agnostic, just swap the checkpoint.
 - **Colour drift?** Keep `color_mode = lab` (default) and `color_coherence`
   around 0.7-0.9. **Flicker?** Lower per-frame `strength` (denoise) to ~0.4-0.5.
+- **Mushy after many frames?** The Feedback Sampler's `sharpen` (~0.2-0.5) and
+  `noise` (~0.02-0.05) re-inject detail each frame so the sampler resolves it
+  into structure instead of amplifying blur; `border = reflection` (default)
+  stops black edges creeping in on zoom-out and rotation.
 - **Audio-reactive** is one node: `Difforum · Audio Schedule` turns a band
   (bass/beat/onset) into a curve for zoom, strength, cfg - any schedule input.
 - **Illusions / hidden patterns:** feed a grayscale pattern (spiral, logo, mask)
@@ -294,12 +301,12 @@ Easing between keyframes: `linear`, `ease_in`, `ease_out`, `ease_in_out`, `step`
 
 ## Develop / test
 
-No GPU or ComfyUI needed - 12 suites cover the engine, warp, colour, effects, look, video,
+No GPU or ComfyUI needed - 14 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
 model catalog, and a full end-to-end orchestration (stub diffusion):
 
 ```powershell
 $py = "D:\ComfyUI-victor\venv\Scripts\python.exe"
-foreach ($t in "core","audio","hybrid","models","warp","color","effects","look","video","prompt","plot","integration") {
+foreach ($t in "core","audio","hybrid","models","warp","color","effects","look","video","detail","shots","prompt","plot","integration") {
   & $py "custom_nodes\difforum\tests\test_$t.py"
 }
 ```

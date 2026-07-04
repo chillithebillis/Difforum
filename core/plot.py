@@ -76,3 +76,79 @@ def render_curve(
         prev_y = y
 
     return canvas
+
+
+_START = (0.30, 0.95, 0.45)
+_END = (1.00, 0.55, 0.20)
+
+
+def _dot(c, y, x, color, r=3):
+    h, w = c.shape[:2]
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            if dy * dy + dx * dx <= r * r:
+                yy, xx = min(max(y + dy, 0), h - 1), min(max(x + dx, 0), w - 1)
+                c[yy, xx] = color
+
+
+def render_camera_path(poses, zoom, mode: str = "3d",
+                       width: int = 512, height: int = 512) -> np.ndarray:
+    """Top-down view of the camera trajectory (see the direction before you
+    render). Path fades dim -> bright over time; green dot = start, orange =
+    end. A strip at the bottom shows the zoom curve. [H,W,3] float 0..1."""
+    h, w = int(height), int(width)
+    canvas = np.empty((h, w, 3), dtype=np.float32)
+    canvas[:] = _BG
+
+    pts = np.asarray([[p[0, 3], p[1, 3] if mode == "2d" else p[2, 3]] for p in poses],
+                     dtype=np.float64)
+    n = len(pts)
+    if n == 0:
+        return canvas
+
+    strip = max(24, h // 6)                       # zoom strip at the bottom
+    pad = 14
+    ph, pw = h - strip - 2 * pad, w - 2 * pad
+
+    span = np.maximum(pts.max(axis=0) - pts.min(axis=0), 1e-6)
+    scale = min(pw / span[0], ph / span[1]) * 0.9
+    center = (pts.min(axis=0) + pts.max(axis=0)) / 2.0
+
+    def to_px(p):
+        x = pad + pw / 2 + (p[0] - center[0]) * scale
+        y = pad + ph / 2 + (p[1] - center[1]) * scale
+        return int(round(y)), int(round(x))
+
+    # grid cross through the origin of the plot area
+    _hline(canvas[: h - strip], pad + ph // 2, _GRID)
+    _vline(canvas[: h - strip], pad + pw // 2, _GRID)
+
+    for i in range(1, n):
+        y0, x0 = to_px(pts[i - 1])
+        y1, x1 = to_px(pts[i])
+        steps = max(abs(y1 - y0), abs(x1 - x0), 1)
+        bright = 0.35 + 0.65 * (i / max(1, n - 1))
+        color = (0.30 * bright, 0.80 * bright, 1.00 * bright)
+        for s in range(steps + 1):
+            t = s / steps
+            yy = min(max(int(round(y0 + (y1 - y0) * t)), 0), h - strip - 1)
+            xx = min(max(int(round(x0 + (x1 - x0) * t)), 0), w - 1)
+            canvas[yy, xx] = color
+            if xx + 1 < w:
+                canvas[yy, xx + 1] = color
+    _dot(canvas, *to_px(pts[0]), _START)
+    _dot(canvas, *to_px(pts[-1]), _END)
+
+    # zoom strip
+    zvals = np.asarray(list(zoom), dtype=np.float64)
+    if zvals.size:
+        lo, hi = float(zvals.min()), float(zvals.max())
+        zspan = (hi - lo) or 1.0
+        base = h - strip
+        canvas[base] = _AXIS
+        for px in range(w):
+            i = int(px / max(1, w - 1) * (zvals.size - 1))
+            t = (zvals[i] - lo) / zspan
+            y = base + 2 + int((1.0 - t) * (strip - 5))
+            canvas[min(y, h - 1), px] = _LINE
+    return canvas

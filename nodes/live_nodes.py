@@ -25,6 +25,8 @@ if str(_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_PKG_ROOT))
 
 from core.color import COLOR_MODES, match_color  # noqa: E402
+from core.detail import add_noise as _add_noise  # noqa: E402
+from core.detail import sharpen as _sharpen  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 from core.warp import warp_2d, warp_3d  # noqa: E402
 
@@ -259,6 +261,8 @@ class DifforumLiveSampler:
                 "symmetry": (list(SYMMETRY_MODES), {"default": "none"}),
                 "symmetry_segments": ("INT", {"default": 6, "min": 2, "max": 64}),
                 "target_fps": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 60.0, "step": 0.5}),
+                "sharpen": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0, "step": 0.05}),
+                "noise": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 0.5, "step": 0.005}),
             },
             "optional": {
                 "positive_schedule": ("DIFFORUM_PROMPT",),
@@ -283,6 +287,7 @@ class DifforumLiveSampler:
     def run(self, model, positive, negative, vae, params, camera, init_image,
             duration_frames, strength, steps, cfg, sampler_name, scheduler,
             color_coherence, color_mode, symmetry, symmetry_segments, target_fps,
+            sharpen=0.2, noise=0.02,
             positive_schedule=None, depth=None, control_net=None, control_strength=0.6,
             live_preview=True, live_source="", source_blend=0.9, stream_dir="",
             spout_name="", loop_camera=True, seed=0):
@@ -329,7 +334,8 @@ class DifforumLiveSampler:
                 else:
                     tx, ty = float(delta[0, 3]), float(delta[1, 3])
                     angle = math.degrees(math.atan2(float(delta[1, 0]), float(delta[0, 0])))
-                    warped, _m = warp_2d(prev, tx, ty, angle, zoom)
+                    warped, _m = warp_2d(prev, tx, ty, angle, zoom,
+                                         padding_mode="reflection")
 
                 # live "magic mirror": blend a fresh camera/video frame over the
                 # warped feedback, then the symmetry below kaleidoscopes it
@@ -341,6 +347,10 @@ class DifforumLiveSampler:
 
                 if symmetry != "none":
                     warped = apply_symmetry(warped, mode=symmetry, segments=int(symmetry_segments))
+                if sharpen > 0.0:
+                    warped = _sharpen(warped, float(sharpen))
+                if noise > 0.0:
+                    warped = _add_noise(warped, float(noise), seed=int(seed) + i)
 
                 pos_f = positive
                 if positive_schedule is not None and len(positive_schedule) > 0:

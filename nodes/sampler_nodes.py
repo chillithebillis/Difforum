@@ -23,8 +23,12 @@ if str(_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_PKG_ROOT))
 
 from core.color import COLOR_MODES, match_color  # noqa: E402
+from core.detail import add_noise as _add_noise  # noqa: E402
+from core.detail import sharpen as _sharpen  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 from core.warp import warp_2d, warp_3d  # noqa: E402
+
+BORDER_MODES = ("reflection", "zeros", "border")
 
 CATEGORY = "Difforum/render"
 
@@ -82,6 +86,9 @@ class DifforumFeedbackSampler:
                 "control_image": ("IMAGE",),
                 "symmetry": (list(SYMMETRY_MODES), {"default": "none"}),
                 "symmetry_segments": ("INT", {"default": 6, "min": 2, "max": 64}),
+                "border": (list(BORDER_MODES), {"default": "reflection"}),
+                "sharpen": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0, "step": 0.05}),
+                "noise": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 0.5, "step": 0.005}),
             },
         }
 
@@ -95,7 +102,8 @@ class DifforumFeedbackSampler:
             color_mode="lab", depth=None, cfg_schedule=None, positive_schedule=None,
             near=1.0, far=100.0, invert_depth=False, translation_scale=1.0,
             control_net=None, control_strength=0.6, control_image=None,
-            symmetry="none", symmetry_segments=6):
+            symmetry="none", symmetry_segments=6, border="reflection",
+            sharpen=0.2, noise=0.02):
         import comfy.utils
         from nodes import common_ksampler
 
@@ -137,13 +145,22 @@ class DifforumFeedbackSampler:
                 )
             else:
                 tx, ty = float(delta[0, 3]), float(delta[1, 3])
-                warped, _mask = warp_2d(prev, tx, ty, _z_angle_deg(delta), zoom)
+                warped, _mask = warp_2d(prev, tx, ty, _z_angle_deg(delta), zoom,
+                                        padding_mode=border)
 
             # symmetry inside the loop: it compounds frame to frame and the
             # diffusion below heals the seams = a living kaleidoscope
             if symmetry != "none":
                 warped = apply_symmetry(warped, mode=symmetry,
                                         segments=int(symmetry_segments))
+
+            # detail guard: every warp + VAE round-trip softens the frame, so
+            # re-sharpen and inject fresh noise for the sampler to resolve into
+            # detail (the classic anti-mush trick)
+            if sharpen > 0.0:
+                warped = _sharpen(warped, float(sharpen))
+            if noise > 0.0:
+                warped = _add_noise(warped, float(noise), seed=seed + f)
 
             # img2img re-diffuse the warped frame
             denoise = max(0.0, min(1.0, float(strength_schedule.at(f))))
@@ -158,7 +175,7 @@ class DifforumFeedbackSampler:
             # the warped frame (keeps structure aligned to the camera per frame)
             if cn_apply is not None:
                 if ctrl_b is not None:
-                    hint = ctrl_b[min(f, ctrl_b.shape[0] - 1)].unsqueeze(0)
+                    hint = ctrl_b[f % ctrl_b.shape[0]].unsqueeze(0)  # loop the sequence
                 else:
                     hint = warped[:, :, :, :3]
                 pos_f, neg_f = cn_apply(

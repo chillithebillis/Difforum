@@ -16,6 +16,7 @@ _PKG_ROOT = Path(__file__).resolve().parent.parent
 if str(_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_PKG_ROOT))
 
+from core.detail import NOISE_MODES, detail_guard  # noqa: E402
 from core.effects import echo_trails  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 
@@ -76,12 +77,43 @@ class DifforumEchoTrails:
         return (echo_trails(frames, decay=float(decay), mix=float(mix)),)
 
 
+class DifforumDetailGuard:
+    """Fight feedback mush: unsharp mask + contrast + noise injection."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "sharpen": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 2.0, "step": 0.05}),
+                "noise": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 0.5, "step": 0.005}),
+                "contrast": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 2.0, "step": 0.01}),
+                "noise_mode": (list(NOISE_MODES), {"default": "gaussian"}),
+            },
+            "optional": {
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFF}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "run"
+    CATEGORY = CATEGORY
+
+    def run(self, image, sharpen, noise, contrast, noise_mode, seed=0):
+        out = detail_guard(image, sharpen_amount=float(sharpen), noise_amount=float(noise),
+                           contrast=float(contrast), seed=int(seed), noise_mode=noise_mode)
+        return (out,)
+
+
 NODE_CLASS_MAPPINGS = {
     "DifforumSymmetry": DifforumSymmetry,
     "DifforumEchoTrails": DifforumEchoTrails,
+    "DifforumDetailGuard": DifforumDetailGuard,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DifforumSymmetry": "Difforum · Symmetry / Kaleidoscope",
     "DifforumEchoTrails": "Difforum · Echo Trails",
+    "DifforumDetailGuard": "Difforum · Detail Guard (anti-mush)",
 }
