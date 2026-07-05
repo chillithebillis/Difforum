@@ -106,14 +106,42 @@ class DifforumDetailGuard:
         return (out,)
 
 
+class DifforumFlowStabilize:
+    """Anti-flicker: blend history along optical flow, gated by photometric
+    confidence, so texture stops boiling but motion never ghosts."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "frames": ("IMAGE",),
+                "strength": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 0.95, "step": 0.05}),
+                "flow_scale": ("FLOAT", {"default": 0.5, "min": 0.25, "max": 1.0, "step": 0.25}),
+                "error_gate": ("FLOAT", {"default": 0.15, "min": 0.02, "max": 0.5, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
+    FUNCTION = "run"
+    CATEGORY = CATEGORY
+
+    def run(self, frames, strength, flow_scale, error_gate):
+        from core.flow import stabilize
+        return (stabilize(frames, strength=float(strength),
+                          flow_scale=float(flow_scale), error_gate=float(error_gate)),)
+
+
 NODE_CLASS_MAPPINGS = {
     "DifforumSymmetry": DifforumSymmetry,
     "DifforumEchoTrails": DifforumEchoTrails,
     "DifforumDetailGuard": DifforumDetailGuard,
+    "DifforumFlowStabilize": DifforumFlowStabilize,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DifforumSymmetry": "Difforum · Symmetry / Kaleidoscope",
     "DifforumEchoTrails": "Difforum · Echo Trails",
     "DifforumDetailGuard": "Difforum · Detail Guard (anti-mush)",
+    "DifforumFlowStabilize": "Difforum · Flow Stabilize (anti-flicker)",
 }

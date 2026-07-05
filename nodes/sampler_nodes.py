@@ -91,6 +91,8 @@ class DifforumFeedbackSampler:
                 "sharpen": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "noise": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 0.5, "step": 0.005}),
                 "cadence": ("INT", {"default": 1, "min": 1, "max": 12}),
+                "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000000}),
+                "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000000}),
             },
         }
 
@@ -105,7 +107,7 @@ class DifforumFeedbackSampler:
             near=1.0, far=100.0, invert_depth=False, translation_scale=1.0,
             control_net=None, control_strength=0.6, control_image=None,
             symmetry="none", symmetry_segments=6, border="reflection",
-            sharpen=0.2, noise=0.02, cadence=1):
+            sharpen=0.2, noise=0.02, cadence=1, start_frame=0, end_frame=0):
         import comfy.utils
         from nodes import common_ksampler
 
@@ -136,7 +138,11 @@ class DifforumFeedbackSampler:
 
         fx = FxRunner()   # run the pixel-effect chain on cuda/mps when available
 
-        for f in range(1, n):
+        # render range: chunked / resumable long videos. init_image = the frame
+        # at start_frame; all schedules stay absolutely indexed so chunks align.
+        f0 = max(0, int(start_frame))
+        f1 = min(n, int(end_frame)) if int(end_frame) > 0 else n
+        for f in range(f0 + 1, f1):
             delta = torch.as_tensor(camera.deltas[f], dtype=torch.float32)
             zoom = float(camera.zoom[f])
             fov = float(camera.fov[f])

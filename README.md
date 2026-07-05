@@ -42,14 +42,14 @@ What you get:
   re-diffuse, LAB colour match), **Hybrid** (drives Wan 2.2 VACE), and
   **AnimateDiff** (feeds prompt travel and schedules into AnimateDiff-Evolved).
 - No `eval()`, no exotic dependencies (safe AST evaluator, numpy FFT audio, torch
-  warps), 14 test suites, and a clean install on Python 3.12 and the Comfy Registry.
+  warps), 15 test suites, and a clean install on Python 3.12 and the Comfy Registry.
 
 See [DESIGN.md](DESIGN.md) for the architecture and [REALTIME.md](REALTIME.md)
 for the live-performance direction.
 
 ## The nodes
 
-29 nodes in six groups. Everything below is schedulable, and any schedule
+30 nodes in six groups. Everything below is schedulable, and any schedule
 can be driven by audio.
 
 **Schedules.** The GPU-free animation brain:
@@ -97,6 +97,7 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Symmetry / Kaleidoscope** | Mirror H/V, 4-fold quad, or N-segment kaleidoscope on a frame or batch |
 | **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
 | **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
+| **Difforum · Flow Stabilize (anti-flicker)** | Blends history along optical flow, gated by photometric confidence: texture stops boiling, motion never ghosts |
 
 **VJ look and video.** Grade video footage for live visuals, no model required:
 
@@ -245,7 +246,10 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
 - **Use a modern base.** SDXL / Flux / SD3.5 in the Feedback Sampler look far
   cleaner than SD1.5 - it's model-agnostic, just swap the checkpoint.
 - **Colour drift?** Keep `color_mode = lab` (default) and `color_coherence`
-  around 0.7-0.9. **Flicker?** Lower per-frame `strength` (denoise) to ~0.4-0.5.
+  around 0.7-0.9. **Flicker?** Lower per-frame `strength` (denoise) to ~0.4-0.5,
+  and run the frames through **Flow Stabilize** (strength ~0.5): it aligns the
+  previous frame along optical flow before blending, so it removes texture boil
+  without the ghosting that naive frame-blending causes.
 - **Long videos, faster:** set the Feedback Sampler's `cadence` to 2-3 and only
   every Nth frame is diffused - the in-between frames ride the camera warp
   (classic Deforum turbo). Roughly N times faster with smoother motion; also on
@@ -346,11 +350,11 @@ Easing between keyframes: `linear`, `ease_in`, `ease_out`, `ease_in_out`, `step`
 
 ## Develop / test
 
-No GPU or ComfyUI needed - 14 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
+No GPU or ComfyUI needed - 15 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
 model catalog, and a full end-to-end orchestration (stub diffusion):
 
 ```bash
-for t in core audio hybrid models warp color effects look video detail shots prompt plot integration; do
+for t in core audio hybrid models warp color effects look video detail shots flow prompt plot integration; do
   python tests/test_$t.py
 done
 ```
