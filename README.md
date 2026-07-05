@@ -246,6 +246,10 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
   cleaner than SD1.5 - it's model-agnostic, just swap the checkpoint.
 - **Colour drift?** Keep `color_mode = lab` (default) and `color_coherence`
   around 0.7-0.9. **Flicker?** Lower per-frame `strength` (denoise) to ~0.4-0.5.
+- **Long videos, faster:** set the Feedback Sampler's `cadence` to 2-3 and only
+  every Nth frame is diffused - the in-between frames ride the camera warp
+  (classic Deforum turbo). Roughly N times faster with smoother motion; also on
+  the Live Sampler for higher realtime FPS.
 - **Mushy after many frames?** The Feedback Sampler's `sharpen` (~0.2-0.5) and
   `noise` (~0.02-0.05) re-inject detail each frame so the sampler resolves it
   into structure instead of amplifying blur; `border = reflection` (default)

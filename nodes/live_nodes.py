@@ -264,6 +264,7 @@ class DifforumLiveSampler:
                 "target_fps": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 60.0, "step": 0.5}),
                 "sharpen": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "noise": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 0.5, "step": 0.005}),
+                "cadence": ("INT", {"default": 1, "min": 1, "max": 12}),
             },
             "optional": {
                 "positive_schedule": ("DIFFORUM_PROMPT",),
@@ -288,7 +289,7 @@ class DifforumLiveSampler:
     def run(self, model, positive, negative, vae, params, camera, init_image,
             duration_frames, strength, steps, cfg, sampler_name, scheduler,
             color_coherence, color_mode, symmetry, symmetry_segments, target_fps,
-            sharpen=0.2, noise=0.02,
+            sharpen=0.2, noise=0.02, cadence=1,
             positive_schedule=None, depth=None, control_net=None, control_strength=0.6,
             live_preview=True, live_source="", source_blend=0.9, stream_dir="",
             spout_name="", loop_camera=True, seed=0):
@@ -330,8 +331,9 @@ class DifforumLiveSampler:
                 delta = torch.as_tensor(camera.deltas[idx], dtype=torch.float32)
                 zoom, fov = float(camera.zoom[idx]), float(camera.fov[idx])
                 cam_frame = src.read(w, h) if src.active else None
+                is_key = not (cadence > 1 and (i % cadence) != 0)
 
-                def _chain(img, i=i, delta=delta, zoom=zoom, fov=fov, cam_frame=cam_frame):
+                def _chain(img, i=i, delta=delta, zoom=zoom, fov=fov, cam_frame=cam_frame, is_key=is_key):
                     if camera.mode == "3d" and depth_b is not None:
                         d = depth_b.mean(dim=-1) if depth_b.shape[-1] == 3 else depth_b[..., 0]
                         out, _m = warp_3d(img, d.to(img.device), delta, fov_deg=fov)
@@ -349,11 +351,27 @@ class DifforumLiveSampler:
                         out = apply_symmetry(out, mode=symmetry, segments=int(symmetry_segments))
                     if sharpen > 0.0:
                         out = _sharpen(out, float(sharpen))
-                    if noise > 0.0:
+                    if noise > 0.0 and is_key:
                         out = _add_noise(out, float(noise), seed=int(seed) + i)
                     return out
 
                 warped = fx(_chain, prev)
+
+                # cadence: diffuse every Nth tick only (big realtime FPS win)
+                if not is_key:
+                    image = warped[:1].clamp(0.0, 1.0)
+                    frames.append(image)
+                    prev = image
+                    if live_preview:
+                        pbar.update_absolute(i, int(duration_frames), _to_preview(image))
+                    if out_dir is not None:
+                        self._save_frame(out_dir, i, image)
+                    sink.send(image)
+                    if min_dt:
+                        dt = _time.perf_counter() - t0
+                        if dt < min_dt:
+                            _time.sleep(min_dt - dt)
+                    continue
 
                 pos_f = positive
                 if positive_schedule is not None and len(positive_schedule) > 0:

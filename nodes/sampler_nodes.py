@@ -90,6 +90,7 @@ class DifforumFeedbackSampler:
                 "border": (list(BORDER_MODES), {"default": "reflection"}),
                 "sharpen": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "noise": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 0.5, "step": 0.005}),
+                "cadence": ("INT", {"default": 1, "min": 1, "max": 12}),
             },
         }
 
@@ -104,7 +105,7 @@ class DifforumFeedbackSampler:
             near=1.0, far=100.0, invert_depth=False, translation_scale=1.0,
             control_net=None, control_strength=0.6, control_image=None,
             symmetry="none", symmetry_segments=6, border="reflection",
-            sharpen=0.2, noise=0.02):
+            sharpen=0.2, noise=0.02, cadence=1):
         import comfy.utils
         from nodes import common_ksampler
 
@@ -139,8 +140,9 @@ class DifforumFeedbackSampler:
             delta = torch.as_tensor(camera.deltas[f], dtype=torch.float32)
             zoom = float(camera.zoom[f])
             fov = float(camera.fov[f])
+            is_key = not (cadence > 1 and (f % cadence) != 0)
 
-            def _chain(img, f=f, delta=delta, zoom=zoom, fov=fov):
+            def _chain(img, f=f, delta=delta, zoom=zoom, fov=fov, is_key=is_key):
                 if camera.mode == "3d" and depth_b is not None:
                     d = depth_b[..., 0].to(img.device)
                     out, _m = warp_3d(
@@ -162,11 +164,21 @@ class DifforumFeedbackSampler:
                 # resolve into detail (the classic anti-mush trick)
                 if sharpen > 0.0:
                     out = _sharpen(out, float(sharpen))
-                if noise > 0.0:
+                # noise only on frames that get diffused (nothing eats it on tweens)
+                if noise > 0.0 and is_key:
                     out = _add_noise(out, float(noise), seed=seed + f)
                 return out
 
             warped = fx(_chain, prev)
+
+            # cadence: only diffuse every Nth frame; in-between frames are the
+            # camera-warped feedback itself (the classic Deforum turbo mode).
+            # Motion stays per-frame smooth while diffusion cost drops ~N times.
+            if not is_key:
+                prev = warped[:1].clamp(0.0, 1.0)
+                frames.append(prev)
+                pbar.update(1)
+                continue
 
             # img2img re-diffuse the warped frame
             denoise = max(0.0, min(1.0, float(strength_schedule.at(f))))
