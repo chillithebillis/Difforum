@@ -287,8 +287,8 @@ def build_feedback():
         widgets=[0.5, 0.5, 0.15],
     )
     w.link(fb, 0, stab, 0, "IMAGE")
-    pp = w.node("DifforumPingPong", [1520, 660], inputs=[("frames", "IMAGE")],
-                outputs=[("frames", "IMAGE")], widgets=[True])
+    pp = w.node("DifforumLoopBlend", [1520, 660], inputs=[("frames", "IMAGE")],
+                outputs=[("frames", "IMAGE")], widgets=[12, True])
     w.link(stab, 0, pp, 0, "IMAGE")
     w.link(pp, 0, save, 0, "IMAGE")
     w.group("1 - FIRST FRAME (txt2img)", [10, -60, 1270, 500], "#33415a")
@@ -587,8 +587,8 @@ def build_intuitive():
                   inputs=[("frames", "IMAGE")], outputs=[("frames", "IMAGE")],
                   widgets=[0.5, 0.5, 0.15])
     w.link(fb, 0, stab, 0, "IMAGE")
-    pp = w.node("DifforumPingPong", [1520, 660], inputs=[("frames", "IMAGE")],
-                outputs=[("frames", "IMAGE")], widgets=[True])
+    pp = w.node("DifforumLoopBlend", [1520, 660], inputs=[("frames", "IMAGE")],
+                outputs=[("frames", "IMAGE")], widgets=[12, True])
     w.link(stab, 0, pp, 0, "IMAGE")
     w.link(pp, 0, save, 0, "IMAGE")
     w.group("1 - FIRST FRAME (txt2img)", [10, -60, 1270, 480], "#33415a")
@@ -1133,8 +1133,8 @@ def build_mesmerize():
                   widgets=[0.5, 0.5, 0.15])
     w.link(fb, 0, stab, 0, "IMAGE")
     w.link(stab, 0, echo, 0, "IMAGE")
-    pp = w.node("DifforumPingPong", [1860, 480], inputs=[("frames", "IMAGE")],
-                outputs=[("frames", "IMAGE")], widgets=[True])
+    pp = w.node("DifforumLoopBlend", [1860, 480], inputs=[("frames", "IMAGE")],
+                outputs=[("frames", "IMAGE")], widgets=[12, True])
     w.link(echo, 0, pp, 0, "IMAGE")
     w.link(pp, 0, save, 0, "IMAGE")
     w.group("1 - FIRST FRAME (txt2img)", [10, -60, 1270, 500], "#33415a")
@@ -1247,8 +1247,8 @@ def build_fast_sdxl():
     w.link(strength, 0, fb, 7, "DIFFORUM_SCHEDULE")
     w.link(scenes, 0, fb, 10, "DIFFORUM_PROMPT")
     w.link(fb, 0, stab, 0, "IMAGE")
-    pp = w.node("DifforumPingPong", [1520, 660], inputs=[("frames", "IMAGE")],
-                outputs=[("frames", "IMAGE")], widgets=[True])
+    pp = w.node("DifforumLoopBlend", [1520, 660], inputs=[("frames", "IMAGE")],
+                outputs=[("frames", "IMAGE")], widgets=[12, True])
     w.link(stab, 0, pp, 0, "IMAGE")
     w.link(pp, 0, save, 0, "IMAGE")
     w.group("1 - FIRST FRAME: full quality, base model (26 steps)", [10, -60, 1270, 440], "#33415a")

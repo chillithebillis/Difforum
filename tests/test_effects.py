@@ -77,6 +77,16 @@ check("pingpong length 2N-2", ppd.shape[0] == 8)
 check("pingpong is palindromic step", float(ppd[5,0,0,0]) == 3.0 and float(ppd[7,0,0,0]) == 1.0)
 check("tiny batch passthrough", pingpong(seq[:2]).shape[0] == 2)
 
+print("loop_blend:")
+from core.effects import loop_blend  # noqa: E402
+seq2 = torch.rand(20, 8, 8, 3)
+lb = loop_blend(seq2, blend=5, flow=False)
+check("loop_blend drops blend frames", lb.shape[0] == 15)
+check("body untouched", torch.allclose(lb[5:], seq2[5:15]))
+check("wrap frame mixes tail+head", not torch.allclose(lb[0], seq2[0]) and not torch.allclose(lb[0], seq2[15]))
+check("blend 0 passthrough", loop_blend(seq2, blend=0).shape[0] == 20)
+check("in range", float(lb.min()) >= 0.0 and float(lb.max()) <= 1.0)
+
 print()
 if _failures:
     print(f"FAILED ({len(_failures)}): {', '.join(_failures)}")

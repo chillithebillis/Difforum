@@ -49,7 +49,7 @@ for the live-performance direction.
 
 ## The nodes
 
-31 nodes in six groups. Everything below is schedulable, and any schedule
+32 nodes in six groups. Everything below is schedulable, and any schedule
 can be driven by audio.
 
 **Schedules.** The GPU-free animation brain:
@@ -98,7 +98,8 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
 | **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
 | **Difforum · Flow Stabilize (anti-flicker)** | Blends history along optical flow, gated by photometric confidence: texture stops boiling, motion never ghosts |
-| **Difforum · Ping-Pong Loop** | Forward + reverse for a seamless loop (wired into the render templates, toggle to disable) |
+| **Difforum · Ping-Pong Loop** | Forward + reverse for a guaranteed loop (reverses motion) |
+| **Difforum · Loop Blend (perfect loop)** | True forward loop: the tail morph-fades into the head along optical flow, no reversed motion (wired into the render templates) |
 
 Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
 applied *inside* the loop it compounds each frame and the diffusion heals the

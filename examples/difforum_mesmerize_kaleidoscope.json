@@ -606,7 +606,7 @@
     },
     {
       "id": 14,
-      "type": "DifforumPingPong",
+      "type": "DifforumLoopBlend",
       "pos": [
         1860,
         480
@@ -636,9 +636,10 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "DifforumPingPong"
+        "Node name for S&R": "DifforumLoopBlend"
       },
       "widgets_values": [
+        12,
         true
       ]
     },

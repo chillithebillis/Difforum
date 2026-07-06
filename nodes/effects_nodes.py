@@ -17,7 +17,7 @@ if str(_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_PKG_ROOT))
 
 from core.detail import NOISE_MODES, detail_guard  # noqa: E402
-from core.effects import echo_trails, pingpong  # noqa: E402
+from core.effects import echo_trails, loop_blend, pingpong  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 
 CATEGORY = "Difforum/effects"
@@ -149,12 +149,34 @@ class DifforumPingPong:
         return (pingpong(frames) if enabled else frames,)
 
 
+class DifforumLoopBlend:
+    """Perfect forward loop: morph-fade the tail into the head along optical
+    flow (no reversed motion). Output = N - blend frames, seamless."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "frames": ("IMAGE",),
+            "blend_frames": ("INT", {"default": 12, "min": 0, "max": 120}),
+            "flow_align": ("BOOLEAN", {"default": True}),
+        }}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
+    FUNCTION = "run"
+    CATEGORY = CATEGORY
+
+    def run(self, frames, blend_frames, flow_align):
+        return (loop_blend(frames, blend=int(blend_frames), flow=bool(flow_align)),)
+
+
 NODE_CLASS_MAPPINGS = {
     "DifforumSymmetry": DifforumSymmetry,
     "DifforumEchoTrails": DifforumEchoTrails,
     "DifforumDetailGuard": DifforumDetailGuard,
     "DifforumFlowStabilize": DifforumFlowStabilize,
     "DifforumPingPong": DifforumPingPong,
+    "DifforumLoopBlend": DifforumLoopBlend,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -163,4 +185,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DifforumDetailGuard": "Difforum · Detail Guard (anti-mush)",
     "DifforumFlowStabilize": "Difforum · Flow Stabilize (anti-flicker)",
     "DifforumPingPong": "Difforum · Ping-Pong Loop",
+    "DifforumLoopBlend": "Difforum · Loop Blend (perfect loop)",
 }
