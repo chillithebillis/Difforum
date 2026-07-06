@@ -199,6 +199,7 @@ In `examples/` (drag the `.json` onto the ComfyUI canvas):
 | `difforum_qrcode_illusion.json` (16:9) | SD1.5 ckpt + QR-Monster ControlNet + pattern image | Locks a spiral/logo/mask in the scene while the loop morphs - hidden-pattern illusions. |
 | `difforum_mesmerize_kaleidoscope.json` | SD1.5 checkpoint | **Living kaleidoscope**: in-loop symmetry folds each warped frame, the diffusion heals the seams, Echo Trails smooths the motion. |
 | `difforum_realtime_live.json` | SD-Turbo / LCM ckpt | **Native realtime**: Live Sampler internal loop (resident model, warp + kaleidoscope + 1-step re-diffuse) with a live preview in the node. See Realtime below. |
+| `difforum_fast_sdxl.json` | SDXL ckpt + DMD2 LoRA | **Fast recipe**: frame 0 full quality on the base model, loop on a DMD2 4-step distill + cadence 2, about 8-10x less diffusion cost. The best fit for Apple Silicon. |
 | `difforum_vj_footage.json` | a video clip (no model) | **VJ look for footage**: Load Video → VJ Look (grade + glow + chroma + grain) → Echo Trails → Save Video (MP4). Complete and self-contained, no checkpoint, no external nodes. |
 
 Templates exercise every node. Regenerate with
@@ -222,6 +223,7 @@ shown under your ComfyUI `models/` directory):
 | SD1.5 checkpoint (DreamShaper 8) | `checkpoints` | civitai.com/models/4384 |
 | SDXL checkpoint (Juggernaut XL) | `checkpoints` | civitai.com (search "Juggernaut XL") |
 | Flux.1-dev fp8 / schnell | `checkpoints` or `unet` | hf: Comfy-Org/flux1-dev, black-forest-labs/FLUX.1-schnell |
+| DMD2 4-step distill LoRA (SDXL) | `loras` | hf: tianweiy/DMD2 (dmd2_sdxl_4step_lora) |
 | SD-Turbo / LCM-LoRA (fast) | `checkpoints` / `loras` | hf: stabilityai/sd-turbo, latent-consistency/lcm-lora-sdv1-5 |
 | Wan 2.2 5B GGUF + umt5 + wan vae | `unet` / `text_encoders` / `vae` | hf: QuantStack/Wan2.2-TI2V-5B-GGUF, Comfy-Org/Wan_2.1_ComfyUI_repackaged |
 | IP-Adapter + CLIP-Vision (ViT-H) | `ipadapter` / `clip_vision` | hf: h94/IP-Adapter |

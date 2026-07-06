@@ -1158,6 +1158,94 @@ def build_vj_footage():
     return w.dump()
 
 
+def build_fast_sdxl():
+    """Fast SDXL recipe: frame 0 at full quality on the base model, then the
+    loop runs a DMD2 4-step distill LoRA at cfg 1.2 with cadence 2 - about
+    8-10x less diffusion cost with the same checkpoint look. The best-fit
+    template for Apple Silicon too (few steps is the Mac speed lever)."""
+    w = WF()
+    ckpt = w.node("CheckpointLoaderSimple", [40, 40], inputs=[],
+                  outputs=[("MODEL", "MODEL"), ("CLIP", "CLIP"), ("VAE", "VAE")],
+                  widgets=["juggernautXL_v9.safetensors"])
+    lora = w.node("LoraLoader", [40, 240],
+                  inputs=[("model", "MODEL"), ("clip", "CLIP")],
+                  outputs=[("MODEL", "MODEL"), ("CLIP", "CLIP")],
+                  widgets=["dmd2_sdxl_4step_lora.safetensors", 1.0, 1.0])
+    neg = w.node("CLIPTextEncode", [340, 200], inputs=[("clip", "CLIP")],
+                 outputs=[("CONDITIONING", "CONDITIONING")],
+                 widgets=["blurry, low quality, watermark, text, washed out"])
+    lat = w.node("EmptyLatentImage", [340, 360], inputs=[],
+                 outputs=[("LATENT", "LATENT")], widgets=[768, 432, 1])
+    scenes = w.node("DifforumPromptScenes", [340, 520],
+                    inputs=[("params", "DIFFORUM_PARAMS"), ("clip", "CLIP")],
+                    outputs=[("positive_schedule", "DIFFORUM_PROMPT"),
+                             ("first_frame_cond", "CONDITIONING"), ("info", "STRING")],
+                    widgets=["a luminous coral canyon, volumetric light, highly detailed",
+                             "a crystalline ice cathedral, refracted glow",
+                             "a golden desert storm at dusk, cinematic", "", "ease_in_out"])
+    ks = w.node("KSampler", [660, 60],
+                inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
+                        ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
+                outputs=[("LATENT", "LATENT")],
+                widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
+    dec = w.node("VAEDecode", [980, 60], inputs=[("samples", "LATENT"), ("vae", "VAE")],
+                 outputs=[("IMAGE", "IMAGE")], widgets=[])
+    setup = w.node("DifforumAnimSetup", [40, 480], inputs=[],
+                   outputs=[("params", "DIFFORUM_PARAMS")], widgets=[768, 432, 24, 96, 0, "fixed"])
+    cam = w.node("DifforumCameraShots", [340, 860],
+                 inputs=[("params", "DIFFORUM_PARAMS"), ("audio", "DIFFORUM_AUDIO")],
+                 outputs=[("camera", "DIFFORUM_CAMERA"), ("info", "STRING")],
+                 widgets=["0: dolly_in 1.0 1.0\n48: spiral 1.0 1.2", "2d", 40.0])
+    strength = w.node("DifforumSchedule", [340, 1060],
+                      inputs=[("params", "DIFFORUM_PARAMS"), ("audio", "DIFFORUM_AUDIO")],
+                      outputs=[("schedule", "DIFFORUM_SCHEDULE"), ("values", "FLOAT")],
+                      widgets=["0:(0.45)", "linear"])
+    fb = w.node("DifforumFeedbackSampler", [1000, 460],
+                inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
+                        ("negative", "CONDITIONING"), ("vae", "VAE"),
+                        ("params", "DIFFORUM_PARAMS"), ("camera", "DIFFORUM_CAMERA"),
+                        ("init_image", "IMAGE"), ("strength_schedule", "DIFFORUM_SCHEDULE"),
+                        ("depth", "IMAGE"), ("cfg_schedule", "DIFFORUM_SCHEDULE"),
+                        ("positive_schedule", "DIFFORUM_PROMPT")],
+                outputs=[("frames", "IMAGE")],
+                widgets=[5, 1.2, "lcm", "sgm_uniform", 0.8, "lab", 1.0, 100.0, False, 1.0,
+                         0.6, "none", 6, "reflection", 0.25, 0.02, 2, 0, 0])
+    stab = w.node("DifforumFlowStabilize", [1340, 460],
+                  inputs=[("frames", "IMAGE")], outputs=[("frames", "IMAGE")],
+                  widgets=[0.5, 0.5, 0.15])
+    save = w.node("SaveImage", [1680, 460], inputs=[("images", "IMAGE")],
+                  outputs=[], widgets=["Difforum_fast"], is_output=True)
+    w.link(ckpt, 0, lora, 0, "MODEL")
+    w.link(ckpt, 1, lora, 1, "CLIP")
+    w.link(ckpt, 1, neg, 0, "CLIP")
+    w.link(ckpt, 1, scenes, 1, "CLIP")
+    w.link(setup, 0, scenes, 0, "DIFFORUM_PARAMS")
+    w.link(ckpt, 0, ks, 0, "MODEL")
+    w.link(scenes, 1, ks, 1, "CONDITIONING")
+    w.link(neg, 0, ks, 2, "CONDITIONING")
+    w.link(lat, 0, ks, 3, "LATENT")
+    w.link(ks, 0, dec, 0, "LATENT")
+    w.link(ckpt, 2, dec, 1, "VAE")
+    w.link(setup, 0, cam, 0, "DIFFORUM_PARAMS")
+    w.link(setup, 0, strength, 0, "DIFFORUM_PARAMS")
+    w.link(lora, 0, fb, 0, "MODEL")
+    w.link(scenes, 1, fb, 1, "CONDITIONING")
+    w.link(neg, 0, fb, 2, "CONDITIONING")
+    w.link(ckpt, 2, fb, 3, "VAE")
+    w.link(setup, 0, fb, 4, "DIFFORUM_PARAMS")
+    w.link(cam, 0, fb, 5, "DIFFORUM_CAMERA")
+    w.link(dec, 0, fb, 6, "IMAGE")
+    w.link(strength, 0, fb, 7, "DIFFORUM_SCHEDULE")
+    w.link(scenes, 0, fb, 10, "DIFFORUM_PROMPT")
+    w.link(fb, 0, stab, 0, "IMAGE")
+    w.link(stab, 0, save, 0, "IMAGE")
+    w.group("1 - FIRST FRAME: full quality, base model (26 steps)", [10, -60, 1270, 440], "#33415a")
+    w.group("2 - DIRECTOR + SCHEDULES", [10, 450, 900, 900], "#33503f")
+    w.group("3 - FAST LOOP: DMD2 4-step + cadence 2", [960, 380, 350, 480], "#5a3a33")
+    w.group("4 - QUALITY: anti-flicker (Ctrl+B to bypass)", [1310, 380, 350, 300], "#4a3d5a")
+    return w.dump()
+
+
 def add_note(data, text, pos=(40, -210)):
     """Append a frontend Note node (yellow sticky) with a model checklist."""
     nid = data["last_node_id"] + 1
@@ -1257,6 +1345,16 @@ NOTES = {
         "path to stylize a live feed (kaleidoscope your camera). Needs opencv.\n"
         "Live output: set stream_dir (folder for OBS/Resolume) or spout_name\n"
         "(needs SpoutGL). See REALTIME.md.",
+    "difforum_fast_sdxl.json":
+        "Difforum: FAST SDXL (DMD2 distill + cadence). ~8-10x less diffusion cost\n"
+        "than the classic recipe, same checkpoint look. Best template for Macs.\n\n"
+        "Models:\n"
+        "- SDXL checkpoint -> models/checkpoints  (Juggernaut XL: civitai)\n"
+        "- DMD2 4-step LoRA -> models/loras  (hf: tianweiy/DMD2,\n"
+        "  file dmd2_sdxl_4step_lora.safetensors)\n\n"
+        "How it works: frame 0 renders on the BASE model at 26 steps (full\n"
+        "quality), the loop runs the DMD2 LoRA at 5 steps cfg 1.2 (lcm sampler)\n"
+        "with cadence 2. Group 4 = anti-flicker (Ctrl+B to bypass).",
     "difforum_mesmerize_kaleidoscope.json":
         "Difforum: Living kaleidoscope (in-loop symmetry + Echo Trails).\n\nModels:\n"
         "- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\n"
@@ -1301,6 +1399,7 @@ def main():
         "difforum_mesmerize_kaleidoscope.json": build_mesmerize(),
         "difforum_realtime_live.json": build_realtime(),
         "difforum_vj_footage.json": build_vj_footage(),
+        "difforum_fast_sdxl.json": build_fast_sdxl(),
     }
     for name, data in out.items():
         if name in NOTES:
