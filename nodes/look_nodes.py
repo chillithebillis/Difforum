@@ -81,6 +81,7 @@ class DifforumColorGrade:
                 "lift": ("FLOAT", {"default": 0.0, "min": -0.5, "max": 0.5, "step": 0.01}),
                 "gamma": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 3.0, "step": 0.05}),
                 "gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.05}),
+                "hue": ("FLOAT", {"default": 0.0, "min": -180.0, "max": 180.0, "step": 1.0}),
             },
         }
 
@@ -90,10 +91,11 @@ class DifforumColorGrade:
     CATEGORY = CATEGORY
 
     def run(self, image, exposure, contrast, saturation, temperature, tint,
-            lift=0.0, gamma=1.0, gain=1.0):
+            lift=0.0, gamma=1.0, gain=1.0, hue=0.0):
         out = color_grade(image, exposure=float(exposure), contrast=float(contrast),
                           saturation=float(saturation), temperature=float(temperature),
-                          tint=float(tint), lift=float(lift), gamma=float(gamma), gain=float(gain))
+                          tint=float(tint), lift=float(lift), gamma=float(gamma), gain=float(gain),
+                          hue=float(hue))
         return (out,)
 
 

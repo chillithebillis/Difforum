@@ -89,3 +89,44 @@ def stabilize(frames: torch.Tensor, strength: float = 0.5,
         prev_stab = stab
         prev_g = cur_g
     return torch.cat(out, dim=0)
+
+
+MOSH_MODES = ("grid", "melt", "edge")
+
+
+def datamosh(frames: torch.Tensor, intensity: float = 0.7, mode: str = "grid",
+             block_size: int = 16, flow_scale: float = 0.5) -> torch.Tensor:
+    """Datamosh: keep the motion vectors, drop the refresh. Each output frame
+    is the previous OUTPUT warped by the real motion field, mixed with the true
+    frame by intensity - the classic I-frame-removal smear, controllable."""
+    import cv2
+    if mode not in MOSH_MODES:
+        raise ValueError(f"unknown mosh mode {mode!r}, pick from {MOSH_MODES}")
+    n = frames.shape[0]
+    if n < 2 or intensity <= 0.0:
+        return frames
+    h, w = frames.shape[1], frames.shape[2]
+    out = [frames[0:1]]
+    prev_out = frames[0:1]
+    prev_g = (frames[0].mean(dim=-1).cpu().numpy() * 255).astype(np.uint8)
+    for i in range(1, n):
+        cur = frames[i:i + 1]
+        cur_g = (frames[i].mean(dim=-1).cpu().numpy() * 255).astype(np.uint8)
+        flow = _flow_cur_to_prev(cur_g, prev_g, float(flow_scale))
+        if mode == "grid":
+            bs = max(4, int(block_size))
+            small = cv2.resize(flow, (max(1, w // bs), max(1, h // bs)),
+                               interpolation=cv2.INTER_AREA)
+            flow = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+        elif mode == "melt":
+            flow = cv2.GaussianBlur(flow, (0, 0), 9) * 1.6
+        else:  # edge: mosh only along contours
+            edges = cv2.Canny(cur_g, 60, 120)
+            mask = cv2.dilate(edges, np.ones((5, 5), np.uint8)) / 255.0
+            flow = flow * mask[..., None]
+        pred = _warp_by_flow(prev_out, flow)
+        mixed = (cur * (1.0 - intensity) + pred * intensity).clamp(0.0, 1.0)
+        out.append(mixed)
+        prev_out = mixed
+        prev_g = cur_g
+    return torch.cat(out, dim=0)

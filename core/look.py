@@ -24,11 +24,27 @@ def _luma(x):
     return (0.2126 * r + 0.7152 * g + 0.0722 * b).unsqueeze(-1)
 
 
+def _hue_rotate(rgb, degrees):
+    """Rotate hue via the standard luma-preserving rotation matrix."""
+    import math as _m
+    a = _m.radians(degrees)
+    c, s = _m.cos(a), _m.sin(a)
+    m = torch.tensor([
+        [0.213 + 0.787 * c - 0.213 * s, 0.715 - 0.715 * c - 0.715 * s, 0.072 - 0.072 * c + 0.928 * s],
+        [0.213 - 0.213 * c + 0.143 * s, 0.715 + 0.285 * c + 0.140 * s, 0.072 - 0.072 * c - 0.283 * s],
+        [0.213 - 0.213 * c - 0.787 * s, 0.715 - 0.715 * c + 0.715 * s, 0.072 + 0.928 * c + 0.072 * s],
+    ], dtype=rgb.dtype, device=rgb.device)
+    return torch.einsum("...c,rc->...r", rgb, m)
+
+
 def color_grade(image, exposure=0.0, contrast=1.0, saturation=1.0,
-                temperature=0.0, tint=0.0, lift=0.0, gamma=1.0, gain=1.0):
+                temperature=0.0, tint=0.0, lift=0.0, gamma=1.0, gain=1.0,
+                hue=0.0):
     """Exposure / contrast / saturation / white balance / lift-gamma-gain."""
     x, sq = _bhwc(image)
     out = x[..., :3].clone()
+    if hue:
+        out = _hue_rotate(out, float(hue))
     out = out * (2.0 ** exposure)
     if temperature != 0.0:
         out[..., 0] = out[..., 0] * (1.0 + 0.3 * temperature)

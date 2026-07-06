@@ -42,14 +42,14 @@ What you get:
   re-diffuse, LAB colour match), **Hybrid** (drives Wan 2.2 VACE), and
   **AnimateDiff** (feeds prompt travel and schedules into AnimateDiff-Evolved).
 - No `eval()`, no exotic dependencies (safe AST evaluator, numpy FFT audio, torch
-  warps), 15 test suites, and a clean install on Python 3.12 and the Comfy Registry.
+  warps), 16 test suites, and a clean install on Python 3.12 and the Comfy Registry.
 
 See [DESIGN.md](DESIGN.md) for the architecture and [REALTIME.md](REALTIME.md)
 for the live-performance direction.
 
 ## The nodes
 
-32 nodes in six groups. Everything below is schedulable, and any schedule
+34 nodes in six groups. Everything below is schedulable, and any schedule
 can be driven by audio.
 
 **Schedules.** The GPU-free animation brain:
@@ -100,6 +100,8 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Flow Stabilize (anti-flicker)** | Blends history along optical flow, gated by photometric confidence: texture stops boiling, motion never ghosts |
 | **Difforum · Ping-Pong Loop** | Forward + reverse for a guaranteed loop (reverses motion) |
 | **Difforum · Loop Blend (perfect loop)** | True forward loop: the tail morph-fades into the head along optical flow, no reversed motion (wired into the render templates) |
+| **Difforum · Glitch (DSP databending)** | Convolution kernels, 1D delay-line databending, bitcrush, VHS jitter/bands/chroma, RGB split |
+| **Difforum · Datamosh (optical flow)** | Motion vectors keep flowing while the refresh melts: grid (macroblock), melt, edge modes |
 
 Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
 applied *inside* the loop it compounds each frame and the diffusion heals the
@@ -116,7 +118,7 @@ keeps growing on itself. Made entirely with the Difforum nodes.*
 | Node | What it does |
 |---|---|
 | **Difforum · VJ Look (presets)** | One-shot grade: neon / cinematic / vaporwave / film / noir / psychedelic, with an intensity that an audio schedule can pulse to the beat |
-| **Difforum · Colour Grade** | Exposure, contrast, saturation, white balance, lift/gamma/gain |
+| **Difforum · Colour Grade** | Exposure, contrast, saturation, white balance, lift/gamma/gain, hue cycling |
 | **Difforum · Glow** | Neon bloom (blur the bright areas, screen-blend them back) |
 | **Difforum · Load Video** | Read a clip into an IMAGE batch (frame skip, resize cap), via OpenCV |
 | **Difforum · Save Video (MP4)** | Write an IMAGE batch back to an h264 MP4, via ffmpeg |
@@ -361,11 +363,11 @@ ping-pong loops, holds) lives in [MATHS.md](MATHS.md).
 
 ## Develop / test
 
-No GPU or ComfyUI needed - 15 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
+No GPU or ComfyUI needed - 16 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
 model catalog, and a full end-to-end orchestration (stub diffusion):
 
 ```bash
-for t in core audio hybrid models warp color effects look video detail shots flow prompt plot integration; do
+for t in core audio hybrid models warp color effects look video detail shots flow glitch prompt plot integration; do
   python tests/test_$t.py
 done
 ```
