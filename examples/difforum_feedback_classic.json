@@ -218,10 +218,10 @@
       "widgets_values": [
         0,
         "fixed",
-        20,
-        7.0,
-        "euler",
-        "normal",
+        26,
+        6.5,
+        "dpmpp_2m",
+        "karras",
         1.0
       ]
     },
@@ -554,10 +554,10 @@
         "Node name for S&R": "DifforumFeedbackSampler"
       },
       "widgets_values": [
-        20,
-        7.0,
-        "euler",
-        "normal",
+        24,
+        6.5,
+        "dpmpp_2m",
+        "karras",
         0.8,
         "lab",
         1.0,

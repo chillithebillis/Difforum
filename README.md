@@ -99,6 +99,16 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
 | **Difforum · Flow Stabilize (anti-flicker)** | Blends history along optical flow, gated by photometric confidence: texture stops boiling, motion never ghosts |
 
+Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
+applied *inside* the loop it compounds each frame and the diffusion heals the
+seams, giving a living kaleidoscope (`difforum_mesmerize_kaleidoscope.json`).
+
+![Difforum living kaleidoscope](examples/difforum_kaleidoscope.gif)
+
+*In-loop kaleidoscope symmetry on an SDXL feedback render, smoothed with Echo
+Trails. The pattern folds every frame and the diffusion reseals the seams, so it
+keeps growing on itself. Made entirely with the Difforum nodes.*
+
 **VJ look and video.** Grade video footage for live visuals, no model required:
 
 | Node | What it does |
@@ -114,16 +124,6 @@ whole footage batch. The `difforum_vj_footage.json` template is a complete,
 self-contained pipeline (Load Video to VJ Look to Echo Trails to Save Video) that
 needs **no checkpoint and no external nodes**: footage in, graded MP4 out. The
 video IO uses opencv-python and imageio-ffmpeg (usually already in ComfyUI).
-
-Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
-applied *inside* the loop it compounds each frame and the diffusion heals the
-seams, giving a living kaleidoscope (`difforum_mesmerize_kaleidoscope.json`).
-
-![Difforum living kaleidoscope](examples/difforum_kaleidoscope.gif)
-
-*In-loop kaleidoscope symmetry on an SDXL feedback render, smoothed with Echo
-Trails. The pattern folds every frame and the diffusion reseals the seams, so it
-keeps growing on itself. Made entirely with the Difforum nodes.*
 
 Three render paths: **Classic+** (Feedback Sampler - self-contained Deforum
 video), **Hybrid** (Guide Builder → your Wan 2.2 VACE graph), and **AnimateDiff**

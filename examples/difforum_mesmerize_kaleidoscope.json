@@ -1,6 +1,6 @@
 {
-  "last_node_id": 13,
-  "last_link_id": 20,
+  "last_node_id": 14,
+  "last_link_id": 21,
   "nodes": [
     {
       "id": 1,
@@ -217,10 +217,10 @@
       "widgets_values": [
         0,
         "fixed",
-        20,
-        7.0,
-        "euler",
-        "normal",
+        26,
+        6.5,
+        "dpmpp_2m",
+        "karras",
         1.0
       ]
     },
@@ -481,10 +481,10 @@
         "Node name for S&R": "DifforumFeedbackSampler"
       },
       "widgets_values": [
-        20,
-        7.0,
-        "euler",
-        "normal",
+        24,
+        6.5,
+        "dpmpp_2m",
+        "karras",
         0.85,
         "lab",
         1.0,
@@ -514,7 +514,7 @@
         {
           "name": "frames",
           "type": "IMAGE",
-          "link": 19
+          "link": 20
         }
       ],
       "outputs": [
@@ -522,7 +522,7 @@
           "name": "frames",
           "type": "IMAGE",
           "links": [
-            20
+            21
           ],
           "slot_index": 0
         }
@@ -553,7 +553,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 20
+          "link": 21
         }
       ],
       "outputs": [],
@@ -566,6 +566,46 @@
     },
     {
       "id": 13,
+      "type": "DifforumFlowStabilize",
+      "pos": [
+        1330,
+        480
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": [
+            20
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumFlowStabilize"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0.15
+      ]
+    },
+    {
+      "id": 14,
       "type": "Note",
       "pos": [
         40,
@@ -576,7 +616,7 @@
         300
       ],
       "flags": {},
-      "order": 12,
+      "order": 13,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -585,7 +625,7 @@
         "text": ""
       },
       "widgets_values": [
-        "Difforum: Living kaleidoscope (in-loop symmetry + Echo Trails).\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\nSwap to SDXL/Flux for higher quality.\n\nHow it works: the Feedback Sampler's `symmetry` = kaleidoscope folds each\nwarped frame, then the diffusion heals the seams, so the pattern grows and\nstays symmetric. Echo Trails adds smooth motion-blur trails.\nTry symmetry mirror_h/mirror_v/mirror_quad, or raise symmetry_segments."
+        "Difforum: Living kaleidoscope (in-loop symmetry + Echo Trails).\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\nSwap to SDXL/Flux for higher quality.\n\nHow it works: the Feedback Sampler's `symmetry` = kaleidoscope folds each\nwarped frame, then the diffusion heals the seams, so the pattern grows and\nstays symmetric. Echo Trails adds smooth motion-blur trails.\nTry symmetry mirror_h/mirror_v/mirror_quad, or raise symmetry_segments.\nLOOP tip: rotation-only camera (no net zoom/dolly) + ping-pong export =\nseamless loop. Group 4 = anti-flicker + trails (Ctrl+B to bypass)."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -740,12 +780,20 @@
       19,
       10,
       0,
-      11,
+      13,
       0,
       "IMAGE"
     ],
     [
       20,
+      13,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      21,
       11,
       0,
       12,
@@ -753,7 +801,56 @@
       "IMAGE"
     ]
   ],
-  "groups": [],
+  "groups": [
+    {
+      "title": "1 - FIRST FRAME (txt2img)",
+      "bounding": [
+        10,
+        -60,
+        1270,
+        500
+      ],
+      "color": "#33415a",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "2 - ANIMATION BRAIN",
+      "bounding": [
+        10,
+        470,
+        900,
+        700
+      ],
+      "color": "#33503f",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "3 - RENDER LOOP (kaleidoscope inside)",
+      "bounding": [
+        960,
+        390,
+        350,
+        480
+      ],
+      "color": "#5a3a33",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "4 - QUALITY: anti-flicker + trails (Ctrl+B to bypass)",
+      "bounding": [
+        1310,
+        300,
+        700,
+        320
+      ],
+      "color": "#4a3d5a",
+      "font_size": 22,
+      "locked": false
+    }
+  ],
   "config": {},
   "extra": {},
   "version": 0.4

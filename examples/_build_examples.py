@@ -207,7 +207,7 @@ def build_feedback():
         inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                 ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
         outputs=[("LATENT", "LATENT")],
-        widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0],
+        widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0],
     )
     dec = w.node(
         "VAEDecode", [980, 120],
@@ -250,7 +250,7 @@ def build_feedback():
                 ("depth", "IMAGE"), ("cfg_schedule", "DIFFORUM_SCHEDULE"),
                 ("positive_schedule", "DIFFORUM_PROMPT")],
         outputs=[("frames", "IMAGE")],
-        widgets=[20, 7.0, "euler", "normal", 0.8, "lab", 1.0, 100.0, False, 1.0,
+        widgets=[24, 6.5, "dpmpp_2m", "karras", 0.8, "lab", 1.0, 100.0, False, 1.0,
                  0.6, "none", 6, "reflection", 0.25, 0.02, 1, 0, 0],
     )
     save = w.node(
@@ -425,7 +425,7 @@ def build_deluxe():
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                         ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
                 outputs=[("LATENT", "LATENT")],
-                widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0])
+                widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
     dec = w.node("VAEDecode", [980, 120],
                  inputs=[("samples", "LATENT"), ("vae", "VAE")],
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
@@ -460,7 +460,7 @@ def build_deluxe():
                         ("positive_schedule", "DIFFORUM_PROMPT"),
                         ("control_net", "CONTROL_NET"), ("control_image", "IMAGE")],
                 outputs=[("frames", "IMAGE")],
-                widgets=[20, 7.0, "euler", "normal", 0.85, "lab",
+                widgets=[24, 6.5, "dpmpp_2m", "karras", 0.85, "lab",
                          1.0, 100.0, False, 1.0, 0.6])
     rife = w.node("RIFE VFI", [1360, 360], inputs=[("frames", "IMAGE")],
                   outputs=[("IMAGE", "IMAGE")],
@@ -520,7 +520,7 @@ def build_intuitive():
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                         ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
                 outputs=[("LATENT", "LATENT")],
-                widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0])
+                widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
     dec = w.node("VAEDecode", [980, 120], inputs=[("samples", "LATENT"), ("vae", "VAE")],
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
     setup = w.node("DifforumAnimSetup", [40, 460], inputs=[],
@@ -553,7 +553,7 @@ def build_intuitive():
                         ("depth", "IMAGE"), ("cfg_schedule", "DIFFORUM_SCHEDULE"),
                         ("positive_schedule", "DIFFORUM_PROMPT")],
                 outputs=[("frames", "IMAGE")],
-                widgets=[20, 7.0, "euler", "normal", 0.85, "lab", 1.0, 100.0, False, 1.0,
+                widgets=[24, 6.5, "dpmpp_2m", "karras", 0.85, "lab", 1.0, 100.0, False, 1.0,
                          0.6, "none", 6, "reflection", 0.25, 0.02, 1, 0, 0])
     save = w.node("SaveImage", [1700, 460], inputs=[("images", "IMAGE")],
                   outputs=[], widgets=["Difforum"], is_output=True)
@@ -710,7 +710,7 @@ def build_animatediff():
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                         ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
                 outputs=[("LATENT", "LATENT")],
-                widgets=[0, "fixed", 20, 7.5, "euler", "normal", 1.0])
+                widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
     dec = w.node("VAEDecode", [1120, 560],
                  inputs=[("samples", "LATENT"), ("vae", "VAE")],
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
@@ -762,7 +762,7 @@ def build_ipadapter_coherent():
     ks = w.node("KSampler", [960, 40],
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                         ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
-                outputs=[("LATENT", "LATENT")], widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0])
+                outputs=[("LATENT", "LATENT")], widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
     dec = w.node("VAEDecode", [1260, 40], inputs=[("samples", "LATENT"), ("vae", "VAE")],
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
     setup = w.node("DifforumAnimSetup", [40, 600], inputs=[],
@@ -784,7 +784,7 @@ def build_ipadapter_coherent():
                         ("positive_schedule", "DIFFORUM_PROMPT"),
                         ("control_net", "CONTROL_NET"), ("control_image", "IMAGE")],
                 outputs=[("frames", "IMAGE")],
-                widgets=[20, 7.0, "euler", "normal", 0.85, "lab", 1.0, 100.0, False, 1.0, 0.6])
+                widgets=[24, 6.5, "dpmpp_2m", "karras", 0.85, "lab", 1.0, 100.0, False, 1.0, 0.6])
     save = w.node("SaveImage", [1620, 300], inputs=[("images", "IMAGE")],
                   outputs=[], widgets=["Difforum_ipa"], is_output=True)
     w.link(ckpt, 0, ipload, 0, "MODEL")
@@ -830,7 +830,7 @@ def build_audio_reactive_video():
     ks = w.node("KSampler", [660, 120],
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                         ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
-                outputs=[("LATENT", "LATENT")], widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0])
+                outputs=[("LATENT", "LATENT")], widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
     dec = w.node("VAEDecode", [980, 120], inputs=[("samples", "LATENT"), ("vae", "VAE")],
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
     setup = w.node("DifforumAnimSetup", [40, 420], inputs=[],
@@ -858,7 +858,7 @@ def build_audio_reactive_video():
                         ("params", "DIFFORUM_PARAMS"), ("camera", "DIFFORUM_CAMERA"),
                         ("init_image", "IMAGE"), ("strength_schedule", "DIFFORUM_SCHEDULE")],
                 outputs=[("frames", "IMAGE")],
-                widgets=[20, 7.0, "euler", "normal", 0.8, "lab", 1.0, 100.0, False, 1.0, 0.6])
+                widgets=[24, 6.5, "dpmpp_2m", "karras", 0.8, "lab", 1.0, 100.0, False, 1.0, 0.6])
     vhs = w.node("VHS_VideoCombine", [1640, 360], inputs=[("images", "IMAGE")],
                  outputs=[], is_output=True,
                  widgets=[24, 0, "Difforum_audio", "video/h264-mp4", False, True])
@@ -884,7 +884,11 @@ def build_audio_reactive_video():
     w.link(cam, 0, fb, 5, "DIFFORUM_CAMERA")
     w.link(dec, 0, fb, 6, "IMAGE")
     w.link(asched, 0, fb, 7, "DIFFORUM_SCHEDULE")
-    w.link(fb, 0, vhs, 0, "IMAGE")
+    stab = w.node("DifforumFlowStabilize", [1600, 360],
+                  inputs=[("frames", "IMAGE")], outputs=[("frames", "IMAGE")],
+                  widgets=[0.5, 0.5, 0.15])
+    w.link(fb, 0, stab, 0, "IMAGE")
+    w.link(stab, 0, vhs, 0, "IMAGE")
     return w.dump()
 
 
@@ -912,7 +916,7 @@ def build_qrcode_illusion():
     ks = w.node("KSampler", [660, 120],
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                         ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
-                outputs=[("LATENT", "LATENT")], widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0])
+                outputs=[("LATENT", "LATENT")], widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0])
     dec = w.node("VAEDecode", [980, 120], inputs=[("samples", "LATENT"), ("vae", "VAE")],
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
     setup = w.node("DifforumAnimSetup", [40, 660], inputs=[],
@@ -935,7 +939,7 @@ def build_qrcode_illusion():
                         ("control_net", "CONTROL_NET"), ("control_image", "IMAGE")],
                 outputs=[("frames", "IMAGE")],
                 # control_strength 1.2 -> strong illusion
-                widgets=[20, 7.0, "euler", "normal", 0.85, "lab", 1.0, 100.0, False, 1.0, 1.2])
+                widgets=[24, 6.5, "dpmpp_2m", "karras", 0.85, "lab", 1.0, 100.0, False, 1.0, 1.2])
     save = w.node("SaveImage", [1640, 300], inputs=[("images", "IMAGE")],
                   outputs=[], widgets=["Difforum_illusion"], is_output=True)
     w.link(ckpt, 1, pos, 0, "CLIP")
@@ -1051,7 +1055,7 @@ def build_mesmerize():
         inputs=[("model", "MODEL"), ("positive", "CONDITIONING"),
                 ("negative", "CONDITIONING"), ("latent_image", "LATENT")],
         outputs=[("LATENT", "LATENT")],
-        widgets=[0, "fixed", 20, 7.0, "euler", "normal", 1.0],
+        widgets=[0, "fixed", 26, 6.5, "dpmpp_2m", "karras", 1.0],
     )
     dec = w.node(
         "VAEDecode", [980, 120],
@@ -1085,7 +1089,7 @@ def build_mesmerize():
                 ("init_image", "IMAGE"), ("strength_schedule", "DIFFORUM_SCHEDULE")],
         outputs=[("frames", "IMAGE")],
         # ...,control_strength, symmetry, symmetry_segments
-        widgets=[20, 7.0, "euler", "normal", 0.85, "lab", 1.0, 100.0, False, 1.0,
+        widgets=[24, 6.5, "dpmpp_2m", "karras", 0.85, "lab", 1.0, 100.0, False, 1.0,
                  0.6, "kaleidoscope", 6],
     )
     echo = w.node(
@@ -1118,8 +1122,16 @@ def build_mesmerize():
     w.link(cam, 0, fb, 5, "DIFFORUM_CAMERA")
     w.link(dec, 0, fb, 6, "IMAGE")
     w.link(strength, 0, fb, 7, "DIFFORUM_SCHEDULE")
-    w.link(fb, 0, echo, 0, "IMAGE")
+    stab = w.node("DifforumFlowStabilize", [1330, 480],
+                  inputs=[("frames", "IMAGE")], outputs=[("frames", "IMAGE")],
+                  widgets=[0.5, 0.5, 0.15])
+    w.link(fb, 0, stab, 0, "IMAGE")
+    w.link(stab, 0, echo, 0, "IMAGE")
     w.link(echo, 0, save, 0, "IMAGE")
+    w.group("1 - FIRST FRAME (txt2img)", [10, -60, 1270, 500], "#33415a")
+    w.group("2 - ANIMATION BRAIN", [10, 470, 900, 700], "#33503f")
+    w.group("3 - RENDER LOOP (kaleidoscope inside)", [960, 390, 350, 480], "#5a3a33")
+    w.group("4 - QUALITY: anti-flicker + trails (Ctrl+B to bypass)", [1310, 300, 700, 320], "#4a3d5a")
     return w.dump()
 
 
@@ -1252,7 +1264,9 @@ NOTES = {
         "How it works: the Feedback Sampler's `symmetry` = kaleidoscope folds each\n"
         "warped frame, then the diffusion heals the seams, so the pattern grows and\n"
         "stays symmetric. Echo Trails adds smooth motion-blur trails.\n"
-        "Try symmetry mirror_h/mirror_v/mirror_quad, or raise symmetry_segments.",
+        "Try symmetry mirror_h/mirror_v/mirror_quad, or raise symmetry_segments.\n"
+        "LOOP tip: rotation-only camera (no net zoom/dolly) + ping-pong export =\n"
+        "seamless loop. Group 4 = anti-flicker + trails (Ctrl+B to bypass).",
     "difforum_vj_footage.json":
         "Difforum: VJ look for video footage. Complete + self-contained, NO model\n"
         "and NO external nodes.\n\n"
