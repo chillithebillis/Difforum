@@ -68,6 +68,15 @@ check("echo leaves a trail", float(out[5, 4, 2].mean()) > 0.0,
       f"value {float(out[5,4,2].mean()):.4f}")
 check("echo mix 0 passthrough", torch.allclose(echo_trails(frames, mix=0.0), frames))
 
+
+print("pingpong:")
+from core.effects import pingpong  # noqa: E402
+seq = torch.arange(5).float().view(5,1,1,1).expand(5,4,4,3)
+ppd = pingpong(seq)
+check("pingpong length 2N-2", ppd.shape[0] == 8)
+check("pingpong is palindromic step", float(ppd[5,0,0,0]) == 3.0 and float(ppd[7,0,0,0]) == 1.0)
+check("tiny batch passthrough", pingpong(seq[:2]).shape[0] == 2)
+
 print()
 if _failures:
     print(f"FAILED ({len(_failures)}): {', '.join(_failures)}")

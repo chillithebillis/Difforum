@@ -93,6 +93,7 @@ class DifforumFeedbackSampler:
                 "cadence": ("INT", {"default": 1, "min": 1, "max": 12}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000000}),
                 "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000000}),
+                "seed_mode": (["fixed", "increment"], {"default": "fixed"}),
             },
         }
 
@@ -107,7 +108,8 @@ class DifforumFeedbackSampler:
             near=1.0, far=100.0, invert_depth=False, translation_scale=1.0,
             control_net=None, control_strength=0.6, control_image=None,
             symmetry="none", symmetry_segments=6, border="reflection",
-            sharpen=0.2, noise=0.02, cadence=1, start_frame=0, end_frame=0):
+            sharpen=0.2, noise=0.02, cadence=1, start_frame=0, end_frame=0,
+            seed_mode="fixed"):
         import comfy.utils
         from nodes import common_ksampler
 
@@ -208,8 +210,11 @@ class DifforumFeedbackSampler:
                 )
 
             latent = {"samples": vae.encode(warped[:, :, :, :3])}
+            # fixed sampling seed keeps the diffusion noise identical every
+            # frame, so texture stops re-rolling (the classic anti-boil trick)
+            seed_f = seed if seed_mode == "fixed" else seed + f
             out_latent = common_ksampler(
-                model, seed + f, int(steps), cfg_f, sampler_name, scheduler,
+                model, seed_f, int(steps), cfg_f, sampler_name, scheduler,
                 pos_f, neg_f, latent, denoise=denoise,
             )[0]
             image = vae.decode(out_latent["samples"])

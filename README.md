@@ -49,7 +49,7 @@ for the live-performance direction.
 
 ## The nodes
 
-30 nodes in six groups. Everything below is schedulable, and any schedule
+31 nodes in six groups. Everything below is schedulable, and any schedule
 can be driven by audio.
 
 **Schedules.** The GPU-free animation brain:
@@ -98,6 +98,7 @@ the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
 | **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
 | **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
 | **Difforum · Flow Stabilize (anti-flicker)** | Blends history along optical flow, gated by photometric confidence: texture stops boiling, motion never ghosts |
+| **Difforum · Ping-Pong Loop** | Forward + reverse for a seamless loop (wired into the render templates, toggle to disable) |
 
 Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
 applied *inside* the loop it compounds each frame and the diffusion heals the
@@ -252,6 +253,10 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
   and run the frames through **Flow Stabilize** (strength ~0.5): it aligns the
   previous frame along optical flow before blending, so it removes texture boil
   without the ghosting that naive frame-blending causes.
+- **Texture re-rolling between frames?** The sampler's `seed_mode = fixed`
+  (default) reuses the same sampling noise every frame, which calms boiling a
+  lot - especially visible in kaleidoscope renders. Set `increment` if you want
+  livelier texture churn.
 - **Long videos, faster:** set the Feedback Sampler's `cadence` to 2-3 and only
   every Nth frame is diffused - the in-between frames ride the camera warp
   (classic Deforum turbo). Roughly N times faster with smoother motion; also on

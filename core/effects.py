@@ -22,3 +22,10 @@ def echo_trails(frames: torch.Tensor, decay: float = 0.6, mix: float = 0.5) -> t
         echo = frames[i] * (1.0 - d) + echo * d
         out[i] = frames[i] * (1.0 - m) + echo * m
     return out.clamp(0.0, 1.0)
+
+
+def pingpong(frames: torch.Tensor) -> torch.Tensor:
+    """Seamless loop: forward then reversed (endpoints not duplicated)."""
+    if frames.dim() == 3 or frames.shape[0] < 3:
+        return frames
+    return torch.cat([frames, frames.flip(0)[1:-1]], dim=0)

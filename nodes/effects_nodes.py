@@ -17,7 +17,7 @@ if str(_PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(_PKG_ROOT))
 
 from core.detail import NOISE_MODES, detail_guard  # noqa: E402
-from core.effects import echo_trails  # noqa: E402
+from core.effects import echo_trails, pingpong  # noqa: E402
 from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 
 CATEGORY = "Difforum/effects"
@@ -132,11 +132,29 @@ class DifforumFlowStabilize:
                           flow_scale=float(flow_scale), error_gate=float(error_gate)),)
 
 
+class DifforumPingPong:
+    """Make the batch loop seamlessly: forward + reverse (toggle to disable)."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"frames": ("IMAGE",),
+                             "enabled": ("BOOLEAN", {"default": True})}}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
+    FUNCTION = "run"
+    CATEGORY = CATEGORY
+
+    def run(self, frames, enabled):
+        return (pingpong(frames) if enabled else frames,)
+
+
 NODE_CLASS_MAPPINGS = {
     "DifforumSymmetry": DifforumSymmetry,
     "DifforumEchoTrails": DifforumEchoTrails,
     "DifforumDetailGuard": DifforumDetailGuard,
     "DifforumFlowStabilize": DifforumFlowStabilize,
+    "DifforumPingPong": DifforumPingPong,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -144,4 +162,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DifforumEchoTrails": "Difforum · Echo Trails",
     "DifforumDetailGuard": "Difforum · Detail Guard (anti-mush)",
     "DifforumFlowStabilize": "Difforum · Flow Stabilize (anti-flicker)",
+    "DifforumPingPong": "Difforum · Ping-Pong Loop",
 }

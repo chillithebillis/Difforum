@@ -1,6 +1,6 @@
 {
-  "last_node_id": 14,
-  "last_link_id": 21,
+  "last_node_id": 15,
+  "last_link_id": 22,
   "nodes": [
     {
       "id": 1,
@@ -553,7 +553,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 21
+          "link": 22
         }
       ],
       "outputs": [],
@@ -606,6 +606,44 @@
     },
     {
       "id": 14,
+      "type": "DifforumPingPong",
+      "pos": [
+        1860,
+        480
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": [
+            22
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumPingPong"
+      },
+      "widgets_values": [
+        true
+      ]
+    },
+    {
+      "id": 15,
       "type": "Note",
       "pos": [
         40,
@@ -616,7 +654,7 @@
         300
       ],
       "flags": {},
-      "order": 13,
+      "order": 14,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -795,6 +833,14 @@
     [
       21,
       11,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      22,
+      14,
       0,
       12,
       0,

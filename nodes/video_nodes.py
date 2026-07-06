@@ -74,6 +74,7 @@ class DifforumSaveVideo:
             },
             "optional": {
                 "fps_in": ("FLOAT", {"forceInput": True}),
+                "pingpong": ("BOOLEAN", {"default": False}),
             },
         }
 
@@ -83,7 +84,10 @@ class DifforumSaveVideo:
     OUTPUT_NODE = True
     CATEGORY = CATEGORY
 
-    def run(self, frames, filename_prefix, fps, quality, fps_in=None):
+    def run(self, frames, filename_prefix, fps, quality, fps_in=None, pingpong=False):
+        if pingpong and frames.shape[0] > 2:
+            import torch
+            frames = torch.cat([frames, frames.flip(0)[1:-1]], dim=0)
         try:
             import folder_paths
             out_dir = folder_paths.get_output_directory()

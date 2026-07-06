@@ -278,6 +278,7 @@ class DifforumLiveSampler:
                 "spout_name": ("STRING", {"default": ""}),
                 "loop_camera": ("BOOLEAN", {"default": True}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
+                "seed_mode": (["fixed", "increment"], {"default": "fixed"}),
             },
         }
 
@@ -292,7 +293,7 @@ class DifforumLiveSampler:
             sharpen=0.2, noise=0.02, cadence=1,
             positive_schedule=None, depth=None, control_net=None, control_strength=0.6,
             live_preview=True, live_source="", source_blend=0.9, stream_dir="",
-            spout_name="", loop_camera=True, seed=0):
+            spout_name="", loop_camera=True, seed=0, seed_mode="fixed"):
         import time as _time
         from pathlib import Path as _Path
 
@@ -382,7 +383,8 @@ class DifforumLiveSampler:
                                             float(control_strength), 0.0, 1.0, vae=vae)
 
                 latent = {"samples": vae.encode(warped[:, :, :, :3])}
-                out = common_ksampler(model, int(seed) + i, int(steps), float(cfg),
+                seed_i = int(seed) if seed_mode == "fixed" else int(seed) + i
+                out = common_ksampler(model, seed_i, int(steps), float(cfg),
                                       sampler_name, scheduler, pos_f, neg_f, latent,
                                       denoise=max(0.0, min(1.0, float(strength))))[0]
                 image = vae.decode(out["samples"])[:1]
