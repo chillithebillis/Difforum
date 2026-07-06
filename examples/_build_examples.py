@@ -66,6 +66,12 @@ class WF:
             assert ds < len(dst["inputs"]), f"link {lid} bad dst slot"
         return True
 
+    def group(self, title, bounding, color="#3f5159"):
+        if not hasattr(self, "groups"):
+            self.groups = []
+        self.groups.append({"title": title, "bounding": list(bounding),
+                            "color": color, "font_size": 22, "locked": False})
+
     def dump(self):
         self.validate()
         return {
@@ -73,7 +79,7 @@ class WF:
             "last_link_id": self._lid,
             "nodes": self.nodes,
             "links": self.links,
-            "groups": [],
+            "groups": getattr(self, "groups", []),
             "config": {},
             "extra": {},
             "version": 0.4,
@@ -244,10 +250,11 @@ def build_feedback():
                 ("depth", "IMAGE"), ("cfg_schedule", "DIFFORUM_SCHEDULE"),
                 ("positive_schedule", "DIFFORUM_PROMPT")],
         outputs=[("frames", "IMAGE")],
-        widgets=[20, 7.0, "euler", "normal", 0.8, "lab", 1.0, 100.0, False, 1.0],
+        widgets=[20, 7.0, "euler", "normal", 0.8, "lab", 1.0, 100.0, False, 1.0,
+                 0.6, "none", 6, "reflection", 0.25, 0.02, 1, 0, 0],
     )
     save = w.node(
-        "SaveImage", [1360, 480], inputs=[("images", "IMAGE")],
+        "SaveImage", [1700, 480], inputs=[("images", "IMAGE")],
         outputs=[], widgets=["Difforum"], is_output=True,
     )
     # frame 0 txt2img
@@ -274,7 +281,17 @@ def build_feedback():
     w.link(dec, 0, fb, 6, "IMAGE")
     w.link(strength, 0, fb, 7, "DIFFORUM_SCHEDULE")
     w.link(prompt, 0, fb, 10, "DIFFORUM_PROMPT")
-    w.link(fb, 0, save, 0, "IMAGE")
+    stab = w.node(
+        "DifforumFlowStabilize", [1340, 480],
+        inputs=[("frames", "IMAGE")], outputs=[("frames", "IMAGE")],
+        widgets=[0.5, 0.5, 0.15],
+    )
+    w.link(fb, 0, stab, 0, "IMAGE")
+    w.link(stab, 0, save, 0, "IMAGE")
+    w.group("1 - FIRST FRAME (txt2img)", [10, -60, 1270, 500], "#33415a")
+    w.group("2 - ANIMATION BRAIN (camera + schedules + prompt travel)", [10, 470, 900, 920], "#33503f")
+    w.group("3 - RENDER LOOP (detail guard inside)", [960, 390, 350, 480], "#5a3a33")
+    w.group("4 - QUALITY: anti-flicker (select + Ctrl+B to bypass)", [1310, 390, 350, 300], "#4a3d5a")
     return w.dump()
 
 
@@ -508,10 +525,15 @@ def build_intuitive():
                  outputs=[("IMAGE", "IMAGE")], widgets=[])
     setup = w.node("DifforumAnimSetup", [40, 460], inputs=[],
                    outputs=[("params", "DIFFORUM_PARAMS")], widgets=[768, 768, 24, 48, 0, "fixed"])
-    move = w.node("DifforumCameraMove", [340, 500],
+    move = w.node("DifforumCameraShots", [340, 500],
                   inputs=[("params", "DIFFORUM_PARAMS"), ("audio", "DIFFORUM_AUDIO")],
                   outputs=[("camera", "DIFFORUM_CAMERA"), ("info", "STRING")],
-                  widgets=["spiral", 1.0, 1.0, "2d", 40.0])
+                  widgets=["0: dolly_in 1.0 1.0\n24: orbit_right 1.0 0.8\n36: spiral 1.0 1.2", "2d", 40.0])
+    prev_cam = w.node("DifforumCameraPreview", [660, 540],
+                      inputs=[("camera", "DIFFORUM_CAMERA")],
+                      outputs=[("path_image", "IMAGE")], widgets=[512])
+    prev_img = w.node("PreviewImage", [660, 700], inputs=[("images", "IMAGE")],
+                      outputs=[], widgets=[], is_output=True)
     strength = w.node("DifforumSchedule", [340, 720],
                       inputs=[("params", "DIFFORUM_PARAMS"), ("audio", "DIFFORUM_AUDIO")],
                       outputs=[("schedule", "DIFFORUM_SCHEDULE"), ("values", "FLOAT")],
@@ -531,8 +553,9 @@ def build_intuitive():
                         ("depth", "IMAGE"), ("cfg_schedule", "DIFFORUM_SCHEDULE"),
                         ("positive_schedule", "DIFFORUM_PROMPT")],
                 outputs=[("frames", "IMAGE")],
-                widgets=[20, 7.0, "euler", "normal", 0.85, "lab", 1.0, 100.0, False, 1.0, 0.6])
-    save = w.node("SaveImage", [1360, 460], inputs=[("images", "IMAGE")],
+                widgets=[20, 7.0, "euler", "normal", 0.85, "lab", 1.0, 100.0, False, 1.0,
+                         0.6, "none", 6, "reflection", 0.25, 0.02, 1, 0, 0])
+    save = w.node("SaveImage", [1700, 460], inputs=[("images", "IMAGE")],
                   outputs=[], widgets=["Difforum"], is_output=True)
     w.link(ckpt, 0, ks, 0, "MODEL")
     w.link(ckpt, 1, pos, 0, "CLIP")
@@ -543,6 +566,8 @@ def build_intuitive():
     w.link(ks, 0, dec, 0, "LATENT")
     w.link(ckpt, 2, dec, 1, "VAE")
     w.link(setup, 0, move, 0, "DIFFORUM_PARAMS")
+    w.link(move, 0, prev_cam, 0, "DIFFORUM_CAMERA")
+    w.link(prev_cam, 0, prev_img, 0, "IMAGE")
     w.link(setup, 0, strength, 0, "DIFFORUM_PARAMS")
     w.link(setup, 0, scenes, 0, "DIFFORUM_PARAMS")
     w.link(ckpt, 1, scenes, 1, "CLIP")
@@ -555,7 +580,15 @@ def build_intuitive():
     w.link(dec, 0, fb, 6, "IMAGE")
     w.link(strength, 0, fb, 7, "DIFFORUM_SCHEDULE")
     w.link(scenes, 0, fb, 10, "DIFFORUM_PROMPT")
-    w.link(fb, 0, save, 0, "IMAGE")
+    stab = w.node("DifforumFlowStabilize", [1340, 460],
+                  inputs=[("frames", "IMAGE")], outputs=[("frames", "IMAGE")],
+                  widgets=[0.5, 0.5, 0.15])
+    w.link(fb, 0, stab, 0, "IMAGE")
+    w.link(stab, 0, save, 0, "IMAGE")
+    w.group("1 - FIRST FRAME (txt2img)", [10, -60, 1270, 480], "#33415a")
+    w.group("2 - DIRECTOR (shot list + path preview + scenes)", [10, 440, 940, 900], "#33503f")
+    w.group("3 - RENDER (detail guard inside)", [960, 380, 350, 460], "#5a3a33")
+    w.group("4 - QUALITY: anti-flicker (Ctrl+B to bypass)", [1310, 380, 350, 300], "#4a3d5a")
     return w.dump()
 
 
@@ -609,7 +642,8 @@ def build_turbo_live():
                         ("positive_schedule", "DIFFORUM_PROMPT")],
                 outputs=[("frames", "IMAGE")],
                 # steps=4, cfg=1.0 -> Turbo/LCM settings
-                widgets=[4, 1.0, "euler", "sgm_uniform", 0.7, "lab", 1.0, 100.0, False, 1.0, 0.6])
+                widgets=[4, 1.0, "euler", "sgm_uniform", 0.7, "lab", 1.0, 100.0, False, 1.0,
+                         0.6, "none", 6, "reflection", 0.15, 0.02, 2, 0, 0])
     save = w.node("SaveImage", [1360, 460], inputs=[("images", "IMAGE")],
                   outputs=[], widgets=["Difforum_turbo"], is_output=True)
     w.link(ckpt, 0, ks, 0, "MODEL")
@@ -1154,11 +1188,16 @@ NOTES = {
         "- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\n"
         "- (optional) better VAE vae-ft-mse-840000 -> models/vae  (hf: stabilityai/sd-vae-ft-mse)\n\n"
         "Quality upgrade: swap the checkpoint for SDXL or Flux (model-agnostic).\n"
-        "Tip: try Camera Move + Prompt Scenes for an easier setup.",
+        "Groups: 4 = anti-flicker (Flow Stabilize) - select it and Ctrl+B to bypass.\n"
+        "In the sampler: sharpen/noise = detail guard, cadence 2-3 = faster long videos.\n"
+        "Tip: try Camera Shots + Prompt Scenes for an easier setup.",
     "difforum_intuitive_controls.json":
         "Difforum: Intuitive controls (Camera Move presets + Prompt Scenes).\n\nModels:\n"
         "- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\n"
-        "Swap to SDXL/Flux for higher quality.",
+        "Swap to SDXL/Flux for higher quality.\n\n"
+        "Camera Shots = direct like an edit (frame: preset speed intensity), and the\n"
+        "Path Preview shows the trajectory BEFORE you render. Group 4 = anti-flicker\n"
+        "(select + Ctrl+B to bypass). cadence 2-3 in the sampler = faster long videos.",
     "difforum_turbo_live.json":
         "Difforum: Turbo/LCM fast feedback (4 steps, cfg 1).\n\nModels:\n"
         "- SD-Turbo -> models/checkpoints  (hf: stabilityai/sd-turbo)\n"

@@ -1,6 +1,6 @@
 {
-  "last_node_id": 13,
-  "last_link_id": 22,
+  "last_node_id": 14,
+  "last_link_id": 23,
   "nodes": [
     {
       "id": 1,
@@ -563,14 +563,23 @@
         1.0,
         100.0,
         false,
-        1.0
+        1.0,
+        0.6,
+        "none",
+        6,
+        "reflection",
+        0.25,
+        0.02,
+        1,
+        0,
+        0
       ]
     },
     {
       "id": 12,
       "type": "SaveImage",
       "pos": [
-        1360,
+        1700,
         480
       ],
       "size": [
@@ -584,7 +593,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 22
+          "link": 23
         }
       ],
       "outputs": [],
@@ -597,6 +606,46 @@
     },
     {
       "id": 13,
+      "type": "DifforumFlowStabilize",
+      "pos": [
+        1340,
+        480
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": [
+            23
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumFlowStabilize"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0.15
+      ]
+    },
+    {
+      "id": 14,
       "type": "Note",
       "pos": [
         40,
@@ -607,7 +656,7 @@
         300
       ],
       "flags": {},
-      "order": 12,
+      "order": 13,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -616,7 +665,7 @@
         "text": ""
       },
       "widgets_values": [
-        "Difforum: Classic+ feedback video.\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\n- (optional) better VAE vae-ft-mse-840000 -> models/vae  (hf: stabilityai/sd-vae-ft-mse)\n\nQuality upgrade: swap the checkpoint for SDXL or Flux (model-agnostic).\nTip: try Camera Move + Prompt Scenes for an easier setup."
+        "Difforum: Classic+ feedback video.\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\n- (optional) better VAE vae-ft-mse-840000 -> models/vae  (hf: stabilityai/sd-vae-ft-mse)\n\nQuality upgrade: swap the checkpoint for SDXL or Flux (model-agnostic).\nGroups: 4 = anti-flicker (Flow Stabilize) - select it and Ctrl+B to bypass.\nIn the sampler: sharpen/noise = detail guard, cadence 2-3 = faster long videos.\nTip: try Camera Shots + Prompt Scenes for an easier setup."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -795,12 +844,69 @@
       22,
       11,
       0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      13,
+      0,
       12,
       0,
       "IMAGE"
     ]
   ],
-  "groups": [],
+  "groups": [
+    {
+      "title": "1 - FIRST FRAME (txt2img)",
+      "bounding": [
+        10,
+        -60,
+        1270,
+        500
+      ],
+      "color": "#33415a",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "2 - ANIMATION BRAIN (camera + schedules + prompt travel)",
+      "bounding": [
+        10,
+        470,
+        900,
+        920
+      ],
+      "color": "#33503f",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "3 - RENDER LOOP (detail guard inside)",
+      "bounding": [
+        960,
+        390,
+        350,
+        480
+      ],
+      "color": "#5a3a33",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "4 - QUALITY: anti-flicker (select + Ctrl+B to bypass)",
+      "bounding": [
+        1310,
+        390,
+        350,
+        300
+      ],
+      "color": "#4a3d5a",
+      "font_size": 22,
+      "locked": false
+    }
+  ],
   "config": {},
   "extra": {},
   "version": 0.4

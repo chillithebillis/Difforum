@@ -348,6 +348,9 @@ arbitrary code**, no external dependencies.
 
 Easing between keyframes: `linear`, `ease_in`, `ease_out`, `ease_in_out`, `step`.
 
+A copy-paste cookbook of ready expressions (bobs, bounces, audio pumps,
+ping-pong loops, holds) lives in [MATHS.md](MATHS.md).
+
 ## Develop / test
 
 No GPU or ComfyUI needed - 15 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,

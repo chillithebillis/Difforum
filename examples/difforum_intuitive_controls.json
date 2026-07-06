@@ -1,6 +1,6 @@
 {
-  "last_node_id": 13,
-  "last_link_id": 22,
+  "last_node_id": 16,
+  "last_link_id": 25,
   "nodes": [
     {
       "id": 1,
@@ -23,7 +23,7 @@
           "type": "MODEL",
           "links": [
             1,
-            13
+            15
           ],
           "slot_index": 0
         },
@@ -33,7 +33,7 @@
           "links": [
             2,
             3,
-            12
+            14
           ],
           "slot_index": 1
         },
@@ -42,7 +42,7 @@
           "type": "VAE",
           "links": [
             8,
-            16
+            18
           ],
           "slot_index": 2
         }
@@ -81,7 +81,7 @@
           "type": "CONDITIONING",
           "links": [
             4,
-            14
+            16
           ],
           "slot_index": 0
         }
@@ -120,7 +120,7 @@
           "type": "CONDITIONING",
           "links": [
             5,
-            15
+            17
           ],
           "slot_index": 0
         }
@@ -256,7 +256,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            19
+            21
           ],
           "slot_index": 0
         }
@@ -287,9 +287,9 @@
           "type": "DIFFORUM_PARAMS",
           "links": [
             9,
-            10,
-            11,
-            17
+            12,
+            13,
+            19
           ],
           "slot_index": 0
         }
@@ -308,7 +308,7 @@
     },
     {
       "id": 8,
-      "type": "DifforumCameraMove",
+      "type": "DifforumCameraShots",
       "pos": [
         340,
         500
@@ -337,7 +337,8 @@
           "name": "camera",
           "type": "DIFFORUM_CAMERA",
           "links": [
-            18
+            10,
+            20
           ],
           "slot_index": 0
         },
@@ -349,22 +350,20 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "DifforumCameraMove"
+        "Node name for S&R": "DifforumCameraShots"
       },
       "widgets_values": [
-        "spiral",
-        1.0,
-        1.0,
+        "0: dolly_in 1.0 1.0\n24: orbit_right 1.0 0.8\n36: spiral 1.0 1.2",
         "2d",
         40.0
       ]
     },
     {
       "id": 9,
-      "type": "DifforumSchedule",
+      "type": "DifforumCameraPreview",
       "pos": [
-        340,
-        720
+        660,
+        540
       ],
       "size": [
         320,
@@ -375,9 +374,74 @@
       "mode": 0,
       "inputs": [
         {
+          "name": "camera",
+          "type": "DIFFORUM_CAMERA",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "path_image",
+          "type": "IMAGE",
+          "links": [
+            11
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumCameraPreview"
+      },
+      "widgets_values": [
+        512
+      ]
+    },
+    {
+      "id": 10,
+      "type": "PreviewImage",
+      "pos": [
+        660,
+        700
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 11
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "DifforumSchedule",
+      "pos": [
+        340,
+        720
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
           "name": "params",
           "type": "DIFFORUM_PARAMS",
-          "link": 10
+          "link": 12
         },
         {
           "name": "audio",
@@ -390,7 +454,7 @@
           "name": "schedule",
           "type": "DIFFORUM_SCHEDULE",
           "links": [
-            20
+            22
           ],
           "slot_index": 0
         },
@@ -410,7 +474,7 @@
       ]
     },
     {
-      "id": 10,
+      "id": 12,
       "type": "DifforumPromptScenes",
       "pos": [
         340,
@@ -421,18 +485,18 @@
         200
       ],
       "flags": {},
-      "order": 9,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
           "name": "params",
           "type": "DIFFORUM_PARAMS",
-          "link": 11
+          "link": 13
         },
         {
           "name": "clip",
           "type": "CLIP",
-          "link": 12
+          "link": 14
         }
       ],
       "outputs": [
@@ -440,7 +504,7 @@
           "name": "positive_schedule",
           "type": "DIFFORUM_PROMPT",
           "links": [
-            21
+            23
           ],
           "slot_index": 0
         },
@@ -469,7 +533,7 @@
       ]
     },
     {
-      "id": 11,
+      "id": 13,
       "type": "DifforumFeedbackSampler",
       "pos": [
         1000,
@@ -480,48 +544,48 @@
         200
       ],
       "flags": {},
-      "order": 10,
+      "order": 12,
       "mode": 0,
       "inputs": [
         {
           "name": "model",
           "type": "MODEL",
-          "link": 13
+          "link": 15
         },
         {
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 14
+          "link": 16
         },
         {
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 15
+          "link": 17
         },
         {
           "name": "vae",
           "type": "VAE",
-          "link": 16
+          "link": 18
         },
         {
           "name": "params",
           "type": "DIFFORUM_PARAMS",
-          "link": 17
+          "link": 19
         },
         {
           "name": "camera",
           "type": "DIFFORUM_CAMERA",
-          "link": 18
+          "link": 20
         },
         {
           "name": "init_image",
           "type": "IMAGE",
-          "link": 19
+          "link": 21
         },
         {
           "name": "strength_schedule",
           "type": "DIFFORUM_SCHEDULE",
-          "link": 20
+          "link": 22
         },
         {
           "name": "depth",
@@ -536,7 +600,7 @@
         {
           "name": "positive_schedule",
           "type": "DIFFORUM_PROMPT",
-          "link": 21
+          "link": 23
         }
       ],
       "outputs": [
@@ -544,7 +608,7 @@
           "name": "frames",
           "type": "IMAGE",
           "links": [
-            22
+            24
           ],
           "slot_index": 0
         }
@@ -563,14 +627,22 @@
         100.0,
         false,
         1.0,
-        0.6
+        0.6,
+        "none",
+        6,
+        "reflection",
+        0.25,
+        0.02,
+        1,
+        0,
+        0
       ]
     },
     {
-      "id": 12,
+      "id": 14,
       "type": "SaveImage",
       "pos": [
-        1360,
+        1700,
         460
       ],
       "size": [
@@ -578,13 +650,13 @@
         200
       ],
       "flags": {},
-      "order": 11,
+      "order": 13,
       "mode": 0,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 22
+          "link": 25
         }
       ],
       "outputs": [],
@@ -596,7 +668,47 @@
       ]
     },
     {
-      "id": 13,
+      "id": 15,
+      "type": "DifforumFlowStabilize",
+      "pos": [
+        1340,
+        460
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames",
+          "type": "IMAGE",
+          "links": [
+            25
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DifforumFlowStabilize"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0.15
+      ]
+    },
+    {
+      "id": 16,
       "type": "Note",
       "pos": [
         40,
@@ -607,7 +719,7 @@
         300
       ],
       "flags": {},
-      "order": 12,
+      "order": 15,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -616,7 +728,7 @@
         "text": ""
       },
       "widgets_values": [
-        "Difforum: Intuitive controls (Camera Move presets + Prompt Scenes).\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\nSwap to SDXL/Flux for higher quality."
+        "Difforum: Intuitive controls (Camera Move presets + Prompt Scenes).\n\nModels:\n- SD1.5 checkpoint -> models/checkpoints  (DreamShaper: civitai.com/models/4384)\nSwap to SDXL/Flux for higher quality.\n\nCamera Shots = direct like an edit (frame: preset speed intensity), and the\nPath Preview shows the trajectory BEFORE you render. Group 4 = anti-flicker\n(select + Ctrl+B to bypass). cadence 2-3 in the sampler = faster long videos."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -697,110 +809,183 @@
     ],
     [
       10,
-      7,
+      8,
       0,
       9,
       0,
-      "DIFFORUM_PARAMS"
+      "DIFFORUM_CAMERA"
     ],
     [
       11,
-      7,
+      9,
       0,
       10,
+      0,
+      "IMAGE"
+    ],
+    [
+      12,
+      7,
+      0,
+      11,
       0,
       "DIFFORUM_PARAMS"
     ],
     [
+      13,
+      7,
+      0,
       12,
+      0,
+      "DIFFORUM_PARAMS"
+    ],
+    [
+      14,
       1,
       1,
-      10,
+      12,
       1,
       "CLIP"
     ],
     [
-      13,
+      15,
       1,
       0,
-      11,
+      13,
       0,
       "MODEL"
     ],
     [
-      14,
+      16,
       2,
       0,
-      11,
+      13,
       1,
       "CONDITIONING"
     ],
     [
-      15,
+      17,
       3,
       0,
-      11,
+      13,
       2,
       "CONDITIONING"
     ],
     [
-      16,
+      18,
       1,
       2,
-      11,
+      13,
       3,
       "VAE"
     ],
     [
-      17,
+      19,
       7,
       0,
-      11,
+      13,
       4,
       "DIFFORUM_PARAMS"
     ],
     [
-      18,
+      20,
       8,
       0,
-      11,
+      13,
       5,
       "DIFFORUM_CAMERA"
     ],
     [
-      19,
+      21,
       6,
       0,
-      11,
+      13,
       6,
       "IMAGE"
-    ],
-    [
-      20,
-      9,
-      0,
-      11,
-      7,
-      "DIFFORUM_SCHEDULE"
-    ],
-    [
-      21,
-      10,
-      0,
-      11,
-      10,
-      "DIFFORUM_PROMPT"
     ],
     [
       22,
       11,
       0,
+      13,
+      7,
+      "DIFFORUM_SCHEDULE"
+    ],
+    [
+      23,
       12,
+      0,
+      13,
+      10,
+      "DIFFORUM_PROMPT"
+    ],
+    [
+      24,
+      13,
+      0,
+      15,
+      0,
+      "IMAGE"
+    ],
+    [
+      25,
+      15,
+      0,
+      14,
       0,
       "IMAGE"
     ]
   ],
-  "groups": [],
+  "groups": [
+    {
+      "title": "1 - FIRST FRAME (txt2img)",
+      "bounding": [
+        10,
+        -60,
+        1270,
+        480
+      ],
+      "color": "#33415a",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "2 - DIRECTOR (shot list + path preview + scenes)",
+      "bounding": [
+        10,
+        440,
+        940,
+        900
+      ],
+      "color": "#33503f",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "3 - RENDER (detail guard inside)",
+      "bounding": [
+        960,
+        380,
+        350,
+        460
+      ],
+      "color": "#5a3a33",
+      "font_size": 22,
+      "locked": false
+    },
+    {
+      "title": "4 - QUALITY: anti-flicker (Ctrl+B to bypass)",
+      "bounding": [
+        1310,
+        380,
+        350,
+        300
+      ],
+      "color": "#4a3d5a",
+      "font_size": 22,
+      "locked": false
+    }
+  ],
   "config": {},
   "extra": {},
   "version": 0.4
