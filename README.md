@@ -44,8 +44,9 @@ What you get:
 - No `eval()`, no exotic dependencies (safe AST evaluator, numpy FFT audio, torch
   warps), 16 test suites, and a clean install on Python 3.12 and the Comfy Registry.
 
-See [DESIGN.md](DESIGN.md) for the architecture and [REALTIME.md](REALTIME.md)
-for the live-performance direction.
+See [DESIGN.md](DESIGN.md) for the architecture, [PERFORMANCE.md](PERFORMANCE.md)
+for quality at few steps and Apple Silicon, and [REALTIME.md](REALTIME.md) for the
+live-performance direction.
 
 ## The nodes
 
@@ -61,6 +62,17 @@ can be driven by audio.
 | **Difforum · Sample Schedule** | Reads a curve value at one frame |
 | **Difforum · Schedule Info** | Debug summary + ASCII sparkline of a curve |
 | **Difforum · Schedule Plot** | Renders the computed curve as an IMAGE (Preview-ready) |
+
+**Direction.** Plan the clip before spending render time on it:
+
+| Node | What it does |
+|---|---|
+| **Difforum · Anim Setup+** | Duration in frames *or* seconds, framing by aspect ratio, resolution clamped to what the machine can finish |
+| **Difforum · Film Director** | Visual timeline: drag scenes, pick a mood + camera each, and it emits the camera, prompt and strength schedules together |
+| **Difforum · Storyboard** | The whole clip warped but never diffused, as a contact sheet + drift readout. Under a second - fix the movement here |
+| **Difforum · Camera Keys** | Keyframed camera: moves *blend* into each other instead of cutting, and the lens (fov) is its own interpolated channel |
+| **Difforum · Seamless Camera** | Camera path made periodic, so the clip loops with no crossfade |
+| **Difforum · Loop Take** | Keeps the settled lap of a multi-lap render and scores the seam |
 
 **Audio reactivity.** Pure numpy (no librosa):
 
@@ -184,27 +196,42 @@ a self-host GPU (above) in the meantime.
 
 ## Example workflows
 
-In `examples/` (drag the `.json` onto the ComfyUI canvas):
+Workflows live in `examples/`, split in two. Drag any `.json` onto the ComfyUI
+canvas.
+
+### `examples/basic/` - one idea at a time
+
+Little or nothing to download, few nodes, no external packs.
 
 | File | Needs assets? | Shows |
 |---|---|---|
 | `difforum_schedule_basic.json` | no | Anim Setup → Schedule → Schedule Info. Runs anywhere, zero downloads. |
-| `difforum_audio_reactive.json` | an audio file | Load Audio → Audio Analyzer → two Schedules (bass-zoom `1.0+0.6*low`, beat-spin `beat*30`) → Info. |
-| `difforum_feedback_classic.json` | an SD1.5 checkpoint | Full Classic+ video: txt2img frame 0 → Camera + strength Schedule → Feedback Sampler → Save. Set the checkpoint name to one you have. |
-| `difforum_camera_warp.json` | an image | Load Image → Camera → Warp (2D/3D) → Preview. See the Deforum warp + occlusion on one frame. |
-| `difforum_hybrid_wan_guides.json` | an anchor image | Camera → Guide Builder → guide batch (wire `guide_frames` into your Wan 2.2 VACE graph). |
-| `difforum_models_info.json` | nothing | Model Profile (auto-VRAM) + Model Catalog (recipes) + a sampled schedule. Reference card, runs anywhere. |
+| `difforum_models_info.json` | no | Model Profile (auto-VRAM) + Model Catalog (recipes). Reference card. |
+| `difforum_vj_footage.json` | a video clip | Load Video → VJ Look → Echo Trails → Save MP4. No checkpoint, no external nodes. |
+| `difforum_camera_warp.json` | an image | Load Image → Camera → Warp (2D/3D) → Preview. The warp + occlusion on one frame. |
+| `difforum_audio_reactive.json` | an audio file | Audio Analyzer → two Schedules (bass-zoom `1.0+0.6*low`, beat-spin `beat*30`). |
+| `difforum_feedback_classic.json` | an SD1.5 checkpoint | Full Classic+ video: txt2img frame 0 → Camera + strength → Feedback Sampler → Save. |
 | `difforum_intuitive_controls.json` | SD1.5 checkpoint | Camera **Move presets** + **Prompt Scenes** → feedback video. |
-| `difforum_deluxe_travel_controlnet_video.json` | SD1.5 ckpt + tile ControlNet | Everything: travel + ControlNet + RIFE interpolation → MP4. |
 | `difforum_turbo_live.json` | SD-Turbo / LCM ckpt | Low-step (4) fast feedback, the path toward realtime. |
+
+### `examples/advanced/` - full productions
+
+Several models, helper node packs, longer graphs.
+
+| File | Needs assets? | Shows |
+|---|---|---|
+| `difforum_film_director.json` | SDXL ckpt + DMD2 LoRA | **Start here.** Film Director timeline drives camera, prompts and strength at once; Storyboard previews the whole clip before any diffusion runs. |
+| `difforum_parallax_fluid.json` | SDXL ckpt + DMD2 LoRA + DepthAnythingV2 + Frame Interpolation | **Fluid motion**: a depth map turns on real parallax (near pixels travel faster than far ones), RIFE interpolates to 48fps, and the loop settings are tuned against convergence. |
+| `difforum_seamless_installation.json` | SDXL ckpt + DMD2 LoRA | **True loop, no crossfade**: periodic camera + 3 laps + Loop Take. For projections that run for hours. |
+| `difforum_fast_sdxl.json` | SDXL ckpt + DMD2 LoRA | **Fast recipe**: frame 0 full quality on the base model, loop on a 4-step distill + cadence 2. ~8-10x less diffusion cost. |
 | `difforum_ipadapter_coherent.json` (16:9) | ckpt + IPAdapter + style image | **Style-locked** feedback via IPAdapter → strong coherence, low drift. |
 | `difforum_audio_reactive_video.json` (16:9) | ckpt + audio file | **Audio Schedule**: bass pumps zoom, beats pulse strength → MP4. |
+| `difforum_deluxe_travel_controlnet_video.json` | SD1.5 ckpt + tile ControlNet | Everything: travel + ControlNet + RIFE interpolation → MP4. |
 | `difforum_animatediff_sd15.json` (16:9) | SD1.5 ckpt + AnimateDiff-Evolved | Prompt Batch → AnimateDiff native motion + Difforum control. |
-| `difforum_qrcode_illusion.json` (16:9) | SD1.5 ckpt + QR-Monster ControlNet + pattern image | Locks a spiral/logo/mask in the scene while the loop morphs - hidden-pattern illusions. |
-| `difforum_mesmerize_kaleidoscope.json` | SD1.5 checkpoint | **Living kaleidoscope**: in-loop symmetry folds each warped frame, the diffusion heals the seams, Echo Trails smooths the motion. |
-| `difforum_realtime_live.json` | SD-Turbo / LCM ckpt | **Native realtime**: Live Sampler internal loop (resident model, warp + kaleidoscope + 1-step re-diffuse) with a live preview in the node. See Realtime below. |
-| `difforum_fast_sdxl.json` | SDXL ckpt + DMD2 LoRA | **Fast recipe**: frame 0 full quality on the base model, loop on a DMD2 4-step distill + cadence 2, about 8-10x less diffusion cost. The best fit for Apple Silicon. |
-| `difforum_vj_footage.json` | a video clip (no model) | **VJ look for footage**: Load Video → VJ Look (grade + glow + chroma + grain) → Echo Trails → Save Video (MP4). Complete and self-contained, no checkpoint, no external nodes. |
+| `difforum_qrcode_illusion.json` (16:9) | SD1.5 ckpt + QR-Monster ControlNet + pattern | Locks a spiral/logo/mask in the scene while the loop morphs. |
+| `difforum_mesmerize_kaleidoscope.json` | SD1.5 checkpoint | **Living kaleidoscope**: in-loop symmetry, the diffusion heals the seams. |
+| `difforum_hybrid_wan_guides.json` | an anchor image | Camera → Guide Builder → guide batch for a Wan 2.2 VACE graph. |
+| `difforum_realtime_live.json` | SD-Turbo / LCM ckpt | **Native realtime**: Live Sampler internal loop with a live preview in the node. |
 
 Templates exercise every node. Regenerate with
 `python examples/_build_examples.py`.
@@ -285,6 +312,9 @@ ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
   A slow rotation/zoom on the camera keeps feeding the kaleidoscope new material.
 
 ## Performance
+
+Full detail in [PERFORMANCE.md](PERFORMANCE.md) - cost model, few-step recipes,
+Apple Silicon memory budgets and measured throughput.
 
 Difforum's pixel-effect chain (warp, symmetry, sharpen, noise) runs on the best
 available device automatically: CUDA, then Apple **MPS**, then CPU, with a safe

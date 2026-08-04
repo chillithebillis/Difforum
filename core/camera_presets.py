@@ -21,6 +21,37 @@ _AXES = (
     "rotation_3d_x", "rotation_3d_y", "rotation_3d_z", "zoom",
 )
 
+# The 2D affine warp can only express in-plane translation, a roll about the
+# view axis, and a scale. Everything else describes motion through space and
+# needs a depth map to mean anything.
+#
+# This matters more than it looks: `build_camera(mode="2d")` zeroes the other
+# axes outright, and the Feedback Sampler silently falls back to the 2D warp
+# whenever `depth` is not connected - even with mode set to "3d". A shot list
+# built from orbit/dolly moves will then render as a completely still frame,
+# with nothing in the logs to say why.
+AXES_2D = ("translation_x", "translation_y", "rotation_3d_z", "zoom")
+
+
+def preset_axes(preset: str) -> set[str]:
+    """Which axes a preset actually drives (at speed=intensity=1)."""
+    exprs = preset_schedules(preset, 1.0, 1.0)
+    return {
+        ax for ax, e in exprs.items()
+        if e not in ("0:(0)", "0:(1.0)")
+    }
+
+
+def needs_depth(preset: str) -> bool:
+    """True if the preset does nothing without a depth map."""
+    used = preset_axes(preset)
+    return bool(used) and not (used & set(AXES_2D))
+
+
+def flat_presets() -> tuple[str, ...]:
+    """Presets that work with the plain 2D warp, no depth needed."""
+    return tuple(p for p in CAMERA_PRESETS if not needs_depth(p))
+
 
 def preset_schedules(preset: str, speed: float = 1.0, intensity: float = 1.0) -> dict[str, str]:
     """Return the 7 axis schedule strings for a preset at given speed/intensity."""

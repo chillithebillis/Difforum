@@ -14,6 +14,33 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
+# Where each workflow lands. `basic` is for learning one idea at a time - little
+# or nothing to download, few nodes, no external packs. `advanced` is for full
+# productions: several models, helper node packs, longer graphs.
+TIERS = {
+    "difforum_schedule_basic.json": "basic",
+    "difforum_models_info.json": "basic",
+    "difforum_camera_warp.json": "basic",
+    "difforum_audio_reactive.json": "basic",
+    "difforum_intuitive_controls.json": "basic",
+    "difforum_feedback_classic.json": "basic",
+    "difforum_vj_footage.json": "basic",
+    "difforum_turbo_live.json": "basic",
+
+    "difforum_fast_sdxl.json": "advanced",
+    "difforum_film_director.json": "advanced",
+    "difforum_parallax_fluid.json": "advanced",
+    "difforum_seamless_installation.json": "advanced",
+    "difforum_ipadapter_coherent.json": "advanced",
+    "difforum_audio_reactive_video.json": "advanced",
+    "difforum_deluxe_travel_controlnet_video.json": "advanced",
+    "difforum_animatediff_sd15.json": "advanced",
+    "difforum_qrcode_illusion.json": "advanced",
+    "difforum_mesmerize_kaleidoscope.json": "advanced",
+    "difforum_hybrid_wan_guides.json": "advanced",
+    "difforum_realtime_live.json": "advanced",
+}
+
 
 class WF:
     """Tiny builder for litegraph workflow JSON."""
@@ -1416,9 +1443,13 @@ def main():
     for name, data in out.items():
         if name in NOTES:
             add_note(data, NOTES[name])
-        path = HERE / name
+        tier = TIERS.get(name, "advanced")
+        folder = HERE / tier
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / name
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        print(f"wrote {path.name}  ({len(data['nodes'])} nodes, {len(data['links'])} links)")
+        print(f"wrote {tier}/{path.name}  "
+              f"({len(data['nodes'])} nodes, {len(data['links'])} links)")
     print("OK")
 
 

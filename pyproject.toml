@@ -1,7 +1,7 @@
 [project]
 name = "difforum"
-description = "Modern Deforum-style animation toolkit for ComfyUI: math-driven keyframe schedules, audio reactivity, depth-aware camera warping and a Wan 2.2 video bridge."
-version = "0.5.0"
+description = "Modern Deforum-style animation toolkit for ComfyUI: math-driven keyframe schedules, a visual shot-timeline director, audio reactivity, depth-aware camera warping, seamless loops, and guide bridges to Wan 2.2 and LTX-2. Runs on CUDA and Apple Silicon (MPS)."
+version = "0.6.0"
 license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.10"
