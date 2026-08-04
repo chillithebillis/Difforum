@@ -392,27 +392,6 @@ app.registerExtension({
 
             const ui = buildTimeline(this, tw);
 
-            // Keep the visual timeline in sync when `timeline` is written from
-            // outside this widget: API edits, user scripts, workflow patch
-            // tools. Those assign `widget.value` directly, which fires no
-            // callback, so the cards keep showing stale shots while the
-            // backend already received the new ones. Self-writes from save()
-            // are skipped so editing a prompt does not clear the selection.
-            const dfdNode = this;
-            let dfdRaw = tw.value;
-            Object.defineProperty(tw, "value", {
-                configurable: true,
-                enumerable: true,
-                get: () => dfdRaw,
-                set: (v) => {
-                    const changed = v !== dfdRaw;
-                    dfdRaw = v;
-                    if (changed && v !== dfdNode.__dfdLastWritten) {
-                        ui.reload();
-                    }
-                },
-            });
-
             this.addDOMWidget("difforum_timeline_ui", "div", ui.root, {
                 serialize: false,
                 hideOnZoom: false,
