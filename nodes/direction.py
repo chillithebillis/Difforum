@@ -26,6 +26,19 @@ def encode_prompt_track(clip, keyframes, frames, easing="ease_in_out"):
     return PromptTrack(encoded, keyframes, frames, easing)
 
 
+def _track(axes: dict, lens: list, n: int, mode: str, moves: list):
+    """Camera track for the chosen mode. Moves through space in a 2d shot are
+    kept as a 3D track rendered flat, so they become pseudo-3D (dolly -> zoom,
+    orbit -> pan) instead of being dropped."""
+    values = dict(axes)
+    values["fov"] = lens
+    if mode == "2d" and any(needs_depth(m) for m in moves):
+        cam = build_camera(values, max_frames=n, mode="3d", fov=lens[0])
+        cam.flat = True
+        return cam
+    return build_camera(values, max_frames=n, mode=mode, fov=lens[0])
+
+
 def _fit(series: list, n: int, pad):
     series = list(series)
     if len(series) < n:
@@ -94,9 +107,7 @@ class DifforumDirector:
             strength_bias=energy_bias, blend=transition, variation=variation,
             variation_seed=variation_seed, audio_curves=audio_vars(audio),
         )
-        values = dict(d.axes)
-        values["fov"] = d.lens
-        camera = build_camera(values, max_frames=n, mode=camera_mode, fov=d.lens[0])
+        camera = _track(d.axes, d.lens, n, camera_mode, [b["move"] for b in d.camera_blocks])
         strength = Schedule(values=d.strength, fps=fps, source="director energy")
         cfg = Schedule(values=d.cfg, fps=fps, source="director guidance") if d.cfg else None
         prompts = encode_prompt_track(clip, d.prompts, n) if clip is not None else None
@@ -194,15 +205,15 @@ class DifforumCamera:
                              "and keep the last lap with the Loop node")
 
         values = {ax: _fit(s, total, 1.0 if ax == "zoom" else 0.0) for ax, s in values.items()}
-        values["fov"] = _fit(lens, total, 40.0)
-        cam = build_camera(values, max_frames=total, mode=mode, fov=values["fov"][0])
+        moves = [k["move"] for k in parse_camera_keys(keys)]
+        cam = _track(values, _fit(lens, total, 40.0), total, mode, moves)
 
-        depth_moves = sorted({k["move"] for k in parse_camera_keys(keys) if needs_depth(k["move"])})
+        depth_moves = sorted({m for m in moves if needs_depth(m)})
         if depth_moves:
             notes.append(f"  {', '.join(depth_moves)}: real parallax needs mode=3d + a depth map; "
                          "otherwise they run as pseudo-3D (dolly->zoom, orbit->pan).")
             notes.append(f"  flat moves: {', '.join(flat_presets()[:10])}...")
-        lo, hi = min(values["fov"]), max(values["fov"])
+        lo, hi = min(cam.fov), max(cam.fov)
         info = "\n".join([f"camera ({mode}, transition {transition:g})",
                           f"  lens {lo:.0f}-{hi:.0f} deg ({lens_note(lo)})", summary, *notes])
         return (cam, cyc if looping else total, info)

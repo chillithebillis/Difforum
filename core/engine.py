@@ -132,9 +132,10 @@ class FeedbackEngine:
                 self.depth = d[:1]
             else:
                 self.depth = d
+        self.use_depth = camera.mode == "3d" and self.depth is not None and not camera.flat
         if camera.mode == "3d":
-            self.report.mode = "3d" if self.depth is not None else "pseudo3d"
-            if self.depth is None:
+            self.report.mode = "3d" if self.use_depth else "pseudo3d"
+            if self.depth is None and not camera.flat:
                 self.report.notes.append(
                     "3D camera without a depth map: ran the pseudo-3D fallback "
                     "(dolly -> zoom, orbit -> pan). Connect a depth map for real parallax."
@@ -185,7 +186,7 @@ class FeedbackEngine:
         c = self.cfg
         fov = float(self.camera.fov[f])
         depth = self._depth_for(f)
-        if self.camera.mode == "3d" and depth is not None:
+        if self.use_depth:
             out, m, new_d = warp_3d(
                 img, depth.to(img.device), self._delta3d(f, fov), fov_deg=fov,
                 near=c.near, far=c.far, invert_depth=c.invert_depth,
@@ -211,7 +212,7 @@ class FeedbackEngine:
         c = self.cfg
         if frm <= to:
             return img
-        if self.camera.mode == "3d" and depth is not None:
+        if self.use_depth and depth is not None:
             acc = torch.eye(4, dtype=torch.float64)
             for f in range(to + 1, frm + 1):
                 fov = float(self.camera.fov[f])
@@ -235,7 +236,7 @@ class FeedbackEngine:
         c = self.cfg
         img = resize_bhwc(anchor, c.width, c.height)[:1, ..., :3].float()
         depth0 = self.depth
-        use3d = self.camera.mode == "3d" and depth0 is not None
+        use3d = self.use_depth
         acc3 = torch.eye(4, dtype=torch.float64)
         acc2 = torch.eye(3, dtype=torch.float64)
         zoom_cum = 1.0

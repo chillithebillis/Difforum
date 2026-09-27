@@ -140,3 +140,45 @@ def test_loop_methods():
 
 def _c():
     return [[torch.zeros(1, 4, 8), {}]]
+
+
+def test_live_sampler_ring_buffer():
+    from difforum.nodes.render import DifforumLiveSampler
+    params = setup(seconds=0.5)[0]
+    bundle = director(params)[0]
+    frames, report = DifforumLiveSampler().run(
+        StubModel(), _c(), _c(), StubVAE(), gradient(72, 128), 30, 1, 1.0, "euler", "normal", 2,
+        0.0, direction=bundle, keep_frames=10, live_preview=False)
+    assert frames.shape[0] == 10 and "fps measured" in report
+
+
+def test_guide_frames_3d_with_depth_and_export(tmp_path, monkeypatch):
+    from difforum.nodes.export import DifforumCameraExport, DifforumCameraImport
+    params = setup(seconds=1.0)[0]
+    tl = default_timeline(params["max_frames"])
+    tl["camera"][0]["move"] = "dolly_in"
+    bundle = director(params, tl=tl, mode="3d")[0]
+    depth = torch.linspace(0, 1, 128).expand(72, 128)[None, ..., None].expand(1, 72, 128, 3)
+    guides, masks, info = DifforumGuideFrames().run(gradient(72, 128), "1 = keep", "stretch edge",
+                                                    direction=bundle, depth=depth)
+    assert "(3d)" in info and float(masks[-1].mean()) < 1.0
+
+    monkeypatch.chdir(tmp_path)
+    res = DifforumCameraExport().run("all", "shot", 0.1, direction=bundle)["result"]
+    paths = res[0].splitlines()
+    assert len(paths) == 3 and all(p.endswith((".json", ".jsx", "_blender.py")) for p in paths)
+    cam, _ = DifforumCameraImport().run("", params, "match frames", json_text=res[1])
+    assert len(cam.deltas) == params["max_frames"]
+
+
+def test_2d_director_keeps_depth_moves_alive():
+    params = setup(seconds=1.0)[0]
+    tl = default_timeline(params["max_frames"])
+    tl["camera"] = [{"start": 0, "move": "dolly_in", "speed": 1.0, "intensity": 1.0}]
+    bundle, camera = director(params, tl=tl, mode="2d")[:2]
+    assert camera.mode == "3d" and camera.flat
+    frames = DifforumStoryboard().run(gradient(72, 128), 8, 6, 1.0, direction=bundle)[1]
+    assert float((frames[-1] - frames[0]).abs().mean()) > 0.01
+    depth = torch.full((1, 72, 128, 3), 0.5)
+    info = DifforumStoryboard().run(gradient(72, 128), 8, 6, 1.0, direction=bundle, depth=depth)[3]
+    assert "(pseudo3d)" in info          # flat = 2d stays 2d even with a depth map

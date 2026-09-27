@@ -53,6 +53,9 @@ class CameraTrack:
     zoom: list[float]          # per-frame 2D scale factor
     fov: list[float]           # per-frame field of view (degrees)
     mode: str = "3d"
+    # a 3D track the user asked to render flat (2d): renderers use the
+    # pseudo-3D affine even when a depth map is connected
+    flat: bool = False
 
     def __len__(self) -> int:
         return len(self.deltas)

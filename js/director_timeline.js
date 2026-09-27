@@ -223,6 +223,9 @@ function normalise(v) {
     }
     const t = Object.assign(emptyTimeline(), v || {});
     for (const k of ["scenes", "camera", "energy", "guidance"]) if (!Array.isArray(t[k])) t[k] = [];
+    t.scenes = t.scenes.map((s) => ({ start: 0, mood: "calm", prompt: "", ...s }));
+    t.camera = t.camera.map((c) => ({ start: 0, move: "still", speed: 1, intensity: 1, lens: 0,
+                                      ease: "ease_in_out", react: "none", ...c }));
     return t;
 }
 

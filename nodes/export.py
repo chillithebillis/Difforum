@@ -160,6 +160,9 @@ class DifforumCameraImport:
 
             from ..core.video import safe_input_path
             path = safe_input_path(folder_paths.get_input_directory(), file)
+            if not os.path.isfile(path):
+                raise ValueError("Camera Import: put a camera .json in ComfyUI/input "
+                                 "(or paste it into json_text).")
             with open(path, encoding="utf-8") as fh:
                 data = fh.read()
         c2w, focals, w, h, fps = X.from_json(data)

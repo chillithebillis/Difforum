@@ -25,7 +25,7 @@ if "difforum" not in sys.modules:
     _alias.__path__ = [str(PACK)]
     sys.modules["difforum"] = _alias
 
-from difforum.core.direction import default_timeline  # noqa: E402
+from difforum.core.direction import default_timeline, parse_timeline  # noqa: E402
 from difforum.nodes import NODE_CLASS_MAPPINGS as DF  # noqa: E402
 
 WIDGET_TYPES = {"INT", "FLOAT", "STRING", "BOOLEAN"}
@@ -148,7 +148,7 @@ def tl_json(frames, **patch):
     tl = default_timeline(frames)
     for k, v in patch.items():
         tl[k] = v
-    return json.dumps(tl)
+    return json.dumps(parse_timeline(tl))
 
 
 # ---------------------------------------------------------------------------

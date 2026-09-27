@@ -15,7 +15,6 @@ log = logging.getLogger("difforum")
 def compute_preview(body: dict) -> dict:
     import torch
 
-    from ..core.camera import build_camera
     from ..core.direction import build_direction
     from ..core.engine import EngineConfig, FeedbackEngine
 
@@ -30,9 +29,8 @@ def compute_preview(body: dict) -> dict:
                         blend=float(body.get("transition", 1.0)),
                         variation=float(body.get("variation", 0.0)),
                         variation_seed=int(body.get("variation_seed", 0)))
-    values = dict(d.axes)
-    values["fov"] = d.lens
-    cam = build_camera(values, max_frames=frames, mode=mode, fov=d.lens[0])
+    from .direction import _track
+    cam = _track(d.axes, d.lens, frames, mode, [b["move"] for b in d.camera_blocks])
     eng = FeedbackEngine(cam, EngineConfig(width=w, height=h))
     acc = torch.eye(3, dtype=torch.float64)
     step = max(1, frames // 480)

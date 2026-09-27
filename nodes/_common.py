@@ -42,8 +42,8 @@ def call_comfy_node(class_id: str, **kwargs):
             "(it ships with core) or install the pack that provides it."
         )
     execute = getattr(cls, "execute", None)
-    if callable(execute) and not hasattr(cls, "FUNCTION"):
-        out = execute(**kwargs)             # v3 schema (io.ComfyNode)
+    if callable(execute):
+        out = execute(**kwargs)             # v3 schema (io.ComfyNode): classmethod
     else:
         out = getattr(cls(), cls.FUNCTION)(**kwargs)
     res = getattr(out, "result", out)
