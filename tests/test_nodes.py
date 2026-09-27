@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 25
+    assert len(v1) == 26
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:
@@ -182,3 +182,26 @@ def test_2d_director_keeps_depth_moves_alive():
     depth = torch.full((1, 72, 128, 3), 0.5)
     info = DifforumStoryboard().run(gradient(72, 128), 8, 6, 1.0, direction=bundle, depth=depth)[3]
     assert "(pseudo3d)" in info          # flat = 2d stays 2d even with a depth map
+
+
+def test_h3_guides_chain_and_limit(monkeypatch):
+    import nodes as stub_nodes
+
+    from difforum.nodes.bridges import DifforumH3Guides
+
+    calls = []
+
+    class FakeAddGuide:
+        @classmethod
+        def execute(cls, positive, latent, frame_idx, vae=None, audio_vae=None, image=None, audio=None):
+            calls.append((frame_idx, audio is not None))
+            return (positive + [frame_idx],)
+
+    monkeypatch.setitem(stub_nodes.NODE_CLASS_MAPPINGS, "MiniMaxH3AddGuide", FakeAddGuide)
+    keys = torch.rand(6, 32, 32, 3)
+    pos, info = DifforumH3Guides().run([], {"samples": None}, object(), keys, "0,17,34,51,68,123",
+                                       4, False, audio_vae=object(), audio={"waveform": 1})
+    assert [c[0] for c in calls] == [0, 34, 68, 123] and calls[0][1] and not calls[1][1]
+    calls.clear()
+    DifforumH3Guides().run([], {"samples": None}, object(), keys, "0,17,34,51,68,123", 8, True)
+    assert [c[0] for c in calls] == [17, 34, 51, 68, 123]

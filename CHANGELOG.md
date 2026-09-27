@@ -11,13 +11,14 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
   render engine. A single `direction` wire feeds the renderers.
 - **Setup** with target model grids: LTX 8k+1, MiniMax H3 17k+5 @ 24 fps, Wan 4k+1.
 - Video model bridges: **Guide Frames**, **Keyframes**, **Camera → Prompt**,
-  **LTX Guides** (core `LTXVAddGuide`) and **H3 Shot** (first/last frame, segments).
+  **LTX Guides** (core `LTXVAddGuide`), **H3 Guides** (core `MiniMaxH3AddGuide`, multi-keyframe)
+  and **H3 Shot** (first/last frame, segments).
 - **Camera Export** to After Effects (.jsx), Blender (.py) and JSON; **Camera Import**
   from them, with helper exporters in `tools/`.
 - 7 new moves: tilt up/down, crane up, handheld, drift, breathe, vortex.
 - Feedback Sampler outputs the tracked depth per frame and a run report; its fine-tuning
   moved to a separate **Render Options** node, so the sampler stays small.
-- 9 templates in ComfyUI's template browser, generated from the node definitions.
+- 10 templates in ComfyUI's template browser, generated from the node definitions.
 
 ### Improved
 - One shared feedback engine behind the Feedback Sampler, Live Sampler and Storyboard.

@@ -38,16 +38,35 @@ Template: `07_ltx_guides`.
 To use KJNodes' `LTXVAddGuidesFromBatch` instead, feed it Keyframes'
 `sparse_batch`: every frame is black except the keys.
 
+## MiniMax H3 (multi-keyframe guides)
+
+Template: `10_h3_multikeyframe_guides`. This is the official *Multiframe Reference*
+setup (ref2va model), with the guide images coming from your camera.
+
+1. **Setup** target `MiniMax H3` locks 24 fps, the 17k+5 length grid and a 32 px size.
+2. **Director** → **Guide Frames** (the anchor carried along the camera) →
+   **Keyframes** (grid H3, every 2 s).
+3. **MiniMax H3 Reference to Video** gets the anchor as `<Picture 1>` (identity
+   and style), the prompt from **Camera → Prompt**, and the size and length
+   from Setup / Keyframes.
+4. **H3 Guides** anchors each keyframe at its frame, using the core
+   `MiniMaxH3AddGuide`. `max_guides` (default 4) keeps the first, the last and
+   evenly spaced ones in between. Connect an `audio` (and the audio VAE) to
+   anchor a soundtrack at frame 0.
+5. The rest is the official sampling tail: guider → SamplerCustomAdvanced →
+   video + audio decode → Create Video. The Turbo LoRA node is bypassed; enable it
+   with Ctrl+B and drop the steps to 4.
+
 ## MiniMax H3 (first / last frame)
 
-Template: `08_h3_first_last`.
+Template: `08_h3_first_last_frame` (fl2va model), wired end to end.
 
 1. **Setup** target `MiniMax H3` locks 24 fps and the 17k+5 length grid.
 2. **H3 Shot** takes the frames (Guide Frames, a Feedback render or a Storyboard)
    and returns, for the chosen `segment`:
    `first_frame`, `last_frame`, `length`, `width`, `height` (32 px grid) and a
    `prompt` built from your shot description plus the camera move of that segment.
-3. Wire those into core **MiniMax H3 Image to Video** (mode fl2va). The last frame is
+3. These feed core **MiniMax H3 Image to Video** directly. The last frame is
    the anchor carried to where the camera ends, so H3 performs the move you drew
    instead of improvising one.
 

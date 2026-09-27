@@ -53,6 +53,26 @@ EXTERNAL = {
     "DepthAnything_V2": ([("da_model", "DAMODEL"), ("images", "IMAGE")], [], [("image", "IMAGE")]),
     "EmptyLTXVLatentVideo": ([], ["width", "height", "length", "batch_size"], [("LATENT", "LATENT")]),
     "MarkdownNote": ([], ["text"], []),
+    # MiniMax H3 (ComfyUI core) - names match the official templates
+    "UNETLoader": ([], ["unet_name", "weight_dtype"], [("MODEL", "MODEL")]),
+    "LoraLoaderModelOnly": ([("model", "MODEL")], ["lora_name", "strength_model"], [("MODEL", "MODEL")]),
+    "CLIPLoader": ([], ["clip_name", "type", "device"], [("CLIP", "CLIP")]),
+    "VAELoader": ([], ["vae_name"], [("VAE", "VAE")]),
+    "MiniMaxH3ImageToVideo": ([("clip", "CLIP"), ("vae", "VAE"), ("first_frame", "IMAGE"), ("last_frame", "IMAGE")],
+                              ["prompt", "width", "height", "length"],
+                              [("positive", "CONDITIONING"), ("LATENT", "LATENT")]),
+    "MiniMaxH3ReferenceToVideo": ([("clip", "CLIP"), ("vae", "VAE"), ("audio_vae", "VAE"),
+                                   ("ref_images.ref_image_0", "IMAGE")],
+                                  ["prompt", "width", "height", "length", "ref_image_size"],
+                                  [("positive", "CONDITIONING"), ("LATENT", "LATENT")]),
+    "RandomNoise": ([], ["noise_seed", "control_after_generate"], [("NOISE", "NOISE")]),
+    "KSamplerSelect": ([], ["sampler_name"], [("SAMPLER", "SAMPLER")]),
+    "BasicScheduler": ([("model", "MODEL")], ["scheduler", "steps", "denoise"], [("SIGMAS", "SIGMAS")]),
+    "BasicGuider": ([("model", "MODEL"), ("conditioning", "CONDITIONING")], [], [("GUIDER", "GUIDER")]),
+    "SamplerCustomAdvanced": ([("noise", "NOISE"), ("guider", "GUIDER"), ("sampler", "SAMPLER"),
+                               ("sigmas", "SIGMAS"), ("latent_image", "LATENT")], [],
+                              [("output", "LATENT"), ("denoised_output", "LATENT")]),
+    "VAEDecodeAudio": ([("samples", "LATENT"), ("vae", "VAE")], [], [("AUDIO", "AUDIO")]),
 }
 
 
@@ -88,7 +108,7 @@ class Graph:
         self.title = title
         self.nodes, self.links = [], []
 
-    def add(self, type_, pos, size=(340, 200), title=None, **values):
+    def add(self, type_, pos, size=(340, 200), title=None, mode=0, **values):
         if type_ in DF:
             links, widgets, outs, defaults = difforum_spec(type_)
         else:
@@ -106,7 +126,7 @@ class Graph:
             raise KeyError(f"{type_}: unknown widgets {sorted(values)}")
         node = {
             "id": len(self.nodes) + 1, "type": type_, "pos": list(pos), "size": list(size),
-            "flags": {}, "order": len(self.nodes), "mode": 0,
+            "flags": {}, "order": len(self.nodes), "mode": mode,
             "inputs": [{"name": n, "type": t, "link": None} for n, t in links],
             "outputs": [{"name": n, "type": t, "links": [], "slot_index": i}
                         for i, (n, t) in enumerate(outs)],
@@ -394,33 +414,140 @@ def wf_ltx():
     return g
 
 
+def h3_render(g, x, y, conditioning_node, cond_out, latent_node, latent_out, model_node, setup, audio_vae,
+              video_vae, lora, steps=20):
+    """The official MiniMax H3 sampling tail: guider -> custom sampler -> AV decode -> video."""
+    lo = g.add("LoraLoaderModelOnly", (x, y - 120), size=(360, 90), title="Turbo LoRA (Ctrl+B to enable, then steps 4-8)",
+               mode=4, lora_name=lora, strength_model=1.0)
+    g.link(model_node, "MODEL", lo, "model")
+    gd = g.add("BasicGuider", (x, y), size=(220, 50))
+    g.link(lo, "MODEL", gd, "model")
+    g.link(conditioning_node, cond_out, gd, "conditioning")
+    nz = g.add("RandomNoise", (x, y + 90), size=(260, 90), noise_seed=7)
+    ks = g.add("KSamplerSelect", (x, y + 210), size=(260, 60), sampler_name="res_multistep")
+    sc = g.add("BasicScheduler", (x, y + 300), size=(260, 110), scheduler="simple", steps=steps, denoise=1.0)
+    g.link(lo, "MODEL", sc, "model")
+    sa = g.add("SamplerCustomAdvanced", (x + 300, y), size=(260, 120))
+    g.link(nz, "NOISE", sa, "noise")
+    g.link(gd, "GUIDER", sa, "guider")
+    g.link(ks, "SAMPLER", sa, "sampler")
+    g.link(sc, "SIGMAS", sa, "sigmas")
+    g.link(latent_node, latent_out, sa, "latent_image")
+    dv = g.add("VAEDecode", (x + 600, y), size=(200, 60))
+    g.link(sa, "output", dv, "samples")
+    g.link(video_vae, "VAE", dv, "vae")
+    da = g.add("VAEDecodeAudio", (x + 600, y + 100), size=(200, 60))
+    g.link(sa, "output", da, "samples")
+    g.link(audio_vae, "VAE", da, "vae")
+    cv = g.add("CreateVideo", (x + 840, y), size=(240, 100), fps=24.0)
+    g.link(dv, "IMAGE", cv, "images")
+    g.link(da, "AUDIO", cv, "audio")
+    sv = g.add("SaveVideo", (x + 840, y + 140), size=(420, 420), filename_prefix="video/difforum_h3",
+               format="auto", codec="auto")
+    g.link(cv, "VIDEO", sv, "video")
+
+
+def h3_loaders(g, x, y, unet):
+    un = g.add("UNETLoader", (x, y), size=(420, 90), unet_name=unet, weight_dtype="default")
+    cl = g.add("CLIPLoader", (x, y + 120), size=(420, 110), clip_name="qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+               type="minimax", device="default")
+    vv = g.add("VAELoader", (x, y + 260), size=(420, 60), vae_name="minimax_h3_video_vae_int8_convrot.safetensors")
+    va = g.add("VAELoader", (x, y + 350), size=(420, 60), vae_name="minimax_h3_audio_vae_fp32.safetensors")
+    return un, cl, vv, va
+
+
+H3_TIMELINE = dict(scenes=[
+    {"start": 0, "mood": "calm", "prompt": "misty ancient forest at dawn, light shafts through the canopy"},
+    {"start": 62, "mood": "build", "prompt": "the mist lifts, glowing moss and roots in the foreground"},
+], camera=[
+    {"start": 0, "move": "dolly_in", "speed": 0.8, "intensity": 0.8, "ease": "ease_in_out"},
+    {"start": 62, "move": "orbit_right", "speed": 0.9, "intensity": 0.8, "ease": "ease_in_out"},
+])
+
+
 def wf_h3():
-    g = Graph("08 · MiniMax H3 first/last frame from the Director")
-    s = g.add("Difforum_Setup", (0, 0), size=(320, 300), target="MiniMax H3", duration=10.0,
-              long_edge=1344)
-    d = g.add("Difforum_Director", (360, 0), size=(800, 880), timeline=tl_json(243))
+    g = Graph("08 · MiniMax H3 first/last frame (FL2VA) from the Director")
+    s = g.add("Difforum_Setup", (0, 0), size=(320, 300), target="MiniMax H3", duration=5.0, long_edge=832)
+    d = g.add("Difforum_Director", (360, 0), size=(800, 880), camera_mode="3d", timeline=tl_json(124, **H3_TIMELINE))
     g.link(s, "params", d, "params")
     img = g.add("LoadImage", (0, 360), size=(320, 360), image="example.png", title="First frame")
-    gf = g.add("Difforum_GuideFrames", (1200, 0), size=(340, 200))
+    gf = g.add("Difforum_GuideFrames", (1200, 0), size=(340, 200), hole_fill="stretch edge")
     g.link(img, "IMAGE", gf, "anchor_image")
     g.link(d, "direction", gf, "direction")
-    h3 = g.add("Difforum_H3Shot", (1200, 240), size=(340, 300), segment_length="243 (~10s)",
-               shot_description="A misty ancient forest at dawn; light shafts cut through the canopy.")
+    h3 = g.add("Difforum_H3Shot", (1200, 240), size=(340, 300), segment_length="124 (~5s)",
+               shot_description="A misty ancient forest at dawn; light shafts cut through the canopy. "
+                                "Soft ambient birdsong, a low wind.")
     g.link(gf, "guide_frames", h3, "frames")
     g.link(d, "direction", h3, "direction")
-    p1 = g.add("PreviewImage", (1580, 0), size=(300, 220), title="first_frame")
-    g.link(h3, "first_frame", p1, "images")
-    p2 = g.add("PreviewImage", (1580, 260), size=(300, 220), title="last_frame")
-    g.link(h3, "last_frame", p2, "images")
-    t = g.add("PreviewAny", (1580, 520), size=(300, 200), title="prompt")
-    g.link(h3, "prompt", t, "source")
-    g.note((1920, 0), "## Wire into MiniMax H3\n\n**MiniMax H3 Image to Video** (core): "
-           "`first_frame`, `last_frame`, `width`, `height`, `length` from **H3 Shot**; put its "
-           "`prompt` in your H3 prompt (e.g. MiniMax H3 Prompt Format, mode fl2va).\n\n"
-           "The last frame is the anchor carried to where the camera ends, so H3 performs "
-           "the move you drew. Revealed edges are gray - for pans, render the path with the "
-           "Feedback Sampler first and feed those frames instead.\n\nLonger than 20 s: raise "
-           "`segment`, and use each segment's last frame as the next first frame.", size=(520, 340))
+    un, cl, vv, va = h3_loaders(g, 1580, -200, "minimax_h3_fl2va_pruned_int8_convrot.safetensors")
+    i2v = g.add("MiniMaxH3ImageToVideo", (1580, 300), size=(420, 260), prompt="", width=832, height=480, length=124)
+    g.link(cl, "CLIP", i2v, "clip")
+    g.link(vv, "VAE", i2v, "vae")
+    g.link(h3, "first_frame", i2v, "first_frame")
+    g.link(h3, "last_frame", i2v, "last_frame")
+    g.link(h3, "prompt", i2v, "prompt")
+    g.link(h3, "width", i2v, "width")
+    g.link(h3, "height", i2v, "height")
+    g.link(h3, "length", i2v, "length")
+    h3_render(g, 2060, 120, i2v, "positive", i2v, "LATENT", un, s, va, vv,
+              "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors")
+    p1 = g.add("PreviewImage", (1200, 580), size=(340, 240), title="first / last frame")
+    g.link(h3, "last_frame", p1, "images")
+    g.note((0, -330), "## MiniMax H3 · first / last frame\n\nThe **Director** draws the move, **Guide Frames** "
+           "carries your first frame along it, and **H3 Shot** hands H3 the first frame, the frame where the "
+           "camera ends, the length (17k+5), the size and a prompt with the camera move in words. H3 then "
+           "performs *your* move.\n\n- Model files: the names of the official MiniMax H3 templates - swap for "
+           "yours.\n- Faster: enable the Turbo LoRA (Ctrl+B) and set steps 6-8.\n- Longer than 20 s: raise "
+           "`segment` on H3 Shot and feed each render's last frame forward.", size=(620, 280))
+    return g
+
+
+def wf_h3_guides():
+    g = Graph("10 · MiniMax H3 multi-keyframe guides from the Director")
+    s = g.add("Difforum_Setup", (0, 0), size=(320, 300), target="MiniMax H3", duration=5.0, long_edge=832)
+    d = g.add("Difforum_Director", (360, 0), size=(800, 880), camera_mode="3d", timeline=tl_json(124, **H3_TIMELINE))
+    g.link(s, "params", d, "params")
+    img = g.add("LoadImage", (0, 360), size=(320, 360), image="example.png", title="Anchor image (also the H3 reference)")
+    gf = g.add("Difforum_GuideFrames", (1200, 0), size=(340, 200), hole_fill="stretch edge")
+    g.link(img, "IMAGE", gf, "anchor_image")
+    g.link(d, "direction", gf, "direction")
+    kf = g.add("Difforum_Keyframes", (1200, 240), size=(340, 220), grid="MiniMax H3 (17k+5)", every_seconds=2.0)
+    g.link(gf, "guide_frames", kf, "frames")
+    g.link(s, "fps", kf, "fps")
+    cp = g.add("Difforum_CameraPrompt", (1200, 500), size=(340, 220), format="sentence",
+               prefix="<Picture 1> shows a misty ancient forest at dawn. Keep its look, light and "
+                      "composition. Soft ambient birdsong, a low wind.")
+    g.link(d, "direction", cp, "direction")
+    un, cl, vv, va = h3_loaders(g, 1580, -200, "minimax_h3_ref2va_pruned_int8_convrot.safetensors")
+    r2v = g.add("MiniMaxH3ReferenceToVideo", (1580, 300), size=(420, 300), prompt="", width=832, height=480,
+                length=124, ref_image_size="match")
+    g.link(cl, "CLIP", r2v, "clip")
+    g.link(vv, "VAE", r2v, "vae")
+    g.link(va, "VAE", r2v, "audio_vae")
+    g.link(img, "IMAGE", r2v, "ref_images.ref_image_0")
+    g.link(cp, "text", r2v, "prompt")
+    g.link(s, "width", r2v, "width")
+    g.link(s, "height", r2v, "height")
+    g.link(kf, "length", r2v, "length")
+    hg = g.add("Difforum_H3Guides", (1580, 640), size=(420, 200), max_guides=4)
+    g.link(r2v, "positive", hg, "positive")
+    g.link(r2v, "LATENT", hg, "latent")
+    g.link(vv, "VAE", hg, "vae")
+    g.link(kf, "keyframes", hg, "keyframes")
+    g.link(kf, "indices", hg, "indices")
+    h3_render(g, 2060, 120, hg, "positive", r2v, "LATENT", un, s, va, vv,
+              "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors")
+    pv = g.add("PreviewImage", (1200, 760), size=(340, 240), title="Keyframes sent to H3")
+    g.link(kf, "keyframes", pv, "images")
+    g.note((0, -330), "## MiniMax H3 · keyframes along your camera\n\nThe **Director** draws the move. "
+           "**Guide Frames** carries the anchor image along it, **Keyframes** picks one every 2 s on the "
+           "H3 grid, and **H3 Guides** anchors them inside the generation with the core "
+           "`MiniMaxH3AddGuide` - the same mechanism as the official *Multiframe Reference* template, "
+           "driven by a camera instead of hand-placed images.\n\n- The anchor is also `<Picture 1>`, "
+           "which holds identity and style.\n- **Camera → Prompt** adds the move in words.\n"
+           "- Swap Guide Frames for a Feedback render or a Storyboard to guide with other images; "
+           "connect an **audio** to H3 Guides to anchor a soundtrack at frame 0.\n- Model files follow "
+           "the official template - swap for yours. Turbo LoRA: Ctrl+B, steps 4.", size=(620, 330))
     return g
 
 
@@ -461,8 +588,9 @@ WORKFLOWS = {
     "05_live_turbo.json": wf_live,
     "06_seamless_loop.json": wf_loop,
     "07_ltx_guides.json": wf_ltx,
-    "08_h3_first_last.json": wf_h3,
+    "08_h3_first_last_frame.json": wf_h3,
     "09_camera_to_ae_blender.json": wf_export,
+    "10_h3_multikeyframe_guides.json": wf_h3_guides,
 }
 
 

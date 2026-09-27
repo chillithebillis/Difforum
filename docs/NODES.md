@@ -476,6 +476,35 @@ next segment's first frame.
 
 **Outputs:** `first_frame` (IMAGE), `last_frame` (IMAGE), `length` (INT), `width` (INT), `height` (INT), `prompt` (STRING), `segments` (INT), `info` (STRING)
 
+### Difforum · H3 Guides
+
+`Difforum_H3Guides`
+
+Anchor Difforum keyframes inside a MiniMax H3 generation.
+
+Wraps ComfyUI's core `MiniMaxH3AddGuide` once per keyframe, so the camera
+you drew becomes the H3 shot: feed keyframes + indices from the Keyframes
+node (grid H3) and the positive + AV latent from `MiniMax H3 Reference to
+Video` (or `Image to Video`). Optionally anchor a soundtrack at frame 0, so
+an audio-reactive direction and H3's own audio stay in sync.
+
+H3 is trained with a few guides per clip: `max_guides` keeps the first,
+the last and evenly spaced ones in between.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `positive` | CONDITIONING |  |  |
+| `latent` | LATENT |  | The MiniMax H3 AV latent. |
+| `vae` | VAE |  | MiniMax H3 video VAE. |
+| `keyframes` | IMAGE |  |  |
+| `indices` | STRING | 0 |  |
+| `max_guides` | INT | 4 |  |
+| `skip_first` | BOOLEAN | False | Enable when frame 0 is already set (e.g. Image to Video first_frame). |
+| `audio_vae` *(optional)* | VAE |  | MiniMax H3 audio VAE, needed with audio. |
+| `audio` *(optional)* | AUDIO |  | Soundtrack anchored at frame 0. |
+
+**Outputs:** `positive` (CONDITIONING), `info` (STRING)
+
 ## 6 · Export
 
 ### Difforum · Camera Export (AE / Blender / JSON)

@@ -1,153 +1,127 @@
+<div align="center">
+
+<img src="docs/media/icon.png" width="96" alt="">
+
 # Difforum
 
-**Camera direction and timeline orchestration for ComfyUI.**
+**Direct the camera. Let any model render it.**
 
-Direct a shot on a visual timeline, with scenes, camera moves and an energy
-curve, and you never write a camera expression. Render it with a
-Deforum-style feedback sampler on any image model, hand the same direction to
-**LTX-2 / 2.5** or **MiniMax H3**, and send the camera to **After Effects** or
-**Blender** for compositing.
+A timeline for ComfyUI: draw scenes, camera moves and energy with the mouse,
+then render the shot with MiniMax H3, LTX-2, or the classic Deforum
+feedback look. The camera also goes out to After Effects and Blender.
+
+[![CI](https://github.com/chillithebillis/Difforum/actions/workflows/ci.yml/badge.svg)](https://github.com/chillithebillis/Difforum/actions/workflows/ci.yml)
+![ComfyUI](https://img.shields.io/badge/ComfyUI-custom%20nodes-4f8ef7)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
+</div>
 
 ![The Director timeline](docs/media/director.jpg)
 
-![Kaleidoscope feedback render](docs/media/promo.webp)
+## What it does
 
----
+Video models render well, but you steer them with words. Difforum gives you
+back control over the **camera and the timing**:
 
-## Why Difforum
+1. **Direct.** In the **Director** node you lay out *scenes* (prompt + mood), *camera
+   moves* (picked from 25 visual presets) and an *energy curve*. Press ▶ to
+   preview the move; the preview uses the same engine that renders.
+2. **Render.** One `direction` wire goes to the renderer of your choice:
 
-Video models are good at rendering and not so good at being directed. Deforum
-was good at direction (math-driven camera, keyframes, prompt travel, audio),
-but it was locked to 2023 img2img. Difforum keeps the direction and lets you
-pick how to render it:
+   | Renderer | Difforum node | You get |
+   |---|---|---|
+   | **MiniMax H3** | H3 Guides / H3 Shot | Your camera turned into keyframes, first/last frames and a camera prompt, with no hand-placed frames |
+   | **LTX-2 / 2.5** | LTX Guides | Keyframes inside the LTX latent |
+   | **Any image model** (SDXL, Flux, SD1.5, turbo) | Feedback Sampler | The Deforum look: every frame re-imagines the last |
+   | **Realtime** (turbo models, webcam) | Live Sampler | Plays inside the node, with Spout / OBS output |
 
-| Direct it once… | …then render it with |
-|---|---|
-| **Director** timeline: scenes + mood, camera moves from a visual picker, a drawn energy curve, audio reactions per move | **Feedback Sampler**: the Deforum look on SD1.5 / SDXL / Flux / SD3.5 / turbo distills |
-| or **Camera (keys)** / **Camera (expressions)** if you prefer typing | **LTX Guides**: keyframes into an LTX-2 / 2.5 latent |
-| or **Camera Import** from Blender / After Effects | **H3 Shot**: first/last frame + length + camera prompt for MiniMax H3 |
-| | **Live Sampler**: realtime, webcam, Spout / OBS output |
-| | **Camera Export**: the same camera in AE (.jsx) and Blender (.py) |
+3. **Finish.** **Camera Export** writes the same camera for After Effects (`.jsx`)
+   and Blender (`.py`) so titles, 3D and comp lock to the AI shot.
 
-## Quick start (60 seconds, no model)
+No camera expressions to write. They are still there if you want them.
 
-1. Install (below), restart ComfyUI.
-2. **Workflow → Browse Templates → Difforum → `01_storyboard_no_model`**.
-3. Load any image, press ▶ on the Director to preview the camera, then Queue.
-   The Storyboard renders the whole move in about a second, and **Camera → Prompt**
-   writes it out in words.
+## Quick start
 
-When the motion feels right, open `02_feedback_sdxl` to render it with a model.
-
-## The Director
-
-Three tracks, all edited with the mouse:
-
-- **Scenes**: a prompt and a mood (calm, build, tense, climax, resolve, dream)
-  per block. Moods set sensible defaults for energy, speed and lens.
-- **Camera**: blocks that do not have to line up with the scenes. Pick from 25 moves
-  (zoom, pan, roll, dolly, orbit, tilt, crane, dolly zoom, spiral, vortex, sway,
-  breathe, drift, handheld, shake), then set speed, amount, lens, easing and an
-  **audio reaction** (pulse on beat, shake on hits, bass drives speed).
-- **Energy**: the denoise curve, which sets how much each moment gets re-imagined.
-  It starts from the moods; click it to draw your own.
-
-The preview plays the camera the renderer will actually use: it is computed by the
-same Python engine, not by an approximation in the browser. One `direction`
-wire carries the camera, energy, cfg and prompt travel to the sampler or the
-bridges.
-
-## Nodes (25)
-
-| Group | Nodes |
-|---|---|
-| Setup | **Setup**: duration in seconds/frames, aspect, and snapping to the target model's grid (LTX 8k+1, H3 17k+5 @ 24 fps, Wan 4k+1) |
-| Direction | **Director (timeline)**, **Camera (keys)**, **Camera (expressions)**, **Storyboard** |
-| Curves & prompts | **Schedule**, **Schedule Plot**, **Audio Analyzer**, **Audio Curve**, **Prompt Travel** |
-| Render | **Feedback Sampler**, **Live Sampler**, **Render Options** |
-| Video model bridges | **Guide Frames**, **Keyframes**, **Camera → Prompt**, **LTX Guides**, **H3 Shot** |
-| Export | **Camera Export (AE / Blender / JSON)**, **Camera Import** |
-| Post | **Loop**, **Symmetry**, **Echo Trails**, **Flow Stabilize**, **Detail Guard** |
-
-Full reference, generated from the code: [docs/NODES.md](docs/NODES.md).
+1. Install from **ComfyUI Manager** (search "Difforum"), or:
+   ```bash
+   cd ComfyUI/custom_nodes && git clone https://github.com/chillithebillis/Difforum.git difforum
+   ```
+2. Restart ComfyUI and open **Templates → Difforum**.
+3. Start with **`01_storyboard_no_model`**. It needs no model: load a picture, shape the
+   timeline, press ▶, then Queue.
 
 ## Templates
 
-All of these are in ComfyUI's template browser, under Difforum.
+| # | Template | What it shows | Needs |
+|---|---|---|---|
+| 01 | `storyboard_no_model` | Direct a shot and preview the whole move in about a second | an image |
+| 02 | `feedback_sdxl` | The Deforum look on a modern model | SDXL / SD1.5 / Flux |
+| 03 | `parallax_3d_depth` | Real 3D parallax from a depth map | + [DepthAnythingV2](https://github.com/kijai/ComfyUI-DepthAnythingV2) |
+| 04 | `audio_reactive` | Camera moves that react to music, with no expressions | + an audio file |
+| 05 | `live_turbo` | Realtime feedback, webcam mirror, VJ output | a turbo model |
+| 06 | `seamless_loop` | A loop without a crossfade, for installations | a checkpoint |
+| 07 | `ltx_guides` | Director keyframes guiding LTX-2 / 2.5 | your LTX graph |
+| 08 | `h3_first_last_frame` | **MiniMax H3 FL2VA**: first frame + the frame where your camera ends | MiniMax H3 fl2va |
+| 09 | `camera_to_ae_blender` | Camera out to After Effects / Blender, and back in | nothing |
+| 10 | `h3_multikeyframe_guides` | **MiniMax H3**: keyframes along your camera, anchored inside the generation | MiniMax H3 ref2va |
 
-| Template | Needs |
+### MiniMax H3 in one picture
+
+```
+Load Image ─► Guide Frames ─► Keyframes ─► H3 Guides ─► Guider ─► Sampler ─► Video + audio
+                  ▲                            ▲
+Setup ─► Director (camera, scenes) ─► Camera → Prompt ─► MiniMax H3 Reference to Video
+```
+
+The official *Multiframe Reference* template anchors images you place by hand.
+Template 10 anchors frames that come **from your camera move**, so H3 performs
+the dolly, orbit or crane you drew. Template 08 does the same with H3's
+first/last-frame model, and splits clips longer than 20 s into segments.
+Both use ComfyUI's core MiniMax H3 nodes.
+
+## The nodes
+
+| Group | Nodes |
 |---|---|
-| `01_storyboard_no_model` | an image |
-| `02_feedback_sdxl` | an SDXL (or SD1.5 / Flux) checkpoint |
-| `03_parallax_3d_depth` | + [ComfyUI-DepthAnythingV2](https://github.com/kijai/ComfyUI-DepthAnythingV2) |
-| `04_audio_reactive` | + an audio file |
-| `05_live_turbo` | SDXL-Turbo / SD-Turbo / LCM |
-| `06_seamless_loop` | a checkpoint |
-| `07_ltx_guides` | your LTX-2 / 2.5 graph |
-| `08_h3_first_last` | your MiniMax H3 graph |
-| `09_camera_to_ae_blender` | nothing; writes .jsx / .py / .json |
+| **Setup** | Setup: duration in seconds, aspect, and snapping to each model's grid (H3 17k+5 @ 24 fps, LTX 8k+1, Wan 4k+1) |
+| **Direction** | Director (timeline), Camera (keys), Camera (expressions), Storyboard |
+| **Curves & prompts** | Schedule, Schedule Plot, Audio Analyzer, Audio Curve, Prompt Travel |
+| **Render** | Feedback Sampler, Live Sampler, Render Options |
+| **Video model bridges** | Guide Frames, Keyframes, Camera → Prompt, H3 Guides, H3 Shot, LTX Guides |
+| **Export** | Camera Export (AE / Blender / JSON), Camera Import |
+| **Post** | Loop, Symmetry, Echo Trails, Flow Stabilize, Detail Guard |
 
-## What the engine does for quality
+The full reference is in **[docs/NODES.md](docs/NODES.md)**. Every node also shows its description inside ComfyUI.
 
-- **Depth follows the image.** In 3D mode the depth map is re-projected with every
-  warp, so parallax stays locked to what is on screen and doesn't drift back to frame 0.
-  The tracked depth comes out of the sampler, ready for compositing.
-- **No silent freezes.** A 3D move without a depth map runs as pseudo-3D (dolly
-  becomes zoom, orbit becomes pan), and the node says so.
-- **Cadence without pops.** Only every Nth frame is diffused. The frames in between
-  are a crossfade of the previous key warped forward and the next key warped
-  back, so a cadence of 2-3 costs almost nothing in smoothness.
-- **Revealed areas are repainted.** The warp's occlusion mask gets extra noise, so the
-  sampler invents new content at the edges instead of smearing them.
-- **Colour follows the scenes.** The anchor re-locks at every prompt scene and releases
-  during transitions. Choose `first` for the 0.x behaviour.
-- **Deterministic on every device.** The 3D z-buffer resolves identically on CUDA, MPS
-  and CPU.
-- **Light on memory.** Prompt travel is blended lazily, and the Live Sampler keeps a
-  ring buffer.
+## The Deforum look, rebuilt
 
-Speed and quality levers, Apple Silicon notes and measured numbers are in
-[docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+![Feedback render](docs/media/kaleidoscope.webp)
 
-## Bridges and camera interchange
+The Feedback Sampler runs on any image model and fixes what made the original
+Deforum hard to use:
 
-[docs/BRIDGES.md](docs/BRIDGES.md) explains how to drive LTX-2 / 2.5 with Difforum
-keyframes, how to build MiniMax H3 first/last-frame shots (including clips longer
-than 20 s), and how to round-trip the camera through After Effects and Blender.
-Helper scripts for exporting a camera *from* Blender or AE are in `tools/`.
+- **Depth follows the image**, so parallax stays true for the whole clip.
+- **3D moves never freeze.** Without a depth map they become pseudo-3D, and the node says so.
+- **Cadence without pops.** Only every Nth frame is diffused; the frames in between are crossfaded.
+- **Revealed edges are repainted** instead of smeared.
+- **Colour locks per scene**, so prompt travel can change the palette.
 
-## Install
+## Documentation
 
-**ComfyUI Manager:** search for **Difforum**, or *Install via Git URL* with this repository.
+| | |
+|---|---|
+| [Bridges](docs/BRIDGES.md) | MiniMax H3, LTX-2, After Effects, Blender |
+| [Node reference](docs/NODES.md) | Every input and output |
+| [Performance](docs/PERFORMANCE.md) | Speed vs. quality, Apple Silicon |
+| [Models](docs/MODELS.md) | What works well, and the settings |
+| [Prompt pack](docs/PROMPTS.md) | Ready-made scene sets |
+| [Expressions](docs/EXPRESSIONS.md) | The math syntax, for power users |
+| [Migrating from 0.x](docs/MIGRATION.md) | Old workflows still open; the new equivalents |
+| [Architecture](docs/ARCHITECTURE.md) | How it is built, for contributors |
 
-**Manual:**
+## Contributing
 
-```bash
-cd ComfyUI/custom_nodes
-git clone https://github.com/chillithebillis/Difforum.git difforum
-```
+`pytest` runs without a GPU or ComfyUI. Templates and the node reference are
+generated from the code (`tools/`). See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Restart ComfyUI. The console prints `[Difforum] 25 nodes ready`. The only
-runtime dependency is numpy, which ships with ComfyUI. OpenCV (Flow Stabilize, Loop
-crossfade, live webcam) is present in most installs.
-
-## Upgrading from 0.x
-
-Old workflows still open: every 0.x node is kept, hidden from search, under
-**Difforum/legacy**. [docs/MIGRATION.md](docs/MIGRATION.md) maps each old node
-to its replacement. Legacy nodes are removed in 2.0.
-
-## Develop
-
-```bash
-pip install torch numpy opencv-python-headless pytest ruff
-pytest                                  # no GPU or ComfyUI needed
-python tools/build_workflows.py         # templates are generated from the node definitions
-python tools/build_docs.py              # docs/NODES.md is generated too
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## License
-
-MIT, see [LICENSE](LICENSE).
+MIT licensed.

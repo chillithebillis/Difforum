@@ -256,6 +256,76 @@ class DifforumLTXGuides:
         return (positive, negative, latent, "LTX guides:\n" + "\n".join(lines))
 
 
+class DifforumH3Guides:
+    """Anchor Difforum keyframes inside a MiniMax H3 generation.
+
+    Wraps ComfyUI's core `MiniMaxH3AddGuide` once per keyframe, so the camera
+    you drew becomes the H3 shot: feed keyframes + indices from the Keyframes
+    node (grid H3) and the positive + AV latent from `MiniMax H3 Reference to
+    Video` (or `Image to Video`). Optionally anchor a soundtrack at frame 0, so
+    an audio-reactive direction and H3's own audio stay in sync.
+
+    H3 is trained with a few guides per clip: `max_guides` keeps the first,
+    the last and evenly spaced ones in between.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "positive": ("CONDITIONING",),
+                "latent": ("LATENT", {"tooltip": "The MiniMax H3 AV latent."}),
+                "vae": ("VAE", {"tooltip": "MiniMax H3 video VAE."}),
+                "keyframes": ("IMAGE",),
+                "indices": ("STRING", {"default": "0", "forceInput": True}),
+                "max_guides": ("INT", {"default": 4, "min": 1, "max": 16}),
+                "skip_first": ("BOOLEAN", {"default": False,
+                               "tooltip": "Enable when frame 0 is already set (e.g. Image to Video first_frame)."}),
+            },
+            "optional": {
+                "audio_vae": ("VAE", {"tooltip": "MiniMax H3 audio VAE, needed with audio."}),
+                "audio": ("AUDIO", {"tooltip": "Soundtrack anchored at frame 0."}),
+            },
+        }
+
+    RETURN_TYPES = ("CONDITIONING", "STRING")
+    RETURN_NAMES = ("positive", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_BRIDGE
+
+    def run(self, positive, latent, vae, keyframes, indices, max_guides, skip_first,
+            audio_vae=None, audio=None):
+        idx = _parse_indices(indices, 10**9)
+        if len(idx) != keyframes.shape[0]:
+            raise ValueError(f"{keyframes.shape[0]} keyframes but {len(idx)} indices ({indices!r})")
+        pairs = list(zip(idx, keyframes))
+        if skip_first and pairs and pairs[0][0] == 0:
+            pairs = pairs[1:]
+        if len(pairs) > max_guides:        # keep the keyframes nearest to evenly spaced times
+            f0, f1 = pairs[0][0], pairs[-1][0]
+            keep = set()
+            for i in range(max_guides):
+                t = f0 + (f1 - f0) * i / max(1, max_guides - 1)
+                free = [k for k in range(len(pairs)) if k not in keep]
+                keep.add(min(free, key=lambda k: abs(pairs[k][0] - t)))
+            pairs = [pairs[k] for k in sorted(keep)]
+        lines = []
+        for k, (fi, img) in enumerate(pairs):
+            kw = {"positive": positive, "latent": latent, "frame_idx": int(fi), "vae": vae,
+                  "image": img.unsqueeze(0)}
+            if k == 0 and audio is not None and fi == 0:
+                kw.update(audio=audio, audio_vae=audio_vae)
+            positive = call_comfy_node("MiniMaxH3AddGuide", **kw)[0]
+            lines.append(f"  guide @ frame {fi}" + (" + audio" if "audio" in kw else ""))
+        if audio is not None and not any("audio" in x for x in lines):
+            positive = call_comfy_node("MiniMaxH3AddGuide", positive=positive, latent=latent,
+                                       frame_idx=0, audio=audio, audio_vae=audio_vae)[0]
+            lines.append("  audio @ frame 0")
+        return (positive, "H3 guides:\n" + "\n".join(lines))
+
+
 H3_LENGTHS = {"auto (from frames)": 0, "124 (~5s)": 124, "243 (~10s)": 243,
               "362 (~15s)": 362, "481 (~20s)": 481}
 
@@ -337,6 +407,7 @@ NODE_CLASS_MAPPINGS = {
     "Difforum_CameraPrompt": DifforumCameraPrompt,
     "Difforum_LTXGuides": DifforumLTXGuides,
     "Difforum_H3Shot": DifforumH3Shot,
+    "Difforum_H3Guides": DifforumH3Guides,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_GuideFrames": "Difforum · Guide Frames",
@@ -344,4 +415,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_CameraPrompt": "Difforum · Camera → Prompt",
     "Difforum_LTXGuides": "Difforum · LTX Guides",
     "Difforum_H3Shot": "Difforum · H3 Shot",
+    "Difforum_H3Guides": "Difforum · H3 Guides",
 }
