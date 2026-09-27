@@ -8,20 +8,17 @@ Difforum · Loop Take         keeps the settled lap and scores the seam.
 
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.camera import CAMERA_MODES, build_camera  # noqa: E402
-from core.loop import (  # noqa: E402
+from ..core.camera import CAMERA_MODES, build_camera  # noqa: E402
+from ..core.loop import (  # noqa: E402
     LOOP_MODES,
     close_axis_values,
     seam_report,
     suggest_harmonics,
     tile_laps,
 )
-from core.shots import shots_to_axis_values  # noqa: E402
+from ..core.shots import shots_to_axis_values  # noqa: E402
 
 CATEGORY = "Difforum/loop"
 

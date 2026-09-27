@@ -8,17 +8,12 @@ optional `positive_schedule` input to morph the prompt over the animation.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.prompt import (  # noqa: E402
+from ..core.prompt import (  # noqa: E402
     blend_conditioning, parse_prompt_schedule, plan_blend, scenes_to_keyframes,
 )
-from core.schedule import EASINGS  # noqa: E402
+from ..core.schedule import EASINGS  # noqa: E402
 
 CATEGORY = "Difforum/schedule"
 

@@ -127,6 +127,13 @@ def _depth_to_z(depth: torch.Tensor, near: float, far: float, invert: bool) -> t
     return near + (1.0 - d) * (far - near)
 
 
+def _z_to_depth(z: torch.Tensor, near: float, far: float, invert: bool) -> torch.Tensor:
+    """Inverse of `_depth_to_z`: metric z back to the 0..1 depth-map convention."""
+    d = 1.0 - (z - near) / max(far - near, 1e-6)
+    d = d.clamp(0.0, 1.0)
+    return 1.0 - d if invert else d
+
+
 def warp_3d(
     image: torch.Tensor,
     depth: torch.Tensor,
@@ -137,20 +144,28 @@ def warp_3d(
     invert_depth: bool = False,
     translation_scale: float = 1.0,
     fill_holes: bool = True,
-) -> tuple[torch.Tensor, torch.Tensor]:
+    return_depth: bool = False,
+):
     """
     Perspective warp via depth + a 4x4 scene-point transform.
 
     `transform` is applied to unprojected scene points (P' = R@P + T). A
     positive translation_z therefore pushes the scene away (camera dollies
-    back); flip the sign upstream for "into the scene". Forward splat with a
-    z-buffer: nearest point wins, unfilled pixels are holes (mask=0).
+    back); flip the sign upstream for "into the scene".
+
+    Forward splat with a deterministic z-buffer: for every destination pixel
+    the nearest source point wins, resolved with `scatter_reduce` so the result
+    is identical on CPU, CUDA and MPS (plain duplicate-index assignment is
+    undefined on GPUs and shows up as speckled occlusion).
 
     `translation_scale` multiplies the translation part of the transform so the
     motion magnitude can be tuned to the depth range (depth estimators output
-    relative/disparity values, not metric units - this is the calibration knob).
+    relative values, not metric units - this is the calibration knob).
 
-    Returns (warped [.,H,W,3], mask [.,H,W,1]).
+    Returns (warped [.,H,W,3], mask [.,H,W,1]) and, with return_depth=True, the
+    depth map re-projected into the new view ([.,H,W], same 0..1 convention as
+    the input). Feeding that depth to the next frame keeps the parallax locked
+    to the image instead of to frame 0.
     """
     img, squeezed = _as_bhwc(image)
     b, h, w, c = img.shape
@@ -160,7 +175,7 @@ def warp_3d(
         depth = depth.unsqueeze(0)
     if depth.dim() == 4:
         depth = depth[..., 0]
-    depth = depth.expand(b, h, w)
+    depth = depth.to(dev, dt).expand(b, h, w)
 
     f = _focal(w, fov_deg)
     cx, cy = (w - 1) / 2.0, (h - 1) / 2.0
@@ -173,8 +188,10 @@ def warp_3d(
         indexing="ij",
     )
 
+    n_pix = h * w
     out = torch.zeros_like(img)
     mask = torch.zeros((b, h, w), device=dev, dtype=dt)
+    zout = torch.full((b, h, w), float(far), device=dev, dtype=dt)
 
     for i in range(b):
         z = _depth_to_z(depth[i], near, far, invert_depth)
@@ -188,26 +205,119 @@ def warp_3d(
 
         ui = up.round().long()
         vi = vp.round().long()
-        valid = (ui >= 0) & (ui < w) & (vi >= 0) & (vi < h)
+        valid = (ui >= 0) & (ui < w) & (vi >= 0) & (vi < h) & (Pp[:, 2] > 1e-4)
 
         ui, vi, Zp = ui[valid], vi[valid], Zp[valid]
         cols = img[i].reshape(-1, c)[valid]
         dest = vi * w + ui
 
-        # paint far -> near so the nearest point ends up on top (z-buffer)
-        order = torch.argsort(Zp, descending=True)
-        dest_o, cols_o = dest[order], cols[order]
+        # z-buffer: nearest depth per destination, then one deterministic
+        # winner (highest source index) among exact ties
+        zbuf = torch.full((n_pix,), float("inf"), device=dev, dtype=dt)
+        zbuf = zbuf.scatter_reduce(0, dest, Zp, reduce="amin", include_self=True)
+        win = Zp <= zbuf[dest]
+        src_idx = torch.arange(dest.numel(), device=dev)
+        best = torch.full((n_pix,), -1, device=dev, dtype=torch.long)
+        best = best.scatter_reduce(0, dest[win], src_idx[win], reduce="amax",
+                                   include_self=True)
+        filled = best >= 0
 
         flat = out[i].reshape(-1, c)
-        flat[dest_o] = cols_o
-        mflat = mask[i].reshape(-1)
-        mflat[dest_o] = 1.0
+        flat[filled] = cols[best[filled]]
+        mask[i].reshape(-1)[filled] = 1.0
+        zout[i].reshape(-1)[filled] = zbuf[filled]
 
-    # clean speckle holes in the colour (keep `mask` as the true occlusion)
+    # clean speckle holes in colour and depth (keep `mask` as the true occlusion)
     if fill_holes:
         out = _fill_holes(out, mask)
+        if return_depth:
+            zfill = _fill_holes(zout.unsqueeze(-1), mask, iters=16)[..., 0]
+            zout = torch.where(mask > 0.5, zout, zfill)
 
     mask = mask.unsqueeze(-1)
+    new_depth = _z_to_depth(zout, near, far, invert_depth) if return_depth else None
     if squeezed:
         out, mask = out[0], mask[0]
+        if new_depth is not None:
+            new_depth = new_depth[0]
+    if return_depth:
+        return out, mask, new_depth
     return out, mask
+
+
+# ---------------------------------------------------------------------------
+# 2D affine helpers (composition / inversion, used by cadence tweening and the
+# pseudo-3D fallback)
+# ---------------------------------------------------------------------------
+
+def affine_2d(translation_x: float, translation_y: float, angle: float, zoom: float,
+              width: int, height: int) -> torch.Tensor:
+    """3x3 matrix of the exact forward map `warp_2d` applies (pixel space).
+
+    p_out = S*R*(p_in - c) + c + t
+    """
+    cx, cy = (width - 1) / 2.0, (height - 1) / 2.0
+    a = math.radians(angle)
+    s = max(float(zoom), 1e-6)
+    ca, sa = math.cos(a) * s, math.sin(a) * s
+    m = torch.tensor([
+        [ca, -sa, 0.0],
+        [sa, ca, 0.0],
+        [0.0, 0.0, 1.0],
+    ], dtype=torch.float64)
+    to_c = torch.tensor([[1, 0, cx + translation_x], [0, 1, cy + translation_y], [0, 0, 1]],
+                        dtype=torch.float64)
+    from_c = torch.tensor([[1, 0, -cx], [0, 1, -cy], [0, 0, 1]], dtype=torch.float64)
+    return to_c @ m @ from_c
+
+
+def warp_affine(image: torch.Tensor, matrix: torch.Tensor,
+                padding_mode: str = "reflection") -> tuple[torch.Tensor, torch.Tensor]:
+    """Warp by a 3x3 forward pixel-space matrix (inverse-sampled)."""
+    img, squeezed = _as_bhwc(image)
+    b, h, w, c = img.shape
+    dev, dt = img.device, img.dtype
+    inv = torch.linalg.inv(matrix.to(torch.float64)).to(dev, dt)
+    ys, xs = torch.meshgrid(
+        torch.arange(h, device=dev, dtype=dt),
+        torch.arange(w, device=dev, dtype=dt),
+        indexing="ij",
+    )
+    src_x = inv[0, 0] * xs + inv[0, 1] * ys + inv[0, 2]
+    src_y = inv[1, 0] * xs + inv[1, 1] * ys + inv[1, 2]
+    gx = (src_x / max(w - 1, 1)) * 2.0 - 1.0
+    gy = (src_y / max(h - 1, 1)) * 2.0 - 1.0
+    grid = torch.stack([gx, gy], dim=-1).unsqueeze(0).expand(b, h, w, 2)
+    warped = torch.nn.functional.grid_sample(
+        img.permute(0, 3, 1, 2), grid, mode="bilinear",
+        padding_mode=padding_mode, align_corners=True,
+    ).permute(0, 2, 3, 1)
+    inside = ((src_x >= 0) & (src_x <= w - 1) & (src_y >= 0) & (src_y <= h - 1)).to(dt)
+    mask = inside.unsqueeze(0).expand(b, h, w).unsqueeze(-1)
+    if squeezed:
+        warped, mask = warped[0], mask[0]
+    return warped, mask
+
+
+def pseudo_3d_params(transform, fov_deg: float, width: int, near: float = 1.0,
+                     far: float = 100.0, translation_scale: float = 1.0,
+                     reference_depth: float = 0.5) -> tuple[float, float, float, float]:
+    """Approximate a 3D camera step with a 2D affine when there is no depth map.
+
+    Projects the scene point at the reference depth on the optical axis through
+    the transform: its image shift becomes the pan, the change in its distance
+    becomes the zoom (so a dolly still pushes in), and the in-plane rotation is
+    the roll. Orbit / dolly / rise presets therefore still move instead of
+    freezing the frame. Returns (translation_x, translation_y, angle_deg, zoom).
+    """
+    t = torch.as_tensor(transform, dtype=torch.float64)
+    R, T = t[:3, :3], t[:3, 3] * float(translation_scale)
+    f = _focal(width, fov_deg)
+    z_ref = near + (1.0 - float(reference_depth)) * (far - near)
+    p = R @ torch.tensor([0.0, 0.0, z_ref], dtype=torch.float64) + T
+    pz = max(float(p[2]), 1e-3)
+    tx = f * float(p[0]) / pz
+    ty = f * float(p[1]) / pz
+    zoom = z_ref / pz
+    angle = math.degrees(math.atan2(float(R[1, 0]), float(R[0, 0])))
+    return tx, ty, angle, zoom

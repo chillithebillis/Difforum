@@ -27,7 +27,6 @@ Uses numpy's FFT, in keeping with the audio engine - no new dependencies.
 
 from __future__ import annotations
 
-import math
 
 import numpy as np
 
@@ -152,7 +151,6 @@ def seam_report(frames, clip_len: int) -> str:
     has settled: if lap-to-lap drift is far below the seam error, more laps will
     not help and the residual is coming from the camera instead.
     """
-    import torch
 
     n = len(frames)
     if n < 2:

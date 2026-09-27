@@ -7,23 +7,20 @@ Difforum · Storyboard        the whole clip warped without diffusion, as a shee
 
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch  # noqa: E402
 
-from core.camera import CAMERA_MODES, build_camera  # noqa: E402
-from core.camera_keys import (  # noqa: E402
+from ..core.camera import CAMERA_MODES, build_camera  # noqa: E402
+from ..core.camera_keys import (  # noqa: E402
     keys_to_axis_values,
     lens_note,
     parse_camera_keys,
 )
-from core.camera_presets import flat_presets, needs_depth  # noqa: E402
-from core.loop import LOOP_MODES, close_axis_values, tile_laps  # noqa: E402
-from core.storyboard import contact_sheet, drift_curve, simulate  # noqa: E402
-from core.symmetry import SYMMETRY_MODES  # noqa: E402
+from ..core.camera_presets import flat_presets, needs_depth  # noqa: E402
+from ..core.loop import LOOP_MODES, close_axis_values, tile_laps  # noqa: E402
+from ..core.storyboard import contact_sheet, drift_curve, simulate  # noqa: E402
+from ..core.symmetry import SYMMETRY_MODES  # noqa: E402
 
 CATEGORY = "Difforum/camera"
 

@@ -12,15 +12,10 @@ Custom socket types:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
-# allow `from core import ...` whether loaded as a package or standalone
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
+# allow `from ..core import ...` whether loaded as a package or standalone
 
-from core import EASINGS, build_schedule  # noqa: E402
+from ..core import EASINGS, build_schedule  # noqa: E402
 
 CATEGORY = "Difforum/schedule"
 
@@ -170,7 +165,7 @@ class DifforumSchedulePlot:
     def run(self, schedule, width, height):
         import torch
 
-        from core.plot import render_curve
+        from ..core.plot import render_curve
 
         arr = render_curve(schedule.as_list(), width=int(width), height=int(height))
         return (torch.from_numpy(arr).unsqueeze(0),)

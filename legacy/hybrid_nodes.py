@@ -11,19 +11,14 @@ Wan 2.2 (VACE/FLF2V). See DESIGN.md.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core import build_schedule  # noqa: E402
-from core.camera import CAMERA_MODES, build_camera  # noqa: E402
-from core.camera_presets import CAMERA_PRESETS, preset_schedules  # noqa: E402
-from core.plot import render_camera_path  # noqa: E402
-from core.profiles import FAMILIES, QUALITIES, detect_device, resolve_profile, summarize  # noqa: E402
-from core.shots import shots_to_axis_values  # noqa: E402
+from ..core import build_schedule  # noqa: E402
+from ..core.camera import CAMERA_MODES, build_camera  # noqa: E402
+from ..core.camera_presets import CAMERA_PRESETS, preset_schedules  # noqa: E402
+from ..core.plot import render_camera_path  # noqa: E402
+from ..core.profiles import FAMILIES, QUALITIES, detect_device, resolve_profile, summarize  # noqa: E402
+from ..core.shots import shots_to_axis_values  # noqa: E402
 
 CATEGORY = "Difforum/hybrid"
 

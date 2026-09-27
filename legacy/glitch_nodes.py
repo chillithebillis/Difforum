@@ -5,14 +5,9 @@ Batch-native IMAGE to IMAGE, deterministic (seed), no per-instance state.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.glitch import KERNELS, apply_glitch  # noqa: E402
+from ..core.glitch import KERNELS, apply_glitch  # noqa: E402
 
 CATEGORY = "Difforum/effects"
 
@@ -74,7 +69,7 @@ class DifforumDatamosh:
     CATEGORY = CATEGORY
 
     def run(self, frames, intensity, mode, block_size, flow_scale):
-        from core.flow import datamosh
+        from ..core.flow import datamosh
         return (datamosh(frames, intensity=float(intensity), mode=mode,
                          block_size=int(block_size), flow_scale=float(flow_scale)),)
 

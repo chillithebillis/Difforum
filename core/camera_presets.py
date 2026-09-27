@@ -14,7 +14,37 @@ CAMERA_PRESETS = (
     "pan_left", "pan_right", "pan_up", "pan_down",
     "orbit_left", "orbit_right", "roll_cw", "roll_ccw",
     "spiral", "sway", "dolly_zoom", "rise", "shake",
+    "tilt_up", "tilt_down", "crane_up", "handheld", "drift", "breathe", "vortex",
 )
+
+# UI metadata for the Director timeline: label, group, one-line description.
+MOVE_INFO = {
+    "still":      ("Still", "basic", "Locked-off frame; the diffusion still evolves."),
+    "zoom_in":    ("Zoom in", "basic", "Lens magnifies toward the centre."),
+    "zoom_out":   ("Zoom out", "basic", "Lens pulls back from the centre."),
+    "pan_left":   ("Pan left", "basic", "Frame slides left."),
+    "pan_right":  ("Pan right", "basic", "Frame slides right."),
+    "pan_up":     ("Pan up", "basic", "Frame slides up."),
+    "pan_down":   ("Pan down", "basic", "Frame slides down."),
+    "roll_cw":    ("Roll CW", "basic", "Rotates clockwise around the view axis."),
+    "roll_ccw":   ("Roll CCW", "basic", "Rotates counter-clockwise."),
+    "dolly_in":   ("Dolly in", "space", "Camera travels forward into the scene (parallax with depth)."),
+    "dolly_out":  ("Dolly out", "space", "Camera travels backward."),
+    "orbit_left": ("Orbit left", "space", "Camera circles the subject to the left."),
+    "orbit_right": ("Orbit right", "space", "Camera circles the subject to the right."),
+    "tilt_up":    ("Tilt up", "space", "Camera pivots upward."),
+    "tilt_down":  ("Tilt down", "space", "Camera pivots downward."),
+    "rise":       ("Rise", "space", "Camera lifts while easing forward."),
+    "crane_up":   ("Crane up", "space", "Rises and tilts down to keep the subject."),
+    "dolly_zoom": ("Dolly zoom", "space", "Vertigo: push in while the lens widens."),
+    "spiral":     ("Spiral", "fx", "Roll plus zoom - the classic Deforum tunnel."),
+    "vortex":     ("Vortex", "fx", "Roll while pulling back - an outward spiral."),
+    "sway":       ("Sway", "fx", "Slow side-to-side yaw."),
+    "breathe":    ("Breathe", "fx", "Zoom gently pulses in and out."),
+    "drift":      ("Drift", "fx", "Lazy wandering float, no fixed direction."),
+    "handheld":   ("Handheld", "fx", "Small organic operator shake."),
+    "shake":      ("Shake", "fx", "Hard jitter, for impacts."),
+}
 
 _AXES = (
     "translation_x", "translation_y", "translation_z",
@@ -108,5 +138,29 @@ def preset_schedules(preset: str, speed: float = 1.0, intensity: float = 1.0) ->
     elif preset == "shake":
         out["translation_x"] = osc(2.5 * i, 6.0 / s)
         out["translation_y"] = osc(2.0 * i, 5.0 / s)
+    elif preset == "tilt_up":
+        out["rotation_3d_x"] = c(0.4 * i * s)
+    elif preset == "tilt_down":
+        out["rotation_3d_x"] = c(-0.4 * i * s)
+    elif preset == "crane_up":
+        out["translation_y"] = c(-1.6 * i * s)
+        out["rotation_3d_x"] = c(-0.15 * i * s)
+    elif preset == "handheld":
+        p1, p2, p3 = 37.0 / s, 53.0 / s, 71.0 / s
+        out["translation_x"] = (f"0:({0.6 * i:.4g}*sin(2*pi*t/{p1:.4g})"
+                                f"+{0.35 * i:.4g}*sin(2*pi*t/{p3:.4g}+1.3))")
+        out["translation_y"] = f"0:({0.45 * i:.4g}*sin(2*pi*t/{p2:.4g}+0.7))"
+        out["rotation_3d_z"] = f"0:({0.08 * i:.4g}*sin(2*pi*t/{p3:.4g}+2.1))"
+    elif preset == "drift":
+        p1, p2 = 180.0 / s, 240.0 / s
+        out["translation_x"] = f"0:({0.9 * i:.4g}*sin(2*pi*t/{p1:.4g}))"
+        out["translation_y"] = f"0:({0.6 * i:.4g}*sin(2*pi*t/{p2:.4g}+1.1))"
+        out["rotation_3d_z"] = f"0:({0.1 * i:.4g}*sin(2*pi*t/{p2:.4g}+0.4))"
+    elif preset == "breathe":
+        p = max(2.0, 96.0 / s)
+        out["zoom"] = f"0:(1.0 + {0.006 * i:.4g}*sin(2*pi*t/{p:.4g}))"
+    elif preset == "vortex":
+        out["rotation_3d_z"] = c(-0.6 * i * s)
+        out["zoom"] = c(1.0 - 0.01 * i * s)
 
     return out

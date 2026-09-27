@@ -15,21 +15,16 @@ push the stream to Resolume / TouchDesigner / OBS. See REALTIME.md.
 from __future__ import annotations
 
 import math
-import sys
-from pathlib import Path
 
 import torch
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.color import COLOR_MODES, match_color  # noqa: E402
-from core.detail import add_noise as _add_noise  # noqa: E402
-from core.detail import sharpen as _sharpen  # noqa: E402
-from core.fx import FxRunner  # noqa: E402
-from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
-from core.warp import warp_2d, warp_3d  # noqa: E402
+from ..core.color import COLOR_MODES, match_color  # noqa: E402
+from ..core.detail import add_noise as _add_noise  # noqa: E402
+from ..core.detail import sharpen as _sharpen  # noqa: E402
+from ..core.fx import FxRunner  # noqa: E402
+from ..core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
+from ..core.warp import warp_2d, warp_3d  # noqa: E402
 
 CATEGORY = "Difforum/live"
 
@@ -167,7 +162,6 @@ class _SpoutSink:
         if not self.ok:
             return
         try:
-            import SpoutGL
             from OpenGL import GL
             arr = (image[0].clamp(0, 1).cpu().numpy() * 255).astype("uint8")
             h, w = arr.shape[:2]

@@ -17,6 +17,7 @@ The parser + blend plan are pure (testable); CLIP encoding happens in the node.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 
 from .schedule import EASINGS, _ease
 
@@ -134,3 +135,88 @@ def blend_conditioning(cond_to, cond_from, to_strength: float):
             meta["pooled_output"] = pooled_to * to_strength + pooled_from * (1.0 - to_strength)
         out.append([tw, meta])
     return out
+
+
+class PromptTrack(Sequence):
+    """Per-frame prompt travel, blended lazily.
+
+    Holds one encoded CONDITIONING per keyframe plus the blend plan, and
+    builds a frame's blended conditioning only when it is asked for (with a
+    small cache). A 0.x `DIFFORUM_PROMPT` was a fully materialised list, which
+    for long clips on T5/Gemma-sized encoders meant gigabytes of RAM. Indexing
+    and len() behave exactly like that list, so older consumers keep working.
+    """
+
+    def __init__(self, encoded: list, keyframes: list[tuple[int, str]],
+                 max_frames: int, easing: str = "linear"):
+        if not encoded:
+            raise ValueError("PromptTrack needs at least one keyframe")
+        self.encoded = list(encoded)
+        self.keyframes = list(keyframes)
+        self.n = max(1, int(max_frames))
+        self.easing = easing
+        self.plan = plan_blend([f for f, _ in keyframes], self.n, easing)
+        self._cache: dict[int, object] = {}
+
+    def __len__(self) -> int:
+        return self.n
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return [self[j] for j in range(*i.indices(self.n))]
+        i = int(i)
+        if i < 0:
+            i += self.n
+        i = max(0, min(i, self.n - 1))
+        li, ri, w = self.plan[i]
+        key = (li, ri, round(w, 4))
+        hit = self._cache.get(key)
+        if hit is not None:
+            return hit
+        if li == ri or w <= 0.0:
+            out = self.encoded[li]
+        elif w >= 1.0:
+            out = self.encoded[ri]
+        else:
+            out = blend_conditioning(self.encoded[ri], self.encoded[li], w)
+        if len(self._cache) > 8:
+            self._cache.clear()
+        self._cache[key] = out
+        return out
+
+    def scene_index(self, f: int) -> int:
+        """Index of the keyframe the frame is travelling away from."""
+        return self.plan[max(0, min(int(f), self.n - 1))][0]
+
+    def transition_weight(self, f: int) -> float:
+        """0 = holding a keyframe prompt, ->1 = arriving at the next one."""
+        li, ri, w = self.plan[max(0, min(int(f), self.n - 1))]
+        return 0.0 if li == ri else float(w)
+
+    def text_at(self, f: int) -> str:
+        return self.keyframes[self.scene_index(f)][1]
+
+
+def batch_conditioning(track) -> list:
+    """Stack a per-frame prompt track into ONE CONDITIONING whose batch dim is
+    the frame count (frame i = prompt i) - what AnimateDiff-style batch
+    samplers expect."""
+    import torch
+
+    conds = [track[i] for i in range(len(track))]
+    if not conds:
+        raise ValueError("empty prompt track")
+    tensors = [c[0][0] for c in conds]
+    max_t = max(t.shape[1] for t in tensors)
+    padded = []
+    for t in tensors:
+        if t.shape[1] < max_t:
+            pad = torch.zeros((t.shape[0], max_t - t.shape[1], t.shape[2]),
+                              dtype=t.dtype, device=t.device)
+            t = torch.cat([t, pad], dim=1)
+        padded.append(t)
+    meta = dict(conds[0][0][1])
+    pooled = [c[0][1].get("pooled_output") for c in conds]
+    if all(p is not None for p in pooled):
+        meta["pooled_output"] = torch.cat(pooled, dim=0)
+    return [[torch.cat(padded, dim=0), meta]]

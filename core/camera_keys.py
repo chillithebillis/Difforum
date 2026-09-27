@@ -111,7 +111,27 @@ def keys_to_axis_values(
 
     Returns (axis values, fov per frame, human summary).
     """
-    keys = parse_camera_keys(text)
+    return keys_list_to_axis_values(parse_camera_keys(text), max_frames, fps,
+                                    extra_vars=extra_vars, blend=blend)
+
+
+def keys_list_to_axis_values(
+    keys: list[dict],
+    max_frames: int,
+    fps: float = 24.0,
+    extra_vars=None,
+    blend: float = 1.0,
+) -> tuple[dict[str, list[float]], list[float], str]:
+    """Same as `keys_to_axis_values`, from already-parsed key dicts
+    (frame, move, speed, intensity, lens, ease) - the timeline UI path."""
+    keys = sorted(keys, key=lambda k: k["frame"])
+    if not keys:
+        keys = [{"frame": 0, "move": "still", "speed": 1.0, "intensity": 1.0,
+                 "lens": DEFAULT_LENS, "ease": "ease_in_out"}]
+    if keys[0]["frame"] != 0:
+        first = dict(keys[0])
+        first.update(frame=0, move="still", speed=1.0, intensity=1.0)
+        keys.insert(0, first)
     n = max(1, int(max_frames))
 
     values: dict[str, list[float]] = {ax: [0.0] * n for ax in _AXES}

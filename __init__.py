@@ -1,122 +1,37 @@
 """
-Difforum - a modern, Deforum-style animation toolkit for ComfyUI.
+Difforum - camera direction and timeline orchestration for ComfyUI.
 
-Phase 1 ships the GPU-free schedule engine (keyframe parser + safe math
-evaluator + audio-reactive hooks). Later phases add depth warping, the
-feedback sampler (Classic+ mode) and the Wan 2.2 VACE video bridge
-(Hybrid mode). See DESIGN.md.
+Direct a shot on a visual timeline (scenes, camera moves, energy), render it
+with the Deforum-style feedback sampler on any image model, or hand the same
+direction to LTX-2 / MiniMax H3 and export the camera to After Effects and
+Blender. See README.md.
 """
 
-from .nodes.schedule_nodes import (
-    NODE_CLASS_MAPPINGS as _SCHED_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _SCHED_NAMES,
-)
-from .nodes.audio_nodes import (
-    NODE_CLASS_MAPPINGS as _AUDIO_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _AUDIO_NAMES,
-)
-from .nodes.hybrid_nodes import (
-    NODE_CLASS_MAPPINGS as _HYBRID_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _HYBRID_NAMES,
-)
-from .nodes.catalog_nodes import (
-    NODE_CLASS_MAPPINGS as _CATALOG_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _CATALOG_NAMES,
-)
-from .nodes.warp_nodes import (
-    NODE_CLASS_MAPPINGS as _WARP_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _WARP_NAMES,
-)
-from .nodes.sampler_nodes import (
-    NODE_CLASS_MAPPINGS as _SAMPLER_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _SAMPLER_NAMES,
-)
-from .nodes.guide_nodes import (
-    NODE_CLASS_MAPPINGS as _GUIDE_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _GUIDE_NAMES,
-)
-from .nodes.prompt_nodes import (
-    NODE_CLASS_MAPPINGS as _PROMPT_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _PROMPT_NAMES,
-)
-from .nodes.live_nodes import (
-    NODE_CLASS_MAPPINGS as _LIVE_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _LIVE_NAMES,
-)
-from .nodes.effects_nodes import (
-    NODE_CLASS_MAPPINGS as _EFFECTS_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _EFFECTS_NAMES,
-)
-from .nodes.look_nodes import (
-    NODE_CLASS_MAPPINGS as _LOOK_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _LOOK_NAMES,
-)
-from .nodes.glitch_nodes import (
-    NODE_CLASS_MAPPINGS as _GLITCH_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _GLITCH_NAMES,
-)
-from .nodes.video_nodes import (
-    NODE_CLASS_MAPPINGS as _VIDEO_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _VIDEO_NAMES,
-)
-from .nodes.director_nodes import (
-    NODE_CLASS_MAPPINGS as _DIRECTOR_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _DIRECTOR_NAMES,
-)
-from .nodes.storyboard_nodes import (
-    NODE_CLASS_MAPPINGS as _STORYBOARD_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _STORYBOARD_NAMES,
-)
-from .nodes.loop_nodes import (
-    NODE_CLASS_MAPPINGS as _LOOP_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _LOOP_NAMES,
-)
-from .nodes.setup_nodes import (
-    NODE_CLASS_MAPPINGS as _SETUP_CLASSES,
-    NODE_DISPLAY_NAME_MAPPINGS as _SETUP_NAMES,
-)
+import logging
 
-NODE_CLASS_MAPPINGS = {}
-NODE_DISPLAY_NAME_MAPPINGS = {}
+from .nodes import NODE_CLASS_MAPPINGS as _V1, NODE_DISPLAY_NAME_MAPPINGS as _V1_NAMES
 
-NODE_CLASS_MAPPINGS.update(_SCHED_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_SCHED_NAMES)
-NODE_CLASS_MAPPINGS.update(_AUDIO_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_AUDIO_NAMES)
-NODE_CLASS_MAPPINGS.update(_HYBRID_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_HYBRID_NAMES)
-NODE_CLASS_MAPPINGS.update(_CATALOG_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_CATALOG_NAMES)
-NODE_CLASS_MAPPINGS.update(_WARP_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_WARP_NAMES)
-NODE_CLASS_MAPPINGS.update(_SAMPLER_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_SAMPLER_NAMES)
-NODE_CLASS_MAPPINGS.update(_GUIDE_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_GUIDE_NAMES)
-NODE_CLASS_MAPPINGS.update(_PROMPT_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_PROMPT_NAMES)
-NODE_CLASS_MAPPINGS.update(_LIVE_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_LIVE_NAMES)
-NODE_CLASS_MAPPINGS.update(_EFFECTS_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_EFFECTS_NAMES)
-NODE_CLASS_MAPPINGS.update(_LOOK_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_LOOK_NAMES)
-NODE_CLASS_MAPPINGS.update(_VIDEO_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_VIDEO_NAMES)
-NODE_CLASS_MAPPINGS.update(_GLITCH_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_GLITCH_NAMES)
-NODE_CLASS_MAPPINGS.update(_DIRECTOR_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_DIRECTOR_NAMES)
-NODE_CLASS_MAPPINGS.update(_STORYBOARD_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_STORYBOARD_NAMES)
-NODE_CLASS_MAPPINGS.update(_LOOP_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_LOOP_NAMES)
-NODE_CLASS_MAPPINGS.update(_SETUP_CLASSES)
-NODE_DISPLAY_NAME_MAPPINGS.update(_SETUP_NAMES)
+log = logging.getLogger("difforum")
 
-# Serve ./js so the Film Director timeline widget loads in the browser.
+NODE_CLASS_MAPPINGS = dict(_V1)
+NODE_DISPLAY_NAME_MAPPINGS = dict(_V1_NAMES)
+
+try:  # 0.x nodes, hidden and deprecated, so old workflows still open
+    from .legacy import NODE_CLASS_MAPPINGS as _OLD, NODE_DISPLAY_NAME_MAPPINGS as _OLD_NAMES
+    for _k, _v in _OLD.items():
+        NODE_CLASS_MAPPINGS.setdefault(_k, _v)
+        NODE_DISPLAY_NAME_MAPPINGS.setdefault(_k, _OLD_NAMES[_k])
+except Exception as exc:  # never let legacy code block the v1 pack
+    log.warning("[Difforum] legacy nodes unavailable: %s", exc)
+
+try:
+    from .nodes.routes import register_routes
+    register_routes()
+except Exception as exc:
+    log.warning("[Difforum] timeline preview endpoints unavailable: %s", exc)
+
 WEB_DIRECTORY = "./js"
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
-print(f"[Difforum] loaded {len(NODE_CLASS_MAPPINGS)} nodes")
+print(f"[Difforum] {len(_V1)} nodes ready (+{len(NODE_CLASS_MAPPINGS) - len(_V1)} legacy)")

@@ -7,14 +7,9 @@ video nodes. Reading uses OpenCV, writing uses imageio-ffmpeg.
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.video import VIDEO_EXTS, read_video, safe_input_path, write_video  # noqa: E402
+from ..core.video import VIDEO_EXTS, read_video, safe_input_path, write_video  # noqa: E402
 
 CATEGORY = "Difforum/video"
 

@@ -102,7 +102,9 @@ def build_camera(
             d = _transform(tx[f], ty[f], 0.0, 0.0, 0.0, rz[f])
         else:
             d = _transform(tx[f], ty[f], tz[f], rx[f], ry[f], rz[f])
-        acc = acc @ d
+        # a delta acts on the previous frame's view (P_f = d_f @ P_{f-1}), so
+        # the accumulated pose composes on the left
+        acc = d @ acc
         deltas.append(d)
         poses.append(acc.copy())
 

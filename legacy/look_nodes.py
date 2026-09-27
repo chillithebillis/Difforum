@@ -8,16 +8,11 @@ the beat.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
 import torch
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.look import (  # noqa: E402
+from ..core.look import (  # noqa: E402
     LOOK_PRESETS,
     apply_look,
     color_grade,

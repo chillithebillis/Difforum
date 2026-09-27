@@ -9,16 +9,11 @@ Feedback Sampler's `symmetry` option for a compounding kaleidoscope).
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.detail import NOISE_MODES, detail_guard  # noqa: E402
-from core.effects import echo_trails, loop_blend, pingpong  # noqa: E402
-from core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
+from ..core.detail import NOISE_MODES, detail_guard  # noqa: E402
+from ..core.effects import echo_trails, loop_blend, pingpong  # noqa: E402
+from ..core.symmetry import SYMMETRY_MODES, apply_symmetry  # noqa: E402
 
 CATEGORY = "Difforum/effects"
 
@@ -127,7 +122,7 @@ class DifforumFlowStabilize:
     CATEGORY = CATEGORY
 
     def run(self, frames, strength, flow_scale, error_gate):
-        from core.flow import stabilize
+        from ..core.flow import stabilize
         return (stabilize(frames, strength=float(strength),
                           flow_scale=float(flow_scale), error_gate=float(error_gate)),)
 

@@ -9,17 +9,12 @@ name in expressions, e.g.  0:(0.2 + 0.8*amp)  or  0:(beat*0.6) .
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
 import numpy as np
 
-_PKG_ROOT = Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
 
-from core.audio import REACTIVE_MODES, REACTIVE_SOURCES, analyze, reactive_curve  # noqa: E402
-from core.schedule import Schedule  # noqa: E402
+from ..core.audio import REACTIVE_MODES, REACTIVE_SOURCES, analyze, reactive_curve  # noqa: E402
+from ..core.schedule import Schedule  # noqa: E402
 
 CATEGORY = "Difforum/audio"
 
