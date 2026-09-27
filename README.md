@@ -30,13 +30,19 @@ back control over the **camera and the timing**:
 
    | Renderer | Difforum node | You get |
    |---|---|---|
-   | **MiniMax H3** | H3 Guides / H3 Shot | Your camera turned into keyframes, first/last frames and a camera prompt, with no hand-placed frames |
+   | **MiniMax H3** | H3 Guides / H3 Shot | Your camera turned into keyframes, first/last frames and a camera prompt, with no hand-placed frames. Areas the camera uncovers are painted by **Fill Reveal (AI)** |
    | **LTX-2 / 2.5** | LTX Guides | Keyframes inside the LTX latent |
    | **Any image model** (SDXL, Flux, SD1.5, turbo) | Feedback Sampler | The Deforum look: every frame re-imagines the last |
    | **Realtime** (turbo models, webcam) | Live Sampler | Plays inside the node, with Spout / OBS output |
 
 3. **Finish.** **Camera Export** writes the same camera for After Effects (`.jsx`)
    and Blender (`.py`) so titles, 3D and comp lock to the AI shot.
+
+**Pick a look once.** The Director's `look` (cinematic, documentary,
+deforum_morph, animatediff_dream, psychedelic, music_video, stop_motion,
+hand_drawn) sets the Feedback Sampler's colour, detail and energy, and adds the
+matching style sentence to the H3 / LTX prompt, so the same aesthetic carries
+across renderers.
 
 No camera expressions to write. They are still there if you want them.
 
@@ -64,11 +70,12 @@ No camera expressions to write. They are still there if you want them.
 | 08 | `h3_first_last_frame` | **MiniMax H3 FL2VA**: first frame + the frame where your camera ends | MiniMax H3 fl2va |
 | 09 | `camera_to_ae_blender` | Camera out to After Effects / Blender, and back in | nothing |
 | 10 | `h3_multikeyframe_guides` | **MiniMax H3**: keyframes along your camera, anchored inside the generation | MiniMax H3 ref2va |
+| 11 | `h3_deforum_look` | **Deforum / AnimateDiff look with H3 motion**: a turbo feedback pass sets the look, H3 animates between its frames | turbo SDXL + H3 ref2va |
 
 ### MiniMax H3 in one picture
 
 ```
-Load Image ─► Guide Frames ─► Keyframes ─► H3 Guides ─► Guider ─► Sampler ─► Video + audio
+Load Image ─► Guide Frames ─► Keyframes ─► Fill Reveal (AI) ─► H3 Guides ─► Sampler ─► Video + audio
                   ▲                            ▲
 Setup ─► Director (camera, scenes) ─► Camera → Prompt ─► MiniMax H3 Reference to Video
 ```
@@ -87,7 +94,7 @@ Both use ComfyUI's core MiniMax H3 nodes.
 | **Direction** | Director (timeline), Camera (keys), Camera (expressions), Storyboard |
 | **Curves & prompts** | Schedule, Schedule Plot, Audio Analyzer, Audio Curve, Prompt Travel |
 | **Render** | Feedback Sampler, Live Sampler, Render Options |
-| **Video model bridges** | Guide Frames, Keyframes, Camera → Prompt, H3 Guides, H3 Shot, LTX Guides |
+| **Video model bridges** | Guide Frames, Keyframes, Fill Reveal (AI), Camera → Prompt, H3 Guides, H3 Shot, LTX Guides |
 | **Export** | Camera Export (AE / Blender / JSON), Camera Import |
 | **Post** | Loop, Symmetry, Echo Trails, Flow Stabilize, Detail Guard |
 

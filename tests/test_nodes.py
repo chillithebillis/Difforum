@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 26
+    assert len(v1) == 27
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:
@@ -106,7 +106,7 @@ def test_bridges():
     assert guides.shape[0] == n and masks.shape == (n, guides.shape[1], guides.shape[2])
     assert float(masks[0].max()) == 0.0          # frame 0 has nothing to generate
 
-    keys, idx, sparse, first, last, length, _ = DifforumKeyframes().run(
+    keys, idx, sparse, first, last, length, _km, _ = DifforumKeyframes().run(
         guides, "LTX-2 / 2.5 (8k+1)", 1.0, 24.0)
     ids = [int(i) for i in idx.split(",")]
     assert (length - 1) % 8 == 0 and ids[0] == 0 and ids[-1] == length - 1
@@ -114,13 +114,13 @@ def test_bridges():
     assert keys.shape[0] == len(ids) and sparse.shape[0] == length
     assert float(sparse[1].abs().sum()) == 0.0
 
-    first, last, length, w, h, prompt, segments, info = DifforumH3Shot().run(
+    first, last, length, w, h, prompt, segments, last_mask, info = DifforumH3Shot().run(
         guides, "124 (~5s)", 0, direction=bundle, shot_description="A forest.")
     assert (length - 5) % 17 == 0 and w % 32 == 0 and h % 32 == 0
     assert segments >= 2 and prompt.startswith("A forest. The camera")
 
     text = DifforumCameraPrompt().run("prompt suffix", direction=bundle)[0]
-    assert text.startswith("Camera:")
+    assert text.startswith("Camera:") and "live-action" in text
 
 
 def test_prompt_travel_seconds_syntax():
@@ -205,3 +205,26 @@ def test_h3_guides_chain_and_limit(monkeypatch):
     calls.clear()
     DifforumH3Guides().run([], {"samples": None}, object(), keys, "0,17,34,51,68,123", 8, True)
     assert [c[0] for c in calls] == [17, 34, 51, 68, 123]
+
+
+def test_fill_reveal_keeps_known_pixels(monkeypatch):
+    import nodes as stub_nodes
+
+    from difforum.nodes.bridges import DifforumFillReveal
+
+    class FakeInpaint:
+        FUNCTION = "encode"
+
+        def encode(self, positive, negative, pixels, vae, mask, noise_mask=True):
+            return (positive, negative, {"samples": vae.encode(pixels), "noise_mask": mask})
+
+    monkeypatch.setitem(stub_nodes.NODE_CLASS_MAPPINGS, "InpaintModelConditioning", FakeInpaint)
+    imgs = torch.full((3, 32, 48, 3), 0.3)
+    masks = torch.zeros(3, 32, 48)
+    masks[:, :, 40:] = 1.0                       # right edge revealed
+    out, info = DifforumFillReveal().run(imgs, masks, StubModel(), _c(), _c(), StubVAE(), "last",
+                                         2, 5.0, "euler", "normal", 4, 3, 0)
+    assert torch.equal(out[:2], imgs[:2])                 # only the last frame touched
+    assert torch.equal(out[2, :, :30], imgs[2, :, :30])   # known pixels untouched
+    assert not torch.allclose(out[2, :, 44:], imgs[2, :, 44:])
+    assert "filled" in info

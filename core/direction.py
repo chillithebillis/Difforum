@@ -51,12 +51,44 @@ REACTIONS = {
     "mid_sway": "Mids rock the roll",
 }
 
-STYLES = {
-    "cinematic":   {"color_coherence": 0.85, "color_mode": "lab", "sharpen": 0.25, "noise": 0.025},
-    "documentary": {"color_coherence": 0.90, "color_mode": "lab", "sharpen": 0.15, "noise": 0.015},
-    "music_video": {"color_coherence": 0.75, "color_mode": "lab", "sharpen": 0.35, "noise": 0.035},
-    "psychedelic": {"color_coherence": 0.60, "color_mode": "rgb", "sharpen": 0.20, "noise": 0.045},
+# Render looks. One choice drives both render paths:
+#   * the Feedback Sampler reads the engine keys (colour lock, detail, grain)
+#     and `energy` (added to the Director's denoise curve);
+#   * prompt-driven video models (MiniMax H3, LTX...) get `prompt` appended to
+#     the camera text, so the same look is asked for in words.
+LOOKS = {
+    "cinematic": dict(
+        color_coherence=0.85, color_mode="lab", sharpen=0.25, noise=0.025, energy=0.0,
+        prompt="Cinematic live-action footage, natural motion blur, stable geometry, subtle film grain."),
+    "documentary": dict(
+        color_coherence=0.90, color_mode="lab", sharpen=0.15, noise=0.015, energy=-0.03,
+        prompt="Documentary realism, natural light, true-to-life textures, observational camera."),
+    "deforum_morph": dict(
+        color_coherence=0.65, color_mode="lab", sharpen=0.30, noise=0.040, energy=0.08,
+        prompt="Deforum-style AI animation: the image keeps morphing and re-imagining itself as the "
+               "camera travels, shapes melting into new forms, painterly detail, dreamlike zoom tunnel."),
+    "animatediff_dream": dict(
+        color_coherence=0.75, color_mode="lab", sharpen=0.15, noise=0.030, energy=0.05,
+        prompt="AnimateDiff-style animation: fluid, dreamy morphing between illustrated frames, soft "
+               "painterly textures, gentle temporal shimmer, stylised anime-inspired rendering."),
+    "psychedelic": dict(
+        color_coherence=0.60, color_mode="rgb", sharpen=0.20, noise=0.045, energy=0.10,
+        prompt="Psychedelic visuals: saturated shifting colours, kaleidoscopic symmetry, liquid "
+               "morphing patterns, hypnotic flow."),
+    "music_video": dict(
+        color_coherence=0.75, color_mode="lab", sharpen=0.35, noise=0.035, energy=0.03,
+        prompt="90s music video shot on VHS: chroma bleed, tape noise, slightly unstable image, "
+               "punchy contrast."),
+    "stop_motion": dict(
+        color_coherence=0.85, color_mode="lab", sharpen=0.30, noise=0.020, energy=0.0,
+        prompt="Stop-motion animation: tactile handmade materials, stepped motion at 12 frames per "
+               "second, miniature set lighting."),
+    "hand_drawn": dict(
+        color_coherence=0.80, color_mode="lab", sharpen=0.20, noise=0.020, energy=0.04,
+        prompt="Hand-drawn 2D animation: visible line work and brush texture, boiling lines, limited "
+               "palette."),
 }
+ENGINE_LOOK_KEYS = ("color_coherence", "color_mode", "sharpen", "noise")
 
 
 def default_timeline(frames: int = 120) -> dict:
@@ -447,7 +479,7 @@ def ui_catalog() -> dict:
         "moods": [{"id": k, "color": MOOD_COLORS.get(k, "#888"), **v} for k, v in MOODS.items()],
         "easings": list(EASINGS),
         "reactions": [{"id": k, "hint": v} for k, v in REACTIONS.items()],
-        "styles": list(STYLES),
+        "looks": [{"id": k, "prompt": v["prompt"]} for k, v in LOOKS.items()],
         "default_lens": DEFAULT_LENS,
     }
 
@@ -462,11 +494,17 @@ class DirectionBundle:
     cfg: object | None             # core.schedule.Schedule | None
     prompts: object | None         # core.prompt.PromptTrack | None
     direction: Direction
-    style: str = "cinematic"
+    look_name: str = "cinematic"
 
     @property
     def look(self) -> dict:
-        return STYLES.get(self.style, STYLES["cinematic"])
+        """Feedback engine settings of the chosen look."""
+        lk = LOOKS.get(self.look_name, LOOKS["cinematic"])
+        return {k: lk[k] for k in ENGINE_LOOK_KEYS}
+
+    @property
+    def look_prompt(self) -> str:
+        return LOOKS.get(self.look_name, LOOKS["cinematic"])["prompt"]
 
 
 def blocks_in_range(blocks: list[dict], start: int, end: int) -> list[dict]:

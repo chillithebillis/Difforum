@@ -11,6 +11,7 @@ the temporally coherent rendering. The bridges output plain `IMAGE`, `MASK`,
 |---|---|
 | **Guide Frames** | One anchor image carried along the Director's camera path. Revealed areas are filled with neutral gray and marked in a mask (`1 = generate` is the convention VACE / LTX / H3 use). Works in 3D with a depth map. |
 | **Keyframes** | Picks keyframes from *any* frame batch (Guide Frames, a Storyboard, a Feedback render) on a model's grid. Outputs the keyframes, their indices, a full-length sparse batch, the first and last frame, and the snapped length. |
+| **Fill Reveal (AI)** | Inpaints the masked (revealed) area of the frames a video model will see, with any image model; known pixels stay untouched. |
 | **Camera → Prompt** | The camera in words, for prompt-driven models. It uses the Director's blocks when present; otherwise it reads any camera track and names the moves. |
 
 What to feed Keyframes:
@@ -102,3 +103,15 @@ Round trips (Difforum → JSON / Blender / AE → Difforum) are covered by the t
 suite. After Effects rotations use X/Y/Z Rotation composed as Rz·Ry·Rx. If a
 move looks mirrored in your AE version, check that the camera has no Orientation
 values.
+
+## Looks
+
+The Director's `look` is one aesthetic choice for every renderer. On the
+Feedback Sampler it sets colour lock, detail, grain and adds energy; on H3 /
+LTX it appends a style sentence (Camera → Prompt and H3 Shot, `include_look`).
+
+To push a model like H3 toward the Deforum or AnimateDiff look, use template
+`11_h3_deforum_look`: a turbo Feedback Sampler pass renders the shot in the
+chosen look, Keyframes takes one per second, and H3 Guides anchors them - H3
+animates between Deforum frames. More guides stay closer to the look pass;
+fewer give H3 more freedom.

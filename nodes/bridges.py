@@ -124,15 +124,17 @@ class DifforumKeyframes:
             },
             "optional": {
                 "indices": ("STRING", {"default": "", "tooltip": "Explicit frame list, e.g. 0, 48, 96, -1 (overrides spacing)."}),
+                "masks": ("MASK", {"tooltip": "Guide Frames masks, so Fill Reveal can repaint the keyframes."}),
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "STRING", "IMAGE", "IMAGE", "IMAGE", "INT", "STRING")
-    RETURN_NAMES = ("keyframes", "indices", "sparse_batch", "first_frame", "last_frame", "length", "info")
+    RETURN_TYPES = ("IMAGE", "STRING", "IMAGE", "IMAGE", "IMAGE", "INT", "MASK", "STRING")
+    RETURN_NAMES = ("keyframes", "indices", "sparse_batch", "first_frame", "last_frame", "length",
+                    "key_masks", "info")
     FUNCTION = "run"
     CATEGORY = CAT_BRIDGE
 
-    def run(self, frames, grid, every_seconds, fps, indices=""):
+    def run(self, frames, grid, every_seconds, fps, indices="", masks=None):
         rule = GRIDS.get(grid, (1, 0))
         total = int(frames.shape[0])
         length = snap_frames(total, rule)
@@ -157,7 +159,12 @@ class DifforumKeyframes:
         sparse[idx] = frames[idx]
         info = (f"{len(idx)} keyframes on {grid}, length {length} "
                 f"({length / fps:.2f}s): {', '.join(map(str, idx))}")
-        return (keys, ",".join(map(str, idx)), sparse, frames[:1], frames[-1:], int(length), info)
+        if masks is not None:
+            key_masks = masks[[min(i, masks.shape[0] - 1) for i in idx]]
+        else:
+            key_masks = torch.zeros(keys.shape[:3])
+        return (keys, ",".join(map(str, idx)), sparse, frames[:1], frames[-1:], int(length),
+                key_masks, info)
 
 
 class DifforumCameraPrompt:
@@ -179,6 +186,8 @@ class DifforumCameraPrompt:
                 "camera": (CAMERA,),
                 "prefix": ("STRING", {"default": "", "multiline": True,
                            "tooltip": "Your shot description; the camera sentence is appended."}),
+                "include_look": ("BOOLEAN", {"default": True,
+                                 "tooltip": "Append the Director's look sentence (deforum morph, stop-motion...)."}),
             },
         }
 
@@ -187,7 +196,7 @@ class DifforumCameraPrompt:
     FUNCTION = "run"
     CATEGORY = CAT_BRIDGE
 
-    def run(self, format, direction=None, params=None, camera=None, prefix=""):
+    def run(self, format, direction=None, params=None, camera=None, prefix="", include_look=True):
         if direction is not None and camera is None:
             d = direction.direction
             sentence = d.camera_text
@@ -201,6 +210,8 @@ class DifforumCameraPrompt:
             body = "Camera: " + sentence[len("The camera "):] if sentence.startswith("The camera ") else sentence
         else:
             body = sentence
+        if include_look and direction is not None and format != "timed lines":
+            body = f"{body} {direction.look_prompt}"
         text = (prefix.strip() + " " + body).strip() if prefix.strip() else body
         return (text,)
 
@@ -254,6 +265,103 @@ class DifforumLTXGuides:
                 image=img.unsqueeze(0), frame_idx=int(fi), strength=float(s))[:3]
             lines.append(f"  guide @ {fi} strength {s:g}")
         return (positive, negative, latent, "LTX guides:\n" + "\n".join(lines))
+
+
+class DifforumFillReveal:
+    """Complete what the camera reveals, with an image model (AI hole fill).
+
+    Guide Frames, H3 Shot and Keyframes mark the area the camera uncovers
+    (outside the original picture) in a mask. This node repaints only that
+    area by inpainting, so edges become new, coherent scenery instead of
+    gray or stretched pixels. The known pixels are kept exactly.
+
+    Works with any image model through ComfyUI's core `InpaintModelConditioning`:
+    a dedicated inpaint model (SDXL inpainting, Flux Fill) gives the cleanest
+    seams, a regular checkpoint works too. Run it only on the frames a video
+    model will see (first / last frame, keyframes) - it is one diffusion per frame.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        try:
+            import comfy.samplers
+            samplers, schedulers = comfy.samplers.KSampler.SAMPLERS, comfy.samplers.KSampler.SCHEDULERS
+        except Exception:
+            samplers, schedulers = ["euler"], ["normal"]
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "masks": ("MASK", {"tooltip": "1 = area to fill (Guide Frames default convention)."}),
+                "model": ("MODEL",),
+                "positive": ("CONDITIONING", {"tooltip": "Describe the scene so the fill matches it."}),
+                "negative": ("CONDITIONING",),
+                "vae": ("VAE",),
+                "frames": (["all", "first", "last", "first + last"], {"default": "all"}),
+                "steps": ("INT", {"default": 24, "min": 1, "max": 100}),
+                "cfg": ("FLOAT", {"default": 5.0, "min": 0.0, "max": 30.0, "step": 0.1}),
+                "sampler_name": (samplers, {"default": "euler" if "euler" in samplers else samplers[0]}),
+                "scheduler": (schedulers, {"default": "normal" if "normal" in schedulers else schedulers[0]}),
+                "grow": ("INT", {"default": 16, "min": 0, "max": 256,
+                         "tooltip": "Pixels the mask is grown into the known image, to hide the seam."}),
+                "feather": ("INT", {"default": 12, "min": 0, "max": 256}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("images", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_BRIDGE
+
+    @staticmethod
+    def _prepare_mask(m: torch.Tensor, h: int, w: int, grow: int, feather: int):
+        """-> (area to diffuse, blend alpha). The revealed area itself is always
+        fully replaced; grow + feather only soften the seam into known pixels."""
+        m = m.float()
+        if m.shape[-2:] != (h, w):
+            m = torch.nn.functional.interpolate(m[None, None], size=(h, w), mode="bilinear")[0, 0]
+        core = (m > 0.5).float()[None, None]
+        hard = core
+        if grow > 0:
+            hard = torch.nn.functional.max_pool2d(core, 2 * grow + 1, stride=1, padding=grow)
+        soft = hard
+        if feather > 0:
+            soft = torch.nn.functional.avg_pool2d(hard, 2 * feather + 1, stride=1, padding=feather,
+                                                  count_include_pad=False)
+            soft = torch.maximum(soft * hard, core)
+        return hard[0, 0], soft[0, 0].clamp(0, 1)
+
+    def run(self, images, masks, model, positive, negative, vae, frames, steps, cfg,
+            sampler_name, scheduler, grow, feather, seed):
+        from nodes import common_ksampler
+
+        n = int(images.shape[0])
+        pick = {"all": range(n), "first": [0], "last": [n - 1],
+                "first + last": sorted({0, n - 1})}[frames]
+        out = images.clone()
+        lines = []
+        for i in pick:
+            h, w = int(images.shape[1]), int(images.shape[2])
+            hard, soft = self._prepare_mask(masks[min(i, masks.shape[0] - 1)], h, w, int(grow), int(feather))
+            if float(hard.sum()) < 1:
+                lines.append(f"  frame {i}: nothing revealed, kept")
+                continue
+            img = images[i:i + 1, ..., :3]
+            pos, neg, latent = call_comfy_node("InpaintModelConditioning", positive=positive,
+                                               negative=negative, pixels=img, vae=vae,
+                                               mask=hard.unsqueeze(0), noise_mask=True)
+            sampled = common_ksampler(model, int(seed) + i, int(steps), float(cfg), sampler_name,
+                                      scheduler, pos, neg, latent, denoise=1.0)[0]
+            dec = vae.decode(sampled["samples"])
+            if dec.dim() == 5:
+                dec = dec.reshape(-1, *dec.shape[-3:])
+            dec = resize_bhwc(dec[:1], w, h).to(img.dtype)
+            a = soft.to(img.dtype)[None, ..., None]
+            out[i:i + 1, ..., :3] = torch.where(a > 0, img * (1.0 - a) + dec * a, img)
+            lines.append(f"  frame {i}: filled {float(hard.mean()) * 100:.1f}% of the image")
+        return (out, "Fill Reveal:\n" + "\n".join(lines))
 
 
 class DifforumH3Guides:
@@ -356,17 +464,20 @@ class DifforumH3Shot:
                 "params": (PARAMS,),
                 "camera": (CAMERA,),
                 "shot_description": ("STRING", {"default": "", "multiline": True}),
+                "masks": ("MASK", {"tooltip": "Guide Frames masks: returns the last frame's revealed area "
+                                              "for Fill Reveal."}),
+                "include_look": ("BOOLEAN", {"default": True}),
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "IMAGE", "INT", "INT", "INT", "STRING", "INT", "STRING")
+    RETURN_TYPES = ("IMAGE", "IMAGE", "INT", "INT", "INT", "STRING", "INT", "MASK", "STRING")
     RETURN_NAMES = ("first_frame", "last_frame", "length", "width", "height", "prompt",
-                    "segments", "info")
+                    "segments", "last_mask", "info")
     FUNCTION = "run"
     CATEGORY = CAT_BRIDGE
 
     def run(self, frames, segment_length, segment, direction=None, params=None, camera=None,
-            shot_description=""):
+            shot_description="", masks=None, include_look=True):
         total = int(frames.shape[0])
         rule = TARGETS["MiniMax H3"][0]
         seg_len = H3_LENGTHS.get(segment_length, 0) or min(481, snap_frames(total, rule))
@@ -394,11 +505,17 @@ class DifforumH3Shot:
                               zoom=camera.zoom[start:end + 1], fov=camera.fov[start:end + 1],
                               mode=camera.mode)
             cam_text = describe_track(sub, float(params["fps"]))[0]
-        prompt = " ".join(x for x in (shot_description.strip(), cam_text) if x)
+        look = direction.look_prompt if (include_look and direction is not None) else ""
+        prompt = " ".join(x for x in (shot_description.strip(), cam_text, look) if x)
+        if masks is not None:
+            m = masks[min(end, masks.shape[0] - 1)].unsqueeze(0).unsqueeze(-1)
+            last_mask = resize_bhwc(m, w32, h32)[..., 0]
+        else:
+            last_mask = torch.zeros((1, h32, w32))
         info = (f"H3 segment {s + 1}/{segments}: frames {start}-{end} "
                 f"(length {seg_len}, {seg_len / 24:.2f}s @ 24fps), {w32}x{h32}\n"
                 f"  mode fl2va - wire first/last into MiniMax H3 Image to Video")
-        return (first, last, int(seg_len), int(w32), int(h32), prompt, int(segments), info)
+        return (first, last, int(seg_len), int(w32), int(h32), prompt, int(segments), last_mask, info)
 
 
 NODE_CLASS_MAPPINGS = {
@@ -408,6 +525,7 @@ NODE_CLASS_MAPPINGS = {
     "Difforum_LTXGuides": DifforumLTXGuides,
     "Difforum_H3Shot": DifforumH3Shot,
     "Difforum_H3Guides": DifforumH3Guides,
+    "Difforum_FillReveal": DifforumFillReveal,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_GuideFrames": "Difforum · Guide Frames",
@@ -416,4 +534,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_LTXGuides": "Difforum · LTX Guides",
     "Difforum_H3Shot": "Difforum · H3 Shot",
     "Difforum_H3Guides": "Difforum · H3 Guides",
+    "Difforum_FillReveal": "Difforum · Fill Reveal (AI)",
 }

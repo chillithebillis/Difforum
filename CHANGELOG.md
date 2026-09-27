@@ -13,12 +13,17 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - Video model bridges: **Guide Frames**, **Keyframes**, **Camera → Prompt**,
   **LTX Guides** (core `LTXVAddGuide`), **H3 Guides** (core `MiniMaxH3AddGuide`, multi-keyframe)
   and **H3 Shot** (first/last frame, segments).
+- **Fill Reveal (AI)**: inpaints what the camera uncovers (core `InpaintModelConditioning`,
+  any image model), on the frames a video model will see.
+- **Looks** on the Director (cinematic, documentary, deforum_morph, animatediff_dream,
+  psychedelic, music_video, stop_motion, hand_drawn): one choice sets the feedback pass and the
+  video-model prompt.
 - **Camera Export** to After Effects (.jsx), Blender (.py) and JSON; **Camera Import**
   from them, with helper exporters in `tools/`.
 - 7 new moves: tilt up/down, crane up, handheld, drift, breathe, vortex.
 - Feedback Sampler outputs the tracked depth per frame and a run report; its fine-tuning
   moved to a separate **Render Options** node, so the sampler stays small.
-- 10 templates in ComfyUI's template browser, generated from the node definitions.
+- 11 templates in ComfyUI's template browser, generated from the node definitions.
 
 ### Improved
 - One shared feedback engine behind the Feedback Sampler, Live Sampler and Storyboard.

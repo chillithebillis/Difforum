@@ -53,7 +53,7 @@ there for custom graphs.
 | `params` | DIFFORUM_PARAMS |  |  |
 | `timeline` | STRING | {"version": 2, "scenes": [{"start": 0... |  |
 | `camera_mode` | choice (2d, 3d) | 2d | 3d = real parallax when a depth map reaches the sampler (pseudo-3D otherwise). |
-| `style` | choice (cinematic, documentary, music_video, psychedelic) | cinematic | Colour lock / detail defaults the sampler uses in 'from director' mode. |
+| `look` | choice (cinematic, documentary, deforum_morph, animatediff_dream, psychedelic, music_video, ...) | cinematic | Render aesthetic. Feedback Sampler: colour lock, detail, grain and energy. H3 / LTX: a look sentence added to the prompt. |
 | `transition` | FLOAT | 1.0 | How much of each camera block is spent easing into the next. 0 = hard cuts. |
 | `camera_scale` | FLOAT | 1.0 | Master multiplier on every move. |
 | `energy_bias` | FLOAT | 0.0 | Shifts the whole denoise curve up or down. |
@@ -335,7 +335,7 @@ last `keep_frames` frames are returned, so long sessions do not fill RAM.
 Everything the samplers can fine-tune, kept off the sampler itself.
 
 Without this node the look (colour lock, sharpen, grain) comes from the
-Director's style and the rest uses sensible defaults. Connect it to take
+Director's look and the rest uses sensible defaults. Connect it to take
 manual control: colour anchoring, detail guard, in-loop symmetry, 3D depth
 calibration, noise seeding and chunked rendering.
 
@@ -405,8 +405,9 @@ last frame (for first-last-frame models) and the snapped clip length.
 | `every_seconds` | FLOAT | 1.0 | Spacing between keyframes. 0 = first and last only. |
 | `fps` | FLOAT | 24.0 |  |
 | `indices` *(optional)* | STRING |  | Explicit frame list, e.g. 0, 48, 96, -1 (overrides spacing). |
+| `masks` *(optional)* | MASK |  | Guide Frames masks, so Fill Reveal can repaint the keyframes. |
 
-**Outputs:** `keyframes` (IMAGE), `indices` (STRING), `sparse_batch` (IMAGE), `first_frame` (IMAGE), `last_frame` (IMAGE), `length` (INT), `info` (STRING)
+**Outputs:** `keyframes` (IMAGE), `indices` (STRING), `sparse_batch` (IMAGE), `first_frame` (IMAGE), `last_frame` (IMAGE), `length` (INT), `key_masks` (MASK), `info` (STRING)
 
 ### Difforum · Camera → Prompt
 
@@ -423,6 +424,7 @@ reads any camera track and names its moves.
 | `params` *(optional)* | DIFFORUM_PARAMS |  |  |
 | `camera` *(optional)* | DIFFORUM_CAMERA |  |  |
 | `prefix` *(optional)* | STRING |  | Your shot description; the camera sentence is appended. |
+| `include_look` *(optional)* | BOOLEAN | True | Append the Director's look sentence (deforum morph, stop-motion...). |
 
 **Outputs:** `text` (STRING)
 
@@ -473,8 +475,10 @@ next segment's first frame.
 | `params` *(optional)* | DIFFORUM_PARAMS |  |  |
 | `camera` *(optional)* | DIFFORUM_CAMERA |  |  |
 | `shot_description` *(optional)* | STRING |  |  |
+| `masks` *(optional)* | MASK |  | Guide Frames masks: returns the last frame's revealed area for Fill Reveal. |
+| `include_look` *(optional)* | BOOLEAN | True |  |
 
-**Outputs:** `first_frame` (IMAGE), `last_frame` (IMAGE), `length` (INT), `width` (INT), `height` (INT), `prompt` (STRING), `segments` (INT), `info` (STRING)
+**Outputs:** `first_frame` (IMAGE), `last_frame` (IMAGE), `length` (INT), `width` (INT), `height` (INT), `prompt` (STRING), `segments` (INT), `last_mask` (MASK), `info` (STRING)
 
 ### Difforum · H3 Guides
 
@@ -504,6 +508,41 @@ the last and evenly spaced ones in between.
 | `audio` *(optional)* | AUDIO |  | Soundtrack anchored at frame 0. |
 
 **Outputs:** `positive` (CONDITIONING), `info` (STRING)
+
+### Difforum · Fill Reveal (AI)
+
+`Difforum_FillReveal`
+
+Complete what the camera reveals, with an image model (AI hole fill).
+
+Guide Frames, H3 Shot and Keyframes mark the area the camera uncovers
+(outside the original picture) in a mask. This node repaints only that
+area by inpainting, so edges become new, coherent scenery instead of
+gray or stretched pixels. The known pixels are kept exactly.
+
+Works with any image model through ComfyUI's core `InpaintModelConditioning`:
+a dedicated inpaint model (SDXL inpainting, Flux Fill) gives the cleanest
+seams, a regular checkpoint works too. Run it only on the frames a video
+model will see (first / last frame, keyframes) - it is one diffusion per frame.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `images` | IMAGE |  |  |
+| `masks` | MASK |  | 1 = area to fill (Guide Frames default convention). |
+| `model` | MODEL |  |  |
+| `positive` | CONDITIONING |  | Describe the scene so the fill matches it. |
+| `negative` | CONDITIONING |  |  |
+| `vae` | VAE |  |  |
+| `frames` | choice (all, first, last, first + last) | all |  |
+| `steps` | INT | 24 |  |
+| `cfg` | FLOAT | 5.0 |  |
+| `sampler_name` | choice (euler) | euler |  |
+| `scheduler` | choice (normal) | normal |  |
+| `grow` | INT | 16 | Pixels the mask is grown into the known image, to hide the seam. |
+| `feather` | INT | 12 |  |
+| `seed` | INT | 0 |  |
+
+**Outputs:** `images` (IMAGE), `info` (STRING)
 
 ## 6 · Export
 

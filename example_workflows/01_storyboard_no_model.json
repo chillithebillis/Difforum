@@ -406,7 +406,8 @@
    },
    "widgets_values": [
     "sentence",
-    ""
+    "",
+    true
    ]
   },
   {

@@ -9,7 +9,7 @@ from ..core.camera import CAMERA_MODES, build_camera
 from ..core.camera_keys import keys_to_axis_values, lens_note, parse_camera_keys
 from ..core.camera_presets import flat_presets, needs_depth
 from ..core.direction import (
-    STYLES, DirectionBundle, build_direction, default_timeline, describe_timed,
+    LOOKS, DirectionBundle, build_direction, default_timeline, describe_timed,
 )
 from ..core.loop import LOOP_MODES, close_axis_values, tile_laps
 from ..core.schedule import Schedule, build_schedule
@@ -75,8 +75,9 @@ class DifforumDirector:
                 "camera_mode": (list(CAMERA_MODES), {"default": "2d",
                                 "tooltip": "3d = real parallax when a depth map reaches the sampler "
                                            "(pseudo-3D otherwise)."}),
-                "style": (list(STYLES), {"default": "cinematic",
-                          "tooltip": "Colour lock / detail defaults the sampler uses in 'from director' mode."}),
+                "look": (list(LOOKS), {"default": "cinematic",
+                         "tooltip": "Render aesthetic. Feedback Sampler: colour lock, detail, grain and energy. "
+                                    "H3 / LTX: a look sentence added to the prompt."}),
                 "transition": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05,
                                "tooltip": "How much of each camera block is spent easing into the next. 0 = hard cuts."}),
                 "camera_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 4.0, "step": 0.05,
@@ -98,13 +99,13 @@ class DifforumDirector:
     FUNCTION = "run"
     CATEGORY = CAT_DIRECT
 
-    def run(self, params, timeline, camera_mode, style, transition, camera_scale,
+    def run(self, params, timeline, camera_mode, look, transition, camera_scale,
             energy_bias, variation, variation_seed, clip=None, audio=None):
         n = int(params["max_frames"])
         fps = float(params["fps"])
         d = build_direction(
             timeline, n, fps, mode=camera_mode, camera_scale=camera_scale,
-            strength_bias=energy_bias, blend=transition, variation=variation,
+            strength_bias=energy_bias + LOOKS.get(look, LOOKS["cinematic"])["energy"], blend=transition, variation=variation,
             variation_seed=variation_seed, audio_curves=audio_vars(audio),
         )
         camera = _track(d.axes, d.lens, n, camera_mode, [b["move"] for b in d.camera_blocks])
@@ -113,9 +114,9 @@ class DifforumDirector:
         prompts = encode_prompt_track(clip, d.prompts, n) if clip is not None else None
 
         bundle = DirectionBundle(params=params, camera=camera, strength=strength, cfg=cfg,
-                                 prompts=prompts, direction=d, style=style)
+                                 prompts=prompts, direction=d, look_name=look)
         info = "\n".join([
-            f"[Difforum Director]  {n} frames  {n / fps:.2f}s  camera {camera_mode}  style {style}",
+            f"[Difforum Director]  {n} frames  {n / fps:.2f}s  camera {camera_mode}  look {look}",
             *d.summary,
             *([""] + [f"  ! {w}" for w in d.warnings] if d.warnings else []),
             "" if clip is not None else "  (connect a CLIP to get prompt travel on the direction wire)",
@@ -123,7 +124,8 @@ class DifforumDirector:
         timed = describe_timed(d.camera_blocks, n, fps)
         return {
             "ui": {"text": [info]},
-            "result": (bundle, camera, strength, prompts, d.camera_text + "\n\n" + timed, info),
+            "result": (bundle, camera, strength, prompts,
+                       d.camera_text + " " + bundle.look_prompt + "\n\n" + timed, info),
         }
 
 

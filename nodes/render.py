@@ -80,7 +80,7 @@ def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, sche
 
 def _options(direction, options) -> dict:
     """Engine settings: a Render Options node wins; otherwise the Director's
-    style sets the look; otherwise the defaults."""
+    look sets the colour and detail; otherwise the defaults."""
     opts = {k: spec.get("default") for k, (_t, spec) in _COMMON_OPTIONAL.items()}
     if options is not None:
         opts.update(options)
@@ -122,7 +122,7 @@ class DifforumRenderOptions:
     """Everything the samplers can fine-tune, kept off the sampler itself.
 
     Without this node the look (colour lock, sharpen, grain) comes from the
-    Director's style and the rest uses sensible defaults. Connect it to take
+    Director's look and the rest uses sensible defaults. Connect it to take
     manual control: colour anchoring, detail guard, in-loop symmetry, 3D depth
     calibration, noise seeding and chunked rendering.
     """
