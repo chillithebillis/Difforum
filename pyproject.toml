@@ -1,25 +1,34 @@
 [project]
 name = "difforum"
-description = "Modern Deforum-style animation toolkit for ComfyUI: math-driven keyframe schedules, a visual shot-timeline director, audio reactivity, depth-aware camera warping, seamless loops, and guide bridges to Wan 2.2 and LTX-2. Runs on CUDA and Apple Silicon (MPS)."
-version = "0.6.0"
-license = { text = "MIT" }
+description = "Camera direction and timeline orchestration for ComfyUI: a visual Director timeline (scenes, camera moves, energy, audio reactions) that drives a Deforum-style feedback sampler on any image model, guides LTX-2 / MiniMax H3, and exports the camera to After Effects and Blender."
+version = "1.0.0"
+license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
-# Intentionally minimal: numpy ships with ComfyUI. No librosa/numexpr/pandas
-# so the node installs cleanly on ComfyCloud and Python 3.12+.
-dependencies = [
-    "numpy",
-]
+# numpy and torch ship with ComfyUI. OpenCV (optical flow, webcam) is optional
+# and imported lazily by the nodes that need it.
+dependencies = ["numpy"]
+classifiers = ["Operating System :: OS Independent"]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "opencv-python-headless"]
 
 [project.urls]
 Repository = "https://github.com/chillithebillis/Difforum"
+Documentation = "https://github.com/chillithebillis/Difforum/tree/main/docs"
+"Bug Tracker" = "https://github.com/chillithebillis/Difforum/issues"
 
 [tool.comfy]
-# Set PublisherId to your Comfy Registry publisher handle before `comfy node publish`.
 PublisherId = "chillithebillis"
 DisplayName = "Difforum"
-Icon = ""
+Icon = "https://raw.githubusercontent.com/chillithebillis/Difforum/main/docs/media/icon.png"
+includes = []
 
-[tool.setuptools]
-# Pure-source custom node; no build step required.
-packages = ["core", "nodes"]
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["legacy", "tests/scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501", "E731", "E741", "I001"]

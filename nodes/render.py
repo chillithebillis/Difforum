@@ -19,7 +19,7 @@ from ._common import (
 )
 from .direction import DIRECTION
 
-LOOKS = ("from director", "manual")
+OPTIONS = "DIFFORUM_OPTIONS"
 
 
 def _samplers():
@@ -78,19 +78,20 @@ def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, sche
     return diffuse
 
 
-def _look_args(look, direction, kw):
-    """Colour / detail settings: from the Director's style or the node widgets."""
-    if look == "from director" and direction is not None:
-        st = direction.look
-        return {"color_coherence": st["color_coherence"], "color_mode": st["color_mode"],
-                "sharpen": st["sharpen"], "noise": st["noise"]}
-    return {"color_coherence": kw["color_coherence"], "color_mode": kw["color_mode"],
-            "sharpen": kw["sharpen"], "noise": kw["noise"]}
+def _options(direction, options) -> dict:
+    """Engine settings: a Render Options node wins; otherwise the Director's
+    style sets the look; otherwise the defaults."""
+    opts = {k: spec.get("default") for k, (_t, spec) in _COMMON_OPTIONAL.items()}
+    if options is not None:
+        opts.update(options)
+    elif direction is not None:
+        opts.update(direction.look)
+    return opts
 
 
 _COMMON_OPTIONAL = {
     "color_coherence": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.05,
-                        "tooltip": "Manual look: how hard colours are held to the anchor."}),
+                        "tooltip": "How hard colours are held to the anchor."}),
     "color_mode": (list(COLOR_MODES), {"default": "lab"}),
     "anchor_mode": (list(ANCHOR_MODES), {"default": "scene",
                     "tooltip": "scene = re-anchor colour at each prompt scene; first = hold "
@@ -111,7 +112,34 @@ _COMMON_OPTIONAL = {
     "invert_depth": ("BOOLEAN", {"default": False, "tooltip": "Enable if near things are dark in your depth map."}),
     "seed_mode": (["fixed", "increment"], {"default": "fixed",
                   "tooltip": "fixed = same noise every frame (calmer texture)."}),
+    "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000000,
+                    "tooltip": "Feedback Sampler: render a chunk; init_image is the frame at start_frame."}),
+    "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000000, "tooltip": "0 = to the end."}),
 }
+
+
+class DifforumRenderOptions:
+    """Everything the samplers can fine-tune, kept off the sampler itself.
+
+    Without this node the look (colour lock, sharpen, grain) comes from the
+    Director's style and the rest uses sensible defaults. Connect it to take
+    manual control: colour anchoring, detail guard, in-loop symmetry, 3D depth
+    calibration, noise seeding and chunked rendering.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": dict(_COMMON_OPTIONAL)}
+
+    RETURN_TYPES = (OPTIONS,)
+    RETURN_NAMES = ("options",)
+    FUNCTION = "run"
+    CATEGORY = CAT_RENDER
+
+    def run(self, **kw):
+        return (dict(kw),)
 
 
 class DifforumFeedbackSampler:
@@ -146,10 +174,10 @@ class DifforumFeedbackSampler:
                 "scheduler": (schedulers, {"default": "normal"}),
                 "cadence": ("INT", {"default": 1, "min": 1, "max": 12,
                             "tooltip": "Diffuse every Nth frame; the rest are crossfaded warps. ~N x faster."}),
-                "look": (list(LOOKS), {"default": "from director"}),
             },
             "optional": {
                 "direction": (DIRECTION,),
+                "options": (OPTIONS, {"tooltip": "Difforum · Render Options, for manual control."}),
                 "params": (PARAMS,),
                 "camera": (CAMERA,),
                 "strength": (SCHEDULE, {"tooltip": "Overrides the Director's energy curve."}),
@@ -161,10 +189,6 @@ class DifforumFeedbackSampler:
                 "control_strength": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 3.0, "step": 0.05}),
                 "energy": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01,
                            "tooltip": "Denoise when neither a Director nor a strength curve is connected."}),
-                **_COMMON_OPTIONAL,
-                "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000000,
-                                "tooltip": "Render a chunk: init_image is the frame at start_frame."}),
-                "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000000, "tooltip": "0 = to the end."}),
             },
         }
 
@@ -174,12 +198,11 @@ class DifforumFeedbackSampler:
     CATEGORY = CAT_RENDER
 
     def run(self, model, positive, negative, vae, init_image, steps, cfg, sampler_name,
-            scheduler, cadence, look, direction=None, params=None, camera=None,
+            scheduler, cadence, direction=None, options=None, params=None, camera=None,
             strength=None, cfg_curve=None, prompts=None, depth=None, control_net=None,
-            control_image=None, control_strength=0.6, energy=0.5, start_frame=0,
-            end_frame=0, **kw):
-        for k, (_t, spec) in _COMMON_OPTIONAL.items():
-            kw.setdefault(k, spec.get("default"))
+            control_image=None, control_strength=0.6, energy=0.5):
+        kw = _options(direction, options)
+        start_frame, end_frame = int(kw["start_frame"]), int(kw["end_frame"])
         params, camera, strength, cfg_curve, prompts = _resolve(
             direction, params, camera, strength, cfg_curve, prompts)
         n = int(params["max_frames"])
@@ -200,7 +223,8 @@ class DifforumFeedbackSampler:
             far=float(kw["far"]), invert_depth=bool(kw["invert_depth"]),
             translation_scale=float(kw["translation_scale"]),
             depth_tracking=kw["depth_tracking"], seed=seed,
-            **_look_args(look, direction, kw),
+            color_coherence=float(kw["color_coherence"]), color_mode=kw["color_mode"],
+            sharpen=float(kw["sharpen"]), noise=float(kw["noise"]),
         )
         engine = FeedbackEngine(camera, cfg_e, depth=depth)
         pbar = progress_bar(n)
@@ -339,17 +363,16 @@ class DifforumLiveSampler:
                 "cadence": ("INT", {"default": 1, "min": 1, "max": 12}),
                 "target_fps": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 60.0, "step": 0.5,
                                "tooltip": "0 = as fast as possible."}),
-                "look": (list(LOOKS), {"default": "from director"}),
             },
             "optional": {
                 "direction": (DIRECTION,),
+                "options": (OPTIONS,),
                 "params": (PARAMS,),
                 "camera": (CAMERA,),
                 "strength": (SCHEDULE,),
                 "prompts": (PROMPT,),
                 "depth": ("IMAGE",),
                 "energy": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                **_COMMON_OPTIONAL,
                 "loop_camera": ("BOOLEAN", {"default": True}),
                 "live_source": ("STRING", {"default": "", "tooltip": "'' off, '0' webcam, or a video path."}),
                 "source_blend": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.05}),
@@ -366,17 +389,16 @@ class DifforumLiveSampler:
     CATEGORY = CAT_RENDER
 
     def run(self, model, positive, negative, vae, init_image, run_frames, steps, cfg,
-            sampler_name, scheduler, cadence, target_fps, look, direction=None, params=None,
-            camera=None, strength=None, prompts=None, depth=None, energy=0.5,
+            sampler_name, scheduler, cadence, target_fps, direction=None, options=None,
+            params=None, camera=None, strength=None, prompts=None, depth=None, energy=0.5,
             loop_camera=True, live_source="", source_blend=0.9, stream_dir="",
-            spout_name="", keep_frames=240, live_preview=True, **kw):
+            spout_name="", keep_frames=240, live_preview=True):
         from collections import deque
         from pathlib import Path
 
         from ..core.camera import CameraTrack
 
-        for k, (_t, spec) in _COMMON_OPTIONAL.items():
-            kw.setdefault(k, spec.get("default"))
+        kw = _options(direction, options)
         params, camera, strength, _cfgc, prompts = _resolve(
             direction, params, camera, strength, None, prompts)
         w, h = int(params["width"]), int(params["height"])
@@ -415,7 +437,8 @@ class DifforumLiveSampler:
             cadence=int(cadence), anchor_mode="first" if kw["anchor_mode"] == "scene" else kw["anchor_mode"],
             near=float(kw["near"]), far=float(kw["far"]), invert_depth=bool(kw["invert_depth"]),
             translation_scale=float(kw["translation_scale"]), depth_tracking=kw["depth_tracking"],
-            seed=seed, **_look_args(look, direction, kw),
+            seed=seed, color_coherence=float(kw["color_coherence"]), color_mode=kw["color_mode"],
+            sharpen=float(kw["sharpen"]), noise=float(kw["noise"]),
         )
         engine = FeedbackEngine(cam, cfg_e, depth=depth)
 
@@ -467,8 +490,10 @@ class DifforumLiveSampler:
 NODE_CLASS_MAPPINGS = {
     "Difforum_FeedbackSampler": DifforumFeedbackSampler,
     "Difforum_LiveSampler": DifforumLiveSampler,
+    "Difforum_RenderOptions": DifforumRenderOptions,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_FeedbackSampler": "Difforum · Feedback Sampler",
     "Difforum_LiveSampler": "Difforum · Live Sampler",
+    "Difforum_RenderOptions": "Difforum · Render Options",
 }

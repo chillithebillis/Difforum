@@ -160,7 +160,7 @@ def from_json(data) -> tuple:
             fl = float(fr.get("focal_px") or focal_px(w, float(fr.get("fov_deg", 40.0))))
         c2w.append(m)
         focals.append(fl)
-    if c2w and conv == "blender":            # re-base so the first camera is the origin
+    if c2w:                                  # re-base so the first camera is the origin
         base_inv = np.linalg.inv(c2w[0])
         c2w = [base_inv @ m for m in c2w]
     return c2w, focals, w, h, fps

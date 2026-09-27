@@ -1,3 +1,4 @@
-# Difforum runtime deps (kept minimal for ComfyCloud / Python 3.12 compatibility).
-# numpy is already provided by ComfyUI; listed for standalone installs.
+# Runtime: numpy (ships with ComfyUI). Everything else is optional and lazy:
+#   opencv-python   Flow Stabilize, Loop flow crossfade, Live webcam input
+#   SpoutGL         Live Sampler Spout output (Windows)
 numpy

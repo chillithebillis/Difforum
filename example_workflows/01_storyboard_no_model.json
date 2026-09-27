@@ -1,0 +1,520 @@
+{
+ "last_node_id": 9,
+ "last_link_id": 7,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "MarkdownNote",
+   "pos": [
+    0,
+    -300
+   ],
+   "size": [
+    520,
+    260
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## Start here - no model needed\n\n1. Load any still in **Load Image**.\n2. Edit the **Director** timeline: drag blocks, pick camera moves, press ▶ to preview.\n3. Queue: the **Storyboard** renders the whole camera move in about a second, and **Camera → Prompt** writes it in words for prompt-driven video models.\n\nWhen the motion feels right, move to 02 (render) or 07/08 (LTX / H3)."
+   ]
+  },
+  {
+   "id": 2,
+   "type": "Difforum_Setup",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    320,
+    300
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "frames",
+     "type": "INT",
+     "links": [],
+     "slot_index": 3
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Setup"
+   },
+   "widgets_values": [
+    "feedback (SD/SDXL/Flux)",
+    "seconds",
+    5.0,
+    24.0,
+    "16:9 landscape",
+    768,
+    0,
+    "fixed",
+    16.0,
+    9.0,
+    0.0
+   ]
+  },
+  {
+   "id": 3,
+   "type": "Difforum_Director",
+   "pos": [
+    360,
+    0
+   ],
+   "size": [
+    800,
+    880
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": 1
+    },
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": null
+    },
+    {
+     "name": "audio",
+     "type": "DIFFORUM_AUDIO",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "links": [
+      3,
+      6
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "strength",
+     "type": "DIFFORUM_SCHEDULE",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "prompts",
+     "type": "DIFFORUM_PROMPT",
+     "links": [],
+     "slot_index": 3
+    },
+    {
+     "name": "camera_text",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Director"
+   },
+   "widgets_values": [
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 30, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 60, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 90, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.8, \"intensity\": 0.8, \"ease\": \"ease_in_out\"}, {\"start\": 30, \"move\": \"pan_right\", \"speed\": 1.0, \"intensity\": 0.8, \"ease\": \"ease_in_out\"}, {\"start\": 60, \"move\": \"spiral\", \"speed\": 1.4, \"intensity\": 1.1, \"ease\": \"ease_in\"}, {\"start\": 90, \"move\": \"zoom_out\", \"speed\": 0.6, \"intensity\": 0.5, \"ease\": \"ease_out\"}], \"energy\": [], \"guidance\": []}",
+    "2d",
+    "cinematic",
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0,
+    "fixed"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    360
+   ],
+   "size": [
+    320,
+    360
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    null
+   ]
+  },
+  {
+   "id": 5,
+   "type": "Difforum_Storyboard",
+   "pos": [
+    1200,
+    0
+   ],
+   "size": [
+    320,
+    220
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 2
+    },
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 3
+    },
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "link": null
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "sheet",
+     "type": "IMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "camera_path",
+     "type": "IMAGE",
+     "links": [
+      5
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 3
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Storyboard"
+   },
+   "widgets_values": [
+    8,
+    6,
+    0.5,
+    "none"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "PreviewImage",
+   "pos": [
+    1560,
+    0
+   ],
+   "size": [
+    620,
+    380
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 4
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Contact sheet"
+  },
+  {
+   "id": 7,
+   "type": "PreviewImage",
+   "pos": [
+    1560,
+    420
+   ],
+   "size": [
+    300,
+    300
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 5
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Camera path (top view)"
+  },
+  {
+   "id": 8,
+   "type": "Difforum_CameraPrompt",
+   "pos": [
+    1200,
+    280
+   ],
+   "size": [
+    320,
+    160
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 6
+    },
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "text",
+     "type": "STRING",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_CameraPrompt"
+   },
+   "widgets_values": [
+    "sentence",
+    ""
+   ]
+  },
+  {
+   "id": 9,
+   "type": "PreviewAny",
+   "pos": [
+    1200,
+    480
+   ],
+   "size": [
+    320,
+    200
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "Camera in words"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "DIFFORUM_PARAMS"
+  ],
+  [
+   2,
+   4,
+   0,
+   5,
+   0,
+   "IMAGE"
+  ],
+  [
+   3,
+   3,
+   0,
+   5,
+   1,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   0,
+   "IMAGE"
+  ],
+  [
+   5,
+   5,
+   2,
+   7,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   3,
+   0,
+   8,
+   0,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   7,
+   8,
+   0,
+   9,
+   0,
+   "STRING"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.65,
+   "offset": [
+    40,
+    40
+   ]
+  },
+  "difforum": "1.0",
+  "title": "01 · Storyboard - direct a shot, no model needed"
+ },
+ "version": 0.4
+}

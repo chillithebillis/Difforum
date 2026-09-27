@@ -74,6 +74,7 @@ class DifforumSymmetry:
         }}
 
     RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
     FUNCTION = "run"
     CATEGORY = CAT_POST
 
@@ -97,6 +98,7 @@ class DifforumEchoTrails:
         }}
 
     RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
     FUNCTION = "run"
     CATEGORY = CAT_POST
 
@@ -120,6 +122,7 @@ class DifforumFlowStabilize:
         }}
 
     RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
     FUNCTION = "run"
     CATEGORY = CAT_POST
 
@@ -145,6 +148,7 @@ class DifforumDetailGuard:
         }}
 
     RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
     FUNCTION = "run"
     CATEGORY = CAT_POST
 

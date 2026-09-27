@@ -1,423 +1,153 @@
-# Difforum: Deforum-style animation for ComfyUI
+# Difforum
 
-Keyframe animation driven by math expressions, with camera moves, audio
-reactivity and prompt travel. It brings the Deforum workflow to current models
-(SD1.5, SDXL, **Flux**, SD3.5, Wan 2.2) and Python 3.12+.
+**Camera direction and timeline orchestration for ComfyUI.**
 
-![Difforum kaleidoscope promo](examples/difforum_promo.gif)
+Direct a shot on a visual timeline, with scenes, camera moves and an energy
+curve, and you never write a camera expression. Render it with a
+Deforum-style feedback sampler on any image model, hand the same direction to
+**LTX-2 / 2.5** or **MiniMax H3**, and send the camera to **After Effects** or
+**Blender** for compositing.
 
-*Sacred-geometry prompt travel with in-loop kaleidoscope symmetry and Echo
-Trails. SDXL (Juggernaut XL) feedback render at 1024x576. Full 720p clip:
-[`examples/difforum_promo.mp4`](examples/difforum_promo.mp4). Made entirely with the
-Difforum nodes in ComfyUI.*
+![The Director timeline](docs/media/director.jpg)
 
-![Difforum 16:9 showcase](examples/difforum_showcase.gif)
+![Kaleidoscope feedback render](docs/media/promo.webp)
 
-*16:9 Classic+ render. Prompt travel `nebula, spiral galaxy, black hole,
-newborn star` blended per frame, with the camera flying forward and the feedback
-loop reshaping the scene. SDXL at 1024x576, full clip:
-[`examples/difforum_showcase.mp4`](examples/difforum_showcase.mp4).*
+---
 
-![Difforum audio-reactive](examples/difforum_audio.gif)
+## Why Difforum
 
-*Audio-reactive render: bass pumps the zoom, beats pulse the strength and spin.
-One node turns any band into a curve. SDXL, full clip:
-[`examples/difforum_audio.mp4`](examples/difforum_audio.mp4).*
+Video models are good at rendering and not so good at being directed. Deforum
+was good at direction (math-driven camera, keyframes, prompt travel, audio),
+but it was locked to 2023 img2img. Difforum keeps the direction and lets you
+pick how to render it:
 
-## Why it exists
-
-The original [Deforum](https://github.com/deforum-art/sd-webui-deforum) is hard
-to run today: its library refuses Python 3.12, it's tied to SD1.5-era img2img,
-and the frame-by-frame loop flickers. Difforum rebuilds the same ideas from
-scratch and fixes those problems.
-
-What you get:
-
-- The same `0:(expr)` keyframe syntax (`sin`, `cos`, `t`, audio variables),
-  camera schedules, audio reactivity and prompt travel.
-- A model-agnostic sampler that takes plain ComfyUI `MODEL/VAE/CONDITIONING`, so
-  you can drop in SDXL, **Flux**, SD3.5 or an SD-Turbo/LCM model instead of
-  2023-era SD1.5. No lock-in.
-- Three render paths over one control layer: **Classic+** (depth-aware warp,
-  re-diffuse, LAB colour match), **Hybrid** (drives Wan 2.2 VACE), and
-  **AnimateDiff** (feeds prompt travel and schedules into AnimateDiff-Evolved).
-- No `eval()`, no exotic dependencies (safe AST evaluator, numpy FFT audio, torch
-  warps), 16 test suites, and a clean install on Python 3.12 and the Comfy Registry.
-
-See [DESIGN.md](DESIGN.md) for the architecture, [PERFORMANCE.md](PERFORMANCE.md)
-for quality at few steps and Apple Silicon, and [REALTIME.md](REALTIME.md) for the
-live-performance direction.
-
-## The nodes
-
-34 nodes in six groups. Everything below is schedulable, and any schedule
-can be driven by audio.
-
-**Schedules.** The GPU-free animation brain:
-
-| Node | What it does |
+| Direct it once… | …then render it with |
 |---|---|
-| **Difforum · Anim Setup** | Global params (size, fps, frames, seed) shared downstream |
-| **Difforum · Schedule** | Parses `0:(expr), 60:(expr)` into a per-frame curve |
-| **Difforum · Sample Schedule** | Reads a curve value at one frame |
-| **Difforum · Schedule Info** | Debug summary + ASCII sparkline of a curve |
-| **Difforum · Schedule Plot** | Renders the computed curve as an IMAGE (Preview-ready) |
+| **Director** timeline: scenes + mood, camera moves from a visual picker, a drawn energy curve, audio reactions per move | **Feedback Sampler**: the Deforum look on SD1.5 / SDXL / Flux / SD3.5 / turbo distills |
+| or **Camera (keys)** / **Camera (expressions)** if you prefer typing | **LTX Guides**: keyframes into an LTX-2 / 2.5 latent |
+| or **Camera Import** from Blender / After Effects | **H3 Shot**: first/last frame + length + camera prompt for MiniMax H3 |
+| | **Live Sampler**: realtime, webcam, Spout / OBS output |
+| | **Camera Export**: the same camera in AE (.jsx) and Blender (.py) |
 
-**Direction.** Plan the clip before spending render time on it:
+## Quick start (60 seconds, no model)
 
-| Node | What it does |
+1. Install (below), restart ComfyUI.
+2. **Workflow → Browse Templates → Difforum → `01_storyboard_no_model`**.
+3. Load any image, press ▶ on the Director to preview the camera, then Queue.
+   The Storyboard renders the whole move in about a second, and **Camera → Prompt**
+   writes it out in words.
+
+When the motion feels right, open `02_feedback_sdxl` to render it with a model.
+
+## The Director
+
+Three tracks, all edited with the mouse:
+
+- **Scenes**: a prompt and a mood (calm, build, tense, climax, resolve, dream)
+  per block. Moods set sensible defaults for energy, speed and lens.
+- **Camera**: blocks that do not have to line up with the scenes. Pick from 25 moves
+  (zoom, pan, roll, dolly, orbit, tilt, crane, dolly zoom, spiral, vortex, sway,
+  breathe, drift, handheld, shake), then set speed, amount, lens, easing and an
+  **audio reaction** (pulse on beat, shake on hits, bass drives speed).
+- **Energy**: the denoise curve, which sets how much each moment gets re-imagined.
+  It starts from the moods; click it to draw your own.
+
+The preview plays the camera the renderer will actually use: it is computed by the
+same Python engine, not by an approximation in the browser. One `direction`
+wire carries the camera, energy, cfg and prompt travel to the sampler or the
+bridges.
+
+## Nodes (25)
+
+| Group | Nodes |
 |---|---|
-| **Difforum · Anim Setup+** | Duration in frames *or* seconds, framing by aspect ratio, resolution clamped to what the machine can finish |
-| **Difforum · Film Director** | Visual timeline: drag scenes, pick a mood + camera each, and it emits the camera, prompt and strength schedules together |
-| **Difforum · Storyboard** | The whole clip warped but never diffused, as a contact sheet + drift readout. Under a second - fix the movement here |
-| **Difforum · Camera Keys** | Keyframed camera: moves *blend* into each other instead of cutting, and the lens (fov) is its own interpolated channel |
-| **Difforum · Seamless Camera** | Camera path made periodic, so the clip loops with no crossfade |
-| **Difforum · Loop Take** | Keeps the settled lap of a multi-lap render and scores the seam |
+| Setup | **Setup**: duration in seconds/frames, aspect, and snapping to the target model's grid (LTX 8k+1, H3 17k+5 @ 24 fps, Wan 4k+1) |
+| Direction | **Director (timeline)**, **Camera (keys)**, **Camera (expressions)**, **Storyboard** |
+| Curves & prompts | **Schedule**, **Schedule Plot**, **Audio Analyzer**, **Audio Curve**, **Prompt Travel** |
+| Render | **Feedback Sampler**, **Live Sampler**, **Render Options** |
+| Video model bridges | **Guide Frames**, **Keyframes**, **Camera → Prompt**, **LTX Guides**, **H3 Shot** |
+| Export | **Camera Export (AE / Blender / JSON)**, **Camera Import** |
+| Post | **Loop**, **Symmetry**, **Echo Trails**, **Flow Stabilize**, **Detail Guard** |
 
-**Audio reactivity.** Pure numpy (no librosa):
+Full reference, generated from the code: [docs/NODES.md](docs/NODES.md).
 
-| Node | What it does |
+## Templates
+
+All of these are in ComfyUI's template browser, under Difforum.
+
+| Template | Needs |
 |---|---|
-| **Difforum · Audio Analyzer** | AUDIO → per-frame curves `amp/low/mid/high/onset/beat` |
-| **Difforum · Audio Schedule (reactive)** | Turn a band into a ready curve (bass-pump, beat-pulse…) for any schedule input |
+| `01_storyboard_no_model` | an image |
+| `02_feedback_sdxl` | an SDXL (or SD1.5 / Flux) checkpoint |
+| `03_parallax_3d_depth` | + [ComfyUI-DepthAnythingV2](https://github.com/kijai/ComfyUI-DepthAnythingV2) |
+| `04_audio_reactive` | + an audio file |
+| `05_live_turbo` | SDXL-Turbo / SD-Turbo / LCM |
+| `06_seamless_loop` | a checkpoint |
+| `07_ltx_guides` | your LTX-2 / 2.5 graph |
+| `08_h3_first_last` | your MiniMax H3 graph |
+| `09_camera_to_ae_blender` | nothing; writes .jsx / .py / .json |
 
-Connect Audio Analyzer's `audio_curves` to Schedule's `audio` input, then use
-the curve names in expressions: `0:(0.2 + 0.8*amp)`, `0:(beat*0.6)`,
-`0:(2*low - high)`.
+## What the engine does for quality
 
-**Camera, models and rendering.**
+- **Depth follows the image.** In 3D mode the depth map is re-projected with every
+  warp, so parallax stays locked to what is on screen and doesn't drift back to frame 0.
+  The tracked depth comes out of the sampler, ready for compositing.
+- **No silent freezes.** A 3D move without a depth map runs as pseudo-3D (dolly
+  becomes zoom, orbit becomes pan), and the node says so.
+- **Cadence without pops.** Only every Nth frame is diffused. The frames in between
+  are a crossfade of the previous key warped forward and the next key warped
+  back, so a cadence of 2-3 costs almost nothing in smoothness.
+- **Revealed areas are repainted.** The warp's occlusion mask gets extra noise, so the
+  sampler invents new content at the edges instead of smearing them.
+- **Colour follows the scenes.** The anchor re-locks at every prompt scene and releases
+  during transitions. Choose `first` for the 0.x behaviour.
+- **Deterministic on every device.** The 3D z-buffer resolves identically on CUDA, MPS
+  and CPU.
+- **Light on memory.** Prompt travel is blended lazily, and the Live Sampler keeps a
+  ring buffer.
 
-| Node | What it does |
-|---|---|
-| **Difforum · Camera Move (presets)** | Intuitive camera: pick a move (zoom/orbit/spiral/shake…) + speed + intensity |
-| **Difforum · Camera Shots (director)** | Direct the camera like an edit: a shot list (`frame: preset speed intensity`) chains moves across the clip |
-| **Difforum · Camera Path Preview** | See the camera direction before rendering: top-down trajectory + zoom strip as an IMAGE |
-| **Difforum · Camera (advanced)** | Deforum 2D/3D camera schedules → per-frame poses (audio-reactive) |
-| **Difforum · Model Profile** | Auto-resolve model/quant/res/steps for the GPU (12→32GB+, GGUF) |
-| **Difforum · Model Catalog** | Classic, trainable model recipes + download/training guide |
-| **Difforum · Warp (2D/3D)** | Classic Deforum warp + occlusion mask (force_2d / force_3d) |
-| **Difforum · Feedback Sampler** | Classic+ video: warp→re-diffuse→colour-match (LAB/RGB) loop (SD1.5/SDXL) |
-| **Difforum · Guide Builder** | Warp anchor along camera path → guide batch for Wan 2.2 VACE |
-| **Difforum · Prompt Scenes (travel)** | Prompt travel by scenes - one text box per scene, auto-spaced |
-| **Difforum · Prompt Schedule (travel)** | Prompt travel from a `frame: prompt` schedule |
-| **Difforum · Prompt Batch (→ AnimateDiff)** | Stacks prompt travel into one batched CONDITIONING for AnimateDiff |
+Speed and quality levers, Apple Silicon notes and measured numbers are in
+[docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
-**Effects.** Mirror, kaleidoscope, temporal trails and detail recovery:
+## Bridges and camera interchange
 
-| Node | What it does |
-|---|---|
-| **Difforum · Symmetry / Kaleidoscope** | Mirror H/V, 4-fold quad, or N-segment kaleidoscope on a frame or batch |
-| **Difforum · Echo Trails** | Long-exposure motion trails across a frame batch (smooth, hypnotic) |
-| **Difforum · Detail Guard (anti-mush)** | Unsharp mask + contrast + noise injection to fight feedback-loop blur |
-| **Difforum · Flow Stabilize (anti-flicker)** | Blends history along optical flow, gated by photometric confidence: texture stops boiling, motion never ghosts |
-| **Difforum · Ping-Pong Loop** | Forward + reverse for a guaranteed loop (reverses motion) |
-| **Difforum · Loop Blend (perfect loop)** | True forward loop: the tail morph-fades into the head along optical flow, no reversed motion (wired into the render templates) |
-| **Difforum · Glitch (DSP databending)** | Convolution kernels, 1D delay-line databending, bitcrush, VHS jitter/bands/chroma, RGB split |
-| **Difforum · Datamosh (optical flow)** | Motion vectors keep flowing while the refresh melts: grid (macroblock), melt, edge modes |
-
-Symmetry is also built into the **Feedback Sampler** (`symmetry` + `symmetry_segments`):
-applied *inside* the loop it compounds each frame and the diffusion heals the
-seams, giving a living kaleidoscope (`difforum_mesmerize_kaleidoscope.json`).
-
-![Difforum living kaleidoscope](examples/difforum_kaleidoscope.gif)
-
-*In-loop kaleidoscope symmetry on an SDXL feedback render, smoothed with Echo
-Trails. The pattern folds every frame and the diffusion reseals the seams, so it
-keeps growing on itself. Made entirely with the Difforum nodes.*
-
-**VJ look and video.** Grade video footage for live visuals, no model required:
-
-| Node | What it does |
-|---|---|
-| **Difforum · VJ Look (presets)** | One-shot grade: neon / cinematic / vaporwave / film / noir / psychedelic, with an intensity that an audio schedule can pulse to the beat |
-| **Difforum · Colour Grade** | Exposure, contrast, saturation, white balance, lift/gamma/gain, hue cycling |
-| **Difforum · Glow** | Neon bloom (blur the bright areas, screen-blend them back) |
-| **Difforum · Load Video** | Read a clip into an IMAGE batch (frame skip, resize cap), via OpenCV |
-| **Difforum · Save Video (MP4)** | Write an IMAGE batch back to an h264 MP4, via ffmpeg |
-
-These are plain IMAGE to IMAGE, so they work on a still, a feedback render or a
-whole footage batch. The `difforum_vj_footage.json` template is a complete,
-self-contained pipeline (Load Video to VJ Look to Echo Trails to Save Video) that
-needs **no checkpoint and no external nodes**: footage in, graded MP4 out. The
-video IO uses opencv-python and imageio-ffmpeg (usually already in ComfyUI).
-
-Three render paths: **Classic+** (Feedback Sampler - self-contained Deforum
-video), **Hybrid** (Guide Builder → your Wan 2.2 VACE graph), and **AnimateDiff**
-(Prompt Batch → AnimateDiff-Evolved for native motion + Difforum control). See
-DESIGN.md §7. Modern bases (SDXL / Flux / SD3.5) drop into the Feedback Sampler -
-it is model-agnostic. AnimateDiff motion modules need AnimateDiff's own batch
-sampler (the `difforum_animatediff_sd15.json` template wires it).
-
-The 3D warp exposes `translation_scale` to tune motion vs. the depth estimator's
-(non-metric) range; colour coherence does perceptual **LAB** matching by default.
-
-![Difforum hybrid guide preview](examples/difforum_guide_demo.gif)
-
-*Hybrid bridge: the Guide Builder warps one anchor image along the camera path
-into the guide batch a Wan 2.2 VACE graph consumes (camera by Difforum, fill by Wan).*
-
-> **Black output?** Some ComfyUI builds make SD1.5 fp16 produce NaN (all-black
-> frames). Launch ComfyUI with `--force-fp32` - it's a base-model precision
-> issue, not Difforum.
+[docs/BRIDGES.md](docs/BRIDGES.md) explains how to drive LTX-2 / 2.5 with Difforum
+keyframes, how to build MiniMax H3 first/last-frame shots (including clips longer
+than 20 s), and how to round-trip the camera through After Effects and Blender.
+Helper scripts for exporting a camera *from* Blender or AE are in `tools/`.
 
 ## Install
 
-**Manual / git (local or self-hosted):**
+**ComfyUI Manager:** search for **Difforum**, or *Install via Git URL* with this repository.
+
+**Manual:**
 
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/chillithebillis/Difforum.git difforum
-# deps are minimal (numpy, already present); only needed for a bare env:
-pip install -r difforum/requirements.txt
 ```
 
-Restart ComfyUI; the console prints `[Difforum] loaded N nodes`.
+Restart ComfyUI. The console prints `[Difforum] 25 nodes ready`. The only
+runtime dependency is numpy, which ships with ComfyUI. OpenCV (Flow Stabilize, Loop
+crossfade, live webcam) is present in most installs.
 
-**ComfyUI Manager:** *Custom Nodes Manager* → install via Git URL with the repo
-above (or by name once published to the registry).
+## Upgrading from 0.x
 
-**Comfy Registry:** Difforum is registry-ready via `pyproject.toml` (no heavy or
-version-locked deps, so it builds on the cloud's Python 3.12). To publish:
+Old workflows still open: every 0.x node is kept, hidden from search, under
+**Difforum/legacy**. [docs/MIGRATION.md](docs/MIGRATION.md) maps each old node
+to its replacement. Legacy nodes are removed in 2.0.
+
+## Develop
 
 ```bash
-pip install comfy-cli
-comfy node publish        # uploads to the Comfy Registry
+pip install torch numpy opencv-python-headless pytest ruff
+pytest                                  # no GPU or ComfyUI needed
+python tools/build_workflows.py         # templates are generated from the node definitions
+python tools/build_docs.py              # docs/NODES.md is generated too
 ```
 
-**Cloud GPU (self-host):** the quickest way to run Difforum in the cloud today is
-a managed GPU host like [RunPod](https://www.runpod.io) or [Vast.ai](https://vast.ai):
-spin up a ComfyUI template, then in the Manager install via the Git URL above (or
-`git clone` into `custom_nodes`). Everything runs with no gatekeeping.
-
-**Comfy Cloud** runs a curated set of vetted node packs, so a node has to be
-reviewed and added by the Comfy team before it works there. Publishing to the
-Registry is the first step; getting onto Comfy Cloud is their manual curation. Use
-a self-host GPU (above) in the meantime.
-
-## Example workflows
-
-Workflows live in `examples/`, split in two. Drag any `.json` onto the ComfyUI
-canvas.
-
-### `examples/basic/` - one idea at a time
-
-Little or nothing to download, few nodes, no external packs.
-
-| File | Needs assets? | Shows |
-|---|---|---|
-| `difforum_schedule_basic.json` | no | Anim Setup → Schedule → Schedule Info. Runs anywhere, zero downloads. |
-| `difforum_models_info.json` | no | Model Profile (auto-VRAM) + Model Catalog (recipes). Reference card. |
-| `difforum_vj_footage.json` | a video clip | Load Video → VJ Look → Echo Trails → Save MP4. No checkpoint, no external nodes. |
-| `difforum_camera_warp.json` | an image | Load Image → Camera → Warp (2D/3D) → Preview. The warp + occlusion on one frame. |
-| `difforum_audio_reactive.json` | an audio file | Audio Analyzer → two Schedules (bass-zoom `1.0+0.6*low`, beat-spin `beat*30`). |
-| `difforum_feedback_classic.json` | an SD1.5 checkpoint | Full Classic+ video: txt2img frame 0 → Camera + strength → Feedback Sampler → Save. |
-| `difforum_intuitive_controls.json` | SD1.5 checkpoint | Camera **Move presets** + **Prompt Scenes** → feedback video. |
-| `difforum_turbo_live.json` | SD-Turbo / LCM ckpt | Low-step (4) fast feedback, the path toward realtime. |
-
-### `examples/advanced/` - full productions
-
-Several models, helper node packs, longer graphs.
-
-| File | Needs assets? | Shows |
-|---|---|---|
-| `difforum_film_director.json` | SDXL ckpt + DMD2 LoRA | **Start here.** Film Director timeline drives camera, prompts and strength at once; Storyboard previews the whole clip before any diffusion runs. |
-| `difforum_parallax_fluid.json` | SDXL ckpt + DMD2 LoRA + DepthAnythingV2 + Frame Interpolation | **Fluid motion**: a depth map turns on real parallax (near pixels travel faster than far ones), RIFE interpolates to 48fps, and the loop settings are tuned against convergence. |
-| `difforum_seamless_installation.json` | SDXL ckpt + DMD2 LoRA | **True loop, no crossfade**: periodic camera + 3 laps + Loop Take. For projections that run for hours. |
-| `difforum_fast_sdxl.json` | SDXL ckpt + DMD2 LoRA | **Fast recipe**: frame 0 full quality on the base model, loop on a 4-step distill + cadence 2. ~8-10x less diffusion cost. |
-| `difforum_ipadapter_coherent.json` (16:9) | ckpt + IPAdapter + style image | **Style-locked** feedback via IPAdapter → strong coherence, low drift. |
-| `difforum_audio_reactive_video.json` (16:9) | ckpt + audio file | **Audio Schedule**: bass pumps zoom, beats pulse strength → MP4. |
-| `difforum_deluxe_travel_controlnet_video.json` | SD1.5 ckpt + tile ControlNet | Everything: travel + ControlNet + RIFE interpolation → MP4. |
-| `difforum_animatediff_sd15.json` (16:9) | SD1.5 ckpt + AnimateDiff-Evolved | Prompt Batch → AnimateDiff native motion + Difforum control. |
-| `difforum_qrcode_illusion.json` (16:9) | SD1.5 ckpt + QR-Monster ControlNet + pattern | Locks a spiral/logo/mask in the scene while the loop morphs. |
-| `difforum_mesmerize_kaleidoscope.json` | SD1.5 checkpoint | **Living kaleidoscope**: in-loop symmetry, the diffusion heals the seams. |
-| `difforum_hybrid_wan_guides.json` | an anchor image | Camera → Guide Builder → guide batch for a Wan 2.2 VACE graph. |
-| `difforum_realtime_live.json` | SD-Turbo / LCM ckpt | **Native realtime**: Live Sampler internal loop with a live preview in the node. |
-
-Templates exercise every node. Regenerate with
-`python examples/_build_examples.py`.
-
-**Prompt pack:** [`examples/PROMPTS.md`](examples/PROMPTS.md) has 10 ready-to-paste
-prompt-travel presets (Cosmic Voyage, Sacred Geometry kaleidoscope, Neon City,
-Elemental Shift, Audio-reactive Pulse and more) with suggested camera, strength
-and symmetry settings for each.
-
-**Every workflow has a yellow Note on the canvas** listing exactly which models
-to download and the folder they go in, so you can set up without guessing.
-
-## Models & downloads
-
-Quick reference for the files the templates ask for (drop each in the folder
-shown under your ComfyUI `models/` directory):
-
-| Model | Folder | Where |
-|---|---|---|
-| SD1.5 checkpoint (DreamShaper 8) | `checkpoints` | civitai.com/models/4384 |
-| SDXL checkpoint (Juggernaut XL) | `checkpoints` | civitai.com (search "Juggernaut XL") |
-| Flux.1-dev fp8 / schnell | `checkpoints` or `unet` | hf: Comfy-Org/flux1-dev, black-forest-labs/FLUX.1-schnell |
-| DMD2 4-step distill LoRA (SDXL) | `loras` | hf: tianweiy/DMD2 (dmd2_sdxl_4step_lora) |
-| SD-Turbo / LCM-LoRA (fast) | `checkpoints` / `loras` | hf: stabilityai/sd-turbo, latent-consistency/lcm-lora-sdv1-5 |
-| Wan 2.2 5B GGUF + umt5 + wan vae | `unet` / `text_encoders` / `vae` | hf: QuantStack/Wan2.2-TI2V-5B-GGUF, Comfy-Org/Wan_2.1_ComfyUI_repackaged |
-| IP-Adapter + CLIP-Vision (ViT-H) | `ipadapter` / `clip_vision` | hf: h94/IP-Adapter |
-| QR Code Monster ControlNet | `controlnet` | hf: monster-labs/control_v1p_sd15_qrcode_monster |
-| Tile / depth ControlNet (SD1.5) | `controlnet` | hf: comfyanonymous/ControlNet-v1-1_fp16_safetensors |
-| AnimateDiff motion module (mm_sd15_v3) | `animatediff_models` | hf: guoyww/animatediff |
-
-Helper nodes some templates use: ComfyUI-VideoHelperSuite (MP4),
-ComfyUI-Frame-Interpolation (RIFE), ComfyUI_IPAdapter_plus, ComfyUI-GGUF,
-ComfyUI-WanVideoWrapper, ComfyUI-AnimateDiff-Evolved. The **intuitive nodes**
-(`Camera Move` presets, `Prompt Scenes`) are wired into `intuitive_controls`,
-`turbo_live` and `camera_warp` for an easier start.
-
-## Quality & coherence tips
-
-- **Lock the style with IPAdapter.** Patch the checkpoint's MODEL through
-  IPAdapter (a reference image) *before* the Feedback Sampler - it keeps colour
-  and style stable across the whole clip (see `difforum_ipadapter_coherent.json`).
-- **ControlNet must match the base family** (SD1.5↔SD1.5, SDXL↔SDXL). Feed the
-  Feedback Sampler's `control_net` for structure-guided feedback; lower
-  `control_strength` (~0.3-0.5) if it feels too rigid.
-- **Use a modern base.** SDXL / Flux / SD3.5 in the Feedback Sampler look far
-  cleaner than SD1.5 - it's model-agnostic, just swap the checkpoint.
-- **Colour drift?** Keep `color_mode = lab` (default) and `color_coherence`
-  around 0.7-0.9. **Flicker?** Lower per-frame `strength` (denoise) to ~0.4-0.5,
-  and run the frames through **Flow Stabilize** (strength ~0.5): it aligns the
-  previous frame along optical flow before blending, so it removes texture boil
-  without the ghosting that naive frame-blending causes.
-- **Texture re-rolling between frames?** The sampler's `seed_mode = fixed`
-  (default) reuses the same sampling noise every frame, which calms boiling a
-  lot - especially visible in kaleidoscope renders. Set `increment` if you want
-  livelier texture churn.
-- **Long videos, faster:** set the Feedback Sampler's `cadence` to 2-3 and only
-  every Nth frame is diffused - the in-between frames ride the camera warp
-  (classic Deforum turbo). Roughly N times faster with smoother motion; also on
-  the Live Sampler for higher realtime FPS.
-- **Mushy after many frames?** The Feedback Sampler's `sharpen` (~0.2-0.5) and
-  `noise` (~0.02-0.05) re-inject detail each frame so the sampler resolves it
-  into structure instead of amplifying blur; `border = reflection` (default)
-  stops black edges creeping in on zoom-out and rotation. Same seed, same
-  camera, frame 48 of a spiral move:
-
-![Detail guard off vs on](examples/difforum_detail_ab_final.png)
-
-![Detail guard A/B](examples/difforum_detail_ab.gif)
-- **Audio-reactive** is one node: `Difforum · Audio Schedule` turns a band
-  (bass/beat/onset) into a curve for zoom, strength, cfg - any schedule input.
-- **Illusions / hidden patterns:** feed a grayscale pattern (spiral, logo, mask)
-  to `control_image` with **QR Code Monster** ControlNet - it stays locked in the
-  scene while the loop morphs around it (`difforum_qrcode_illusion.json`).
-- **Mesmerizing / symmetric video:** set the Feedback Sampler's `symmetry` to
-  `kaleidoscope` (or `mirror_h/v/quad`) so it folds *inside* the loop - the
-  diffusion heals the seams and the pattern grows on itself. Add **Echo Trails**
-  after the sampler for smooth motion blur (`difforum_mesmerize_kaleidoscope.json`).
-  A slow rotation/zoom on the camera keeps feeding the kaleidoscope new material.
-
-## Performance
-
-Full detail in [PERFORMANCE.md](PERFORMANCE.md) - cost model, few-step recipes,
-Apple Silicon memory budgets and measured throughput.
-
-Difforum's pixel-effect chain (warp, symmetry, sharpen, noise) runs on the best
-available device automatically: CUDA, then Apple **MPS**, then CPU, with a safe
-per-session fallback. The Model Profile node detects the device and adapts its
-recommendations. Platform notes:
-
-**Apple Silicon (M-series).**
-- **fp8 checkpoints do not work on MPS** (no fp8 kernels). Use **fp16/bf16 or
-  GGUF** versions instead; the Model Profile swaps its recommendation
-  automatically on Macs.
-- Launch with `--use-pytorch-cross-attention` and set
-  `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` to unlock the full unified-memory pool.
-- fp16 halves memory but is **not faster** than fp32 on M-series ALUs, so the
-  real speed lever is **few-step models**: SD-Turbo / LCM / Lightning at 1-4
-  steps. The Live Sampler and Turbo templates are the best fit for Macs.
-- Memory is unified: a 32GB Mac behaves like ~22GB of usable "VRAM" once the OS
-  and CPU take their share.
-
-**AnimateDiff (via the Prompt Batch bridge).**
-- **AnimateLCM**: `lcm` beta schedule + LCM LoRA + `lcm` sampler, cfg 1.0-2.0,
-  ~4 steps - the fastest good-looking AnimateDiff path.
-- For long clips use AnimateDiff-Evolved's **Context Options** (sliding windows)
-  and set Sample Settings `noise_type = FreeNoise` so window transitions stop
-  popping.
-
-**Wan 2.2.**
-- **Lightning LoRA (lightx2v)**: 4 steps on the High model + 4 on the Low model,
-  cfg 1 - the standard fast setup our Model Profile recommends.
-- **MagCache** (better than TeaCache in our reading) and **SageAttention**
-  (CUDA-only) stack more speed on top.
-- Keep resolutions divisible by 16 or the VAE will fail at decode time.
-
-## Realtime / live
-
-The **Difforum Live Sampler** is a native realtime engine. Stock ComfyUI re-runs
-the graph per "Queue Prompt", so the Live Sampler keeps the model resident and
-runs its own **internal loop**: each tick it warps (camera), folds (symmetry),
-re-diffuses 1-2 steps (Turbo/LCM) and color-matches, **streaming a live preview
-into the node** as it goes. Queue once and watch it generate, no external runtime.
-
-- Pair with a **few-step model** (SD-Turbo / SDXL-Turbo / LCM / DMD2), 1-2 steps,
-  cfg ~1, at 512px for live FPS. The `difforum_realtime_live.json` template wires
-  a Turbo checkpoint to the Live Sampler with a kaleidoscope on.
-- **Live webcam ("magic mirror"):** set `live_source` to `0` (webcam device) or a
-  video path and the loop stylizes the live feed, kaleidoscoping the camera in
-  realtime. `source_blend` mixes camera vs feedback (needs `opencv-python`).
-- Live output to a VJ app: set `stream_dir` (writes frames to a folder that
-  OBS/Resolume/ffmpeg can read live) or `spout_name` (Spout, needs `SpoutGL`).
-- For the highest FPS, add **[TensorRT](https://github.com/comfyanonymous/ComfyUI_TensorRT)**
-  + **TAESD** (tiny VAE). Map physical knobs/faders with MIDI/OSC.
-
-If you specifically need browser/WebRTC streaming, the same nodes can run under
-ComfyStream. Full plan: [REALTIME.md](REALTIME.md).
-
-## Schedule syntax
-
-Deforum-compatible. Each keyframe holds a math expression:
-
-```
-0:(0), 60:(0.5*sin(2*pi*t/30)), 120:(1.0)
-```
-
-Variables: `t`/`f` (frame), `s` (seconds), `fps`, `max_f`, `pi`, `e`, `tau`,
-plus any audio curve (e.g. `amp`, `low`, `mid`, `high`) when an audio input is
-connected. Functions: `sin cos tan asin acos atan atan2 sinh cosh tanh abs
-sqrt exp log log10 pow floor ceil round min max sign clamp clip lerp
-smoothstep`. Ternaries work: `t if t > 30 else 0`.
-
-Expressions are evaluated with a whitelisted AST walker - **no `eval()` of
-arbitrary code**, no external dependencies.
-
-Easing between keyframes: `linear`, `ease_in`, `ease_out`, `ease_in_out`, `step`.
-
-A copy-paste cookbook of ready expressions (bobs, bounces, audio pumps,
-ping-pong loops, holds) lives in [MATHS.md](MATHS.md).
-
-## Develop / test
-
-No GPU or ComfyUI needed - 16 suites cover the engine, warp, colour, effects, look, video, camera shots, detail,
-model catalog, and a full end-to-end orchestration (stub diffusion):
-
-```bash
-for t in core audio hybrid models warp color effects look video detail shots flow glitch prompt plot integration; do
-  python tests/test_$t.py
-done
-```
-
-`test_integration.py` wires every node together (AnimSetup → Audio → Camera →
-Schedule → Feedback Sampler → frames, plus the Guide Builder hybrid path) and
-runs the real production code path with a stub model/VAE - so the only thing
-swapped for a real render is the checkpoint inside ComfyUI.
-
-After changes, restart ComfyUI fully to reload the nodes (look for
-`[Difforum] loaded N nodes` in the console).
-
-## Contributing
-
-Issues and pull requests are welcome. Keep the dependency surface minimal (numpy
-in core; torch only where a node needs it) and run the test suites before opening
-a PR. Sign your commits off (`git commit -s`, a Developer Certificate of Origin
-acknowledgement). See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## License
 
-MIT, see [LICENSE](LICENSE). You can use, modify and redistribute Difforum,
-including commercially, as long as the copyright and license notice are kept.
+MIT, see [LICENSE](LICENSE).

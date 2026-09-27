@@ -9,11 +9,17 @@ import pytest
 import torch
 
 PACK = Path(__file__).resolve().parent.parent
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-if "difforum" not in sys.modules:
-    _alias = types.ModuleType("difforum")
-    _alias.__path__ = [str(PACK)]
-    sys.modules["difforum"] = _alias
+if "difforum" not in sys.modules:           # load the real package, whatever the folder is called
+    import importlib.util
+
+    _spec = importlib.util.spec_from_file_location(
+        "difforum", PACK / "__init__.py", submodule_search_locations=[str(PACK)])
+    _pkg = importlib.util.module_from_spec(_spec)
+    sys.modules["difforum"] = _pkg
+    _spec.loader.exec_module(_pkg)
 
 
 class StubVAE:

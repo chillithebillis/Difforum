@@ -4,37 +4,37 @@ Thanks for your interest. Difforum is MIT-licensed and built to be extended.
 
 ## Ground rules
 
-- **Keep dependencies minimal.** Core logic uses numpy and a safe AST evaluator;
-  torch is only used inside nodes that need it. No librosa / numexpr / pandas, so
-  the package keeps installing cleanly on Python 3.12 and the Comfy Registry.
-- **Run the tests** before opening a PR (no GPU needed):
+- **Keep dependencies minimal.** The engine uses numpy and torch (which ship with
+  ComfyUI); OpenCV only where a node needs it, and imported lazily. No librosa,
+  numexpr or pandas.
+- **Engine first.** Put logic in `core/` (pure, testable, no ComfyUI), and keep
+  nodes thin. Import the engine relatively (`from ..core import ...`).
+- **Every node gets a docstring and tooltips.** They become the in-app
+  description and `docs/NODES.md`.
+- **Style:** match the surrounding code, no em dashes, and run `ruff check .`
 
-  ```bash
-  for t in core audio hybrid models warp color effects look video detail shots flow glitch prompt plot integration; do
-    python tests/test_$t.py
-  done
-  ```
-
-- **Match the surrounding style** (naming, comment density, no em dashes).
-- **Regenerate the example workflows** if you change a node's inputs:
-  `python examples/_build_examples.py` then `python examples/_validate_workflows.py`.
-
-## Developer Certificate of Origin (DCO)
-
-To keep the project's licensing clean and flexible, contributions are accepted
-under the [DCO](https://developercertificate.org/): you certify that you wrote
-the patch (or have the right to submit it) and agree it can ship under the
-project's MIT license. Sign off each commit:
+## Before a pull request
 
 ```bash
-git commit -s -m "your message"
+pytest                                      # no GPU or ComfyUI needed
+python tools/build_workflows.py             # if you changed any node inputs
+python tools/build_docs.py                  # if you changed docstrings / tooltips
+ruff check .
 ```
 
-which adds a `Signed-off-by: Your Name <you@example.com>` line.
+CI runs all of these, plus `--check` on the generated files.
 
-## Scope ideas
+## Developer Certificate of Origin
 
-Good places to extend: new schedule functions, camera presets, effects (the
-`core/effects.py` and `core/symmetry.py` style), reactive audio modes, model
-catalog recipes, and the realtime path (NDI sink, MIDI/OSC control). See
-[DESIGN.md](DESIGN.md) and [REALTIME.md](REALTIME.md).
+Contributions are accepted under the [DCO](https://developercertificate.org/).
+Sign off each commit with `git commit -s`.
+
+## Good places to extend
+
+- New camera moves: `core/camera_presets.py`. Add the expressions and a
+  `MOVE_INFO` entry; the Director picks it up automatically, and a glyph in
+  `js/director_timeline.js` is optional.
+- New audio reactions: `REACTIONS` and `_react()` in `core/direction.py`.
+- More bridges: follow `nodes/bridges.py`. Output plain types, or call core
+  nodes through `call_comfy_node()`.
+- Camera interchange for more DCCs (Nuke, Houdini, Unreal): `core/export.py`.

@@ -191,6 +191,7 @@ function injectStyles() {
 .dfx textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 44px; user-select: text; }
 .dfx-warn { color: #e0a020; font-size: 10px; padding: 0 8px 6px; }
 .dfx-hint { color: var(--dim); font-size: 10px; }
+.dfx-head b { font-weight: 600; font-size: 12px; }
 `;
     document.head.appendChild(el);
 }
@@ -489,7 +490,7 @@ function buildEditor(node, tw) {
 
         const sc = [...tl.scenes].reverse().find((s) => s.start <= playhead);
         const cm = [...tl.camera].reverse().find((c) => c.start <= playhead);
-        cap.textContent = `${cm ? moveOf(cm.move).label : "still"} — ${sc ? sc.prompt : ""}`;
+        cap.textContent = `${cm ? moveOf(cm.move).label : "still"} - ${sc ? sc.prompt : ""}`;
         time.textContent = `${secs(playhead)} / ${secs(N())}  (${playhead}f)`;
     }
 
@@ -672,7 +673,7 @@ function buildEditor(node, tw) {
         // camera block
         const c = tl.camera[sel.i];
         const grid = el("div", "dfx-moves");
-        const groups = { basic: "FLAT — works in 2D", space: "SPACE — real parallax with 3D + depth", fx: "MOTION FX" };
+        const groups = { basic: "FLAT - works in 2D", space: "SPACE - real parallax with 3D + depth", fx: "MOTION FX" };
         for (const [gid, gname] of Object.entries(groups)) {
             grid.append(el("div", "dfx-grp", gname));
             for (const mv of CATALOG.moves.filter((m) => (m.group || "basic") === gid)) {
@@ -700,7 +701,10 @@ function buildEditor(node, tw) {
             el("span", "dfx-lbl", "Audio"), select(CATALOG.reactions.map((r) => [r.id, REACT_LABEL[r.id] || r.id]),
                 c.react || "none", (v) => { c.react = v; }),
         );
-        ins.append(el("div", "dfx-lbl", `Camera @ ${secs(c.start)} — ${moveOf(c.move).hint || ""}`), grid, r2, r3);
+        const head = el("div", "dfx-head");
+        head.append(el("b", null, `${moveOf(c.move).label} @ ${secs(c.start)}`),
+                    el("span", "dfx-hint", "  " + (moveOf(c.move).hint || "")));
+        ins.append(head, grid, r2, r3);
     }
 
     // ---- toolbar -----------------------------------------------------------
@@ -798,7 +802,7 @@ app.registerExtension({
                 return onDraw?.apply(this, a);
             };
             this.__dfx = ed;
-            this.setSize([Math.max(this.size[0], 800), Math.max(this.size[1], 930)]);
+            this.setSize([Math.max(this.size[0], 800), Math.max(this.size[1], 880)]);
         };
 
         const onConfigure = nodeType.prototype.onConfigure;

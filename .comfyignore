@@ -1,6 +1,7 @@
-# Dev-only files - kept in git, excluded from the published registry package.
+# kept in git, left out of the published registry package
 tests/
-examples/_*
+tools/dev/
+.github/
+docs/media/*.webp
 *.log
-*.log.err
-_e_models.yaml
+__pycache__/

@@ -1,0 +1,732 @@
+{
+ "last_node_id": 10,
+ "last_link_id": 13,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Difforum_Setup",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    320,
+    300
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "links": [
+      6
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "links": [
+      7
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "frames",
+     "type": "INT",
+     "links": [],
+     "slot_index": 3
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      5
+     ],
+     "slot_index": 4
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Setup"
+   },
+   "widgets_values": [
+    "LTX-2 / 2.5",
+    "seconds",
+    5.0,
+    24.0,
+    "16:9 landscape",
+    1216,
+    0,
+    "fixed",
+    16.0,
+    9.0,
+    0.0
+   ]
+  },
+  {
+   "id": 2,
+   "type": "Difforum_Director",
+   "pos": [
+    360,
+    0
+   ],
+   "size": [
+    800,
+    880
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": 1
+    },
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": null
+    },
+    {
+     "name": "audio",
+     "type": "DIFFORUM_AUDIO",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "links": [
+      3,
+      12
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "strength",
+     "type": "DIFFORUM_SCHEDULE",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "prompts",
+     "type": "DIFFORUM_PROMPT",
+     "links": [],
+     "slot_index": 3
+    },
+    {
+     "name": "camera_text",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 5
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Director"
+   },
+   "widgets_values": [
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 30, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 60, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 90, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.8, \"intensity\": 0.8, \"ease\": \"ease_in_out\"}, {\"start\": 30, \"move\": \"pan_right\", \"speed\": 1.0, \"intensity\": 0.8, \"ease\": \"ease_in_out\"}, {\"start\": 60, \"move\": \"spiral\", \"speed\": 1.4, \"intensity\": 1.1, \"ease\": \"ease_in\"}, {\"start\": 90, \"move\": \"zoom_out\", \"speed\": 0.6, \"intensity\": 0.5, \"ease\": \"ease_out\"}], \"energy\": [], \"guidance\": []}",
+    "2d",
+    "cinematic",
+    1.0,
+    1.0,
+    0.0,
+    0.0,
+    0,
+    "fixed"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    360
+   ],
+   "size": [
+    320,
+    360
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    null
+   ],
+   "title": "Anchor / first frame"
+  },
+  {
+   "id": 4,
+   "type": "Difforum_GuideFrames",
+   "pos": [
+    1200,
+    0
+   ],
+   "size": [
+    340,
+    200
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "anchor_image",
+     "type": "IMAGE",
+     "link": 2
+    },
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 3
+    },
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "link": null
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "guide_frames",
+     "type": "IMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "masks",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_GuideFrames"
+   },
+   "widgets_values": [
+    "1 = generate (VACE / LTX / H3)",
+    "gray",
+    1.0
+   ]
+  },
+  {
+   "id": 5,
+   "type": "Difforum_Keyframes",
+   "pos": [
+    1200,
+    240
+   ],
+   "size": [
+    340,
+    220
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "link": 4
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 5,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "keyframes",
+     "type": "IMAGE",
+     "links": [
+      9,
+      13
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "indices",
+     "type": "STRING",
+     "links": [
+      10
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "sparse_batch",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "first_frame",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 3
+    },
+    {
+     "name": "last_frame",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 4
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "links": [
+      8
+     ],
+     "slot_index": 5
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 6
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Keyframes"
+   },
+   "widgets_values": [
+    "LTX-2 / 2.5 (8k+1)",
+    1.0,
+    24.0,
+    ""
+   ]
+  },
+  {
+   "id": 6,
+   "type": "EmptyLTXVLatentVideo",
+   "pos": [
+    1200,
+    500
+   ],
+   "size": [
+    300,
+    160
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "width",
+     "type": "INT",
+     "link": 6,
+     "widget": {
+      "name": "width"
+     }
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "link": 7,
+     "widget": {
+      "name": "height"
+     }
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "link": 8,
+     "widget": {
+      "name": "length"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EmptyLTXVLatentVideo"
+   },
+   "widgets_values": [
+    1216,
+    704,
+    121,
+    1
+   ]
+  },
+  {
+   "id": 7,
+   "type": "Difforum_LTXGuides",
+   "pos": [
+    1580,
+    240
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": null
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": null
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": null
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "link": 11
+    },
+    {
+     "name": "keyframes",
+     "type": "IMAGE",
+     "link": 9
+    },
+    {
+     "name": "indices",
+     "type": "STRING",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 3
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_LTXGuides"
+   },
+   "widgets_values": [
+    0.7,
+    1.0,
+    0.7
+   ]
+  },
+  {
+   "id": 8,
+   "type": "Difforum_CameraPrompt",
+   "pos": [
+    1580,
+    0
+   ],
+   "size": [
+    340,
+    160
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 12
+    },
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": null
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "text",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_CameraPrompt"
+   },
+   "widgets_values": [
+    "prompt suffix",
+    ""
+   ]
+  },
+  {
+   "id": 9,
+   "type": "PreviewImage",
+   "pos": [
+    1580,
+    540
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Keyframes"
+  },
+  {
+   "id": 10,
+   "type": "MarkdownNote",
+   "pos": [
+    1960,
+    0
+   ],
+   "size": [
+    520,
+    300
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## Wire into your LTX graph\n\nConnect your LTX **positive / negative** (text encoded with the Camera → Prompt text appended), and the LTX **VAE** into **LTX Guides**. Its outputs replace the conditioning and latent going into your LTX sampler.\n\n- Setup target = LTX keeps length on 8k+1 and size on 32 px.\n- Guides every 1 s at strength 0.7; frame 0 at 1.0 locks the look.\n- Swap Guide Frames for a Feedback render or a Storyboard to guide with other images."
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "DIFFORUM_PARAMS"
+  ],
+  [
+   2,
+   3,
+   0,
+   4,
+   0,
+   "IMAGE"
+  ],
+  [
+   3,
+   2,
+   0,
+   4,
+   1,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   4,
+   4,
+   0,
+   5,
+   0,
+   "IMAGE"
+  ],
+  [
+   5,
+   1,
+   4,
+   5,
+   1,
+   "FLOAT"
+  ],
+  [
+   6,
+   1,
+   1,
+   6,
+   0,
+   "INT"
+  ],
+  [
+   7,
+   1,
+   2,
+   6,
+   1,
+   "INT"
+  ],
+  [
+   8,
+   5,
+   5,
+   6,
+   2,
+   "INT"
+  ],
+  [
+   9,
+   5,
+   0,
+   7,
+   4,
+   "IMAGE"
+  ],
+  [
+   10,
+   5,
+   1,
+   7,
+   5,
+   "STRING"
+  ],
+  [
+   11,
+   6,
+   0,
+   7,
+   3,
+   "LATENT"
+  ],
+  [
+   12,
+   2,
+   0,
+   8,
+   0,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   13,
+   5,
+   0,
+   9,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.65,
+   "offset": [
+    40,
+    40
+   ]
+  },
+  "difforum": "1.0",
+  "title": "07 · LTX-2 / 2.5 guides from the Director"
+ },
+ "version": 0.4
+}

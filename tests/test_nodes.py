@@ -1,0 +1,142 @@
+"""v1 nodes end to end, with stub MODEL / VAE / CLIP."""
+
+import json
+
+import pytest
+import torch
+from conftest import StubModel, StubVAE, gradient
+
+import difforum
+from difforum.core.direction import default_timeline
+from difforum.nodes.bridges import (
+    DifforumCameraPrompt, DifforumGuideFrames, DifforumH3Shot, DifforumKeyframes,
+)
+from difforum.nodes.curves import DifforumPromptTravel, DifforumSchedule
+from difforum.nodes.direction import DifforumCamera, DifforumDirector, DifforumStoryboard
+from difforum.nodes.post import DifforumLoop
+from difforum.nodes.render import DifforumFeedbackSampler, DifforumRenderOptions
+from difforum.nodes.setup import DifforumSetup
+
+
+def setup(target="feedback (SD/SDXL/Flux)", seconds=2.0, fps=24.0, edge=128):
+    return DifforumSetup().build(target, "seconds", seconds, fps, "16:9 landscape", edge, 0)
+
+
+class StubClip:
+    def tokenize(self, text):
+        return text
+
+    def encode_from_tokens_scheduled(self, tokens):
+        v = float(len(tokens) % 7)
+        return [[torch.full((1, 4, 8), v), {"pooled_output": torch.full((1, 8), v)}]]
+
+
+def director(params, tl=None, mode="2d", clip=None):
+    tl = tl or default_timeline(params["max_frames"])
+    return DifforumDirector().run(params, json.dumps(tl), mode, "cinematic", 1.0, 1.0, 0.0,
+                                  0.0, 0, clip=clip)["result"]
+
+
+def test_registry():
+    v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
+    assert len(v1) == 25
+    legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
+    assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
+    for k in v1:
+        cls = difforum.NODE_CLASS_MAPPINGS[k]
+        cls.INPUT_TYPES()
+        assert cls.CATEGORY.startswith("Difforum/")
+        assert len(cls.RETURN_TYPES) == len(getattr(cls, "RETURN_NAMES", cls.RETURN_TYPES))
+
+
+@pytest.mark.parametrize("target,rule,mult", [
+    ("LTX-2 / 2.5", (8, 1), 32), ("MiniMax H3", (17, 5), 32), ("Wan 2.x", (4, 1), 16),
+])
+def test_setup_snaps_to_model_grid(target, rule, mult):
+    params, w, h, frames, fps, _ = setup(target, seconds=5.0, fps=30.0, edge=1000)
+    a, b = rule
+    assert (frames - b) % a == 0
+    assert w % mult == 0 and h % mult == 0
+    if target == "MiniMax H3":
+        assert fps == 24.0
+
+
+def test_director_storyboard_and_sampler():
+    params = setup()[0]
+    bundle, camera, strength, prompts, text, info = director(params, clip=StubClip())
+    assert len(camera.deltas) == params["max_frames"] and len(strength) == params["max_frames"]
+    assert text.startswith("The camera")
+    assert len(prompts) == params["max_frames"]
+
+    sheet, frames, path, sb_info = DifforumStoryboard().run(gradient(72, 128), 8, 6, 1.0,
+                                                            direction=bundle)
+    assert frames.shape[1:] == (72, 128, 3) and path.shape[-1] == 3
+
+    model = StubModel()
+    out, depth, report = DifforumFeedbackSampler().run(
+        model, _c(), _c(), StubVAE(), gradient(72, 128), 4, 5.0, "euler", "normal", 2,
+        direction=bundle)
+    assert out.shape == (params["max_frames"], 72, 128, 3)
+    assert depth.shape[-1] == 3
+    assert "keys=" in report
+    # the energy curve reached the sampler, and prompt travel conditioning too
+    assert len({round(c["denoise"], 3) for c in model.calls}) > 1
+    assert all(c["pos"] is not None for c in model.calls)
+
+
+def test_sampler_without_director():
+    params = setup(seconds=0.5)[0]
+    cam = DifforumCamera().run(params, "0: zoom_in", "2d", 1.0, 1.0, "off", 0, 3)[0]
+    sched = DifforumSchedule().run(params, "0:(0.4)", "linear")[0]
+    opts = DifforumRenderOptions().run(**{k: s[1]["default"] for k, s in
+                                          DifforumRenderOptions.INPUT_TYPES()["required"].items()})[0]
+    opts.update(anchor_mode="first", end_frame=6)
+    out = DifforumFeedbackSampler().run(StubModel(), _c(), _c(), StubVAE(), gradient(72, 128), 2,
+                                        5.0, "euler", "normal", 1, options=opts, params=params,
+                                        camera=cam, strength=sched)[0]
+    assert out.shape[0] == 6
+
+
+def test_bridges():
+    params = setup("MiniMax H3", seconds=6.0)[0]
+    bundle = director(params)[0]
+    guides, masks, _ = DifforumGuideFrames().run(gradient(72, 128), "1 = generate (VACE / LTX / H3)",
+                                                 "gray", direction=bundle)
+    n = params["max_frames"]
+    assert guides.shape[0] == n and masks.shape == (n, guides.shape[1], guides.shape[2])
+    assert float(masks[0].max()) == 0.0          # frame 0 has nothing to generate
+
+    keys, idx, sparse, first, last, length, _ = DifforumKeyframes().run(
+        guides, "LTX-2 / 2.5 (8k+1)", 1.0, 24.0)
+    ids = [int(i) for i in idx.split(",")]
+    assert (length - 1) % 8 == 0 and ids[0] == 0 and ids[-1] == length - 1
+    assert all(i % 8 == 0 for i in ids[:-1])
+    assert keys.shape[0] == len(ids) and sparse.shape[0] == length
+    assert float(sparse[1].abs().sum()) == 0.0
+
+    first, last, length, w, h, prompt, segments, info = DifforumH3Shot().run(
+        guides, "124 (~5s)", 0, direction=bundle, shot_description="A forest.")
+    assert (length - 5) % 17 == 0 and w % 32 == 0 and h % 32 == 0
+    assert segments >= 2 and prompt.startswith("A forest. The camera")
+
+    text = DifforumCameraPrompt().run("prompt suffix", direction=bundle)[0]
+    assert text.startswith("Camera:")
+
+
+def test_prompt_travel_seconds_syntax():
+    params = setup(seconds=4.0)[0]
+    track, first, batched, info = DifforumPromptTravel().run(
+        params, StubClip(), "0: a\n2s: bbb\n3.5s: cc", "linear", build_batched=True)
+    assert [f for f, _ in track.keyframes] == [0, 48, 84]
+    assert batched[0][0].shape[0] == params["max_frames"]
+
+
+def test_loop_methods():
+    frames = torch.rand(24, 16, 16, 3)
+    assert DifforumLoop().run(frames, "keep settled lap", 8, 4)[0].shape[0] == 8
+    assert DifforumLoop().run(frames, "ping-pong", 0, 4)[0].shape[0] > 24
+    assert DifforumLoop().run(frames, "flow crossfade", 0, 4)[0].shape[0] == 20
+
+
+def _c():
+    return [[torch.zeros(1, 4, 8), {}]]
