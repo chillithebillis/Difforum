@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 33
+    assert len(v1) == 34
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:
@@ -219,6 +219,31 @@ def test_h3_guides_chain_and_limit(monkeypatch):
     calls.clear()
     DifforumH3Guides().run([], {"samples": None}, object(), keys, "0,17,34,51,68,123", 8, True)
     assert [c[0] for c in calls] == [17, 34, 51, 68, 123]
+
+
+def test_h3_refine_guides_rescale():
+    from difforum.nodes.bridges import DifforumH3RefineGuides
+
+    class FakeVAE:
+        def encode(self, img):            # [N,H,W,3] -> [1,24,N,H/16,W/16]
+            return torch.zeros(1, 24, img.shape[0], img.shape[1] // 16, img.shape[2] // 16)
+
+        def decode(self, z):
+            return torch.rand(1, z.shape[2], z.shape[3] * 16, z.shape[4] * 16, 3)
+
+    small = torch.zeros(1, 24, 1, 22, 40)
+    kfs = [{"resolved_frame_index": 0, "latent": small, "difforum_image": torch.rand(1, 720, 1280, 3)},
+           {"resolved_frame_index": 123, "latent": small.clone(), "audio_latent": torch.zeros(1, 32, 2, 4)}]
+    pos = [[torch.zeros(1, 4, 8), {"minimax_keyframes": kfs, "minimax_refs": ["r"]}]]
+    target = {"samples": torch.zeros(1, 24, 32, 44, 80)}
+    out, info = DifforumH3RefineGuides().run(pos, target, FakeVAE(), "re-encode")
+    new = out[0][1]["minimax_keyframes"]
+    assert [tuple(k["latent"].shape[-2:]) for k in new] == [(44, 80), (44, 80)]
+    assert "full-size" in info and "decoded" in info and out[0][1]["minimax_refs"] == ["r"]
+    assert kfs[0]["latent"] is small                      # input conditioning untouched
+    out, info = DifforumH3RefineGuides().run(pos, target, FakeVAE(), "drop guides")
+    new = out[0][1]["minimax_keyframes"]
+    assert len(new) == 1 and "latent" not in new[0] and new[0]["resolved_frame_index"] == 123
 
 
 def test_fill_reveal_keeps_known_pixels(monkeypatch):

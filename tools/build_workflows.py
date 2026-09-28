@@ -772,7 +772,8 @@ def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=20):
                "and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n"
                "- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use "
                "`0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep "
-               "the motion exactly.\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode "
+               "the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x "
+               "size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode "
                "the small render directly.", size=(380, 360))
         sep = g.add("LTXVSeparateAVLatent", size=(240, 70))
         g.link(sa, "output", sep, "av_latent")
@@ -784,9 +785,14 @@ def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=20):
         cat = g.add("LTXVConcatAVLatent", size=(240, 70))
         g.link(up3, "latent", cat, "video_latent")
         g.link(sep, "audio_latent", cat, "audio_latent")
+        # guides / first-last frames are encoded at the first-pass size: rebuild them at 2x
+        rg = g.add("Difforum_H3RefineGuides", size=(300, 110), mode="re-encode")
+        g.link(conditioning[0], conditioning[1], rg, "positive")
+        g.link(cat, "latent", rg, "latent")
+        g.link(vv, "VAE", rg, "vae")
         gd2 = g.add("BasicGuider", size=(220, 50), title="Refine guider")
         g.link(lo, "MODEL", gd2, "model")
-        g.link(conditioning[0], conditioning[1], gd2, "conditioning")
+        g.link(rg, "positive", gd2, "conditioning")
         ks2 = g.add("KSamplerSelect", size=(260, 60), sampler_name="euler")
         sg2 = g.add("ManualSigmas", size=(300, 60), title="Refine sigmas", sigmas="0.6316, 0.4737, 0.3158, 0.1579, 0.0000")
         sa2 = g.add("SamplerCustomAdvanced", size=(260, 120), title="Refine at 2x")

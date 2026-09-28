@@ -1,6 +1,6 @@
 {
- "last_node_id": 49,
- "last_link_id": 69,
+ "last_node_id": 50,
+ "last_link_id": 72,
  "nodes": [
   {
    "id": 1,
@@ -680,7 +680,8 @@
      "type": "VAE",
      "links": [
       33,
-      62
+      56,
+      65
      ],
      "slot_index": 0
     }
@@ -713,7 +714,7 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      64
+      67
      ],
      "slot_index": 0
     }
@@ -1359,7 +1360,7 @@
      "type": "CONDITIONING",
      "links": [
       43,
-      55
+      54
      ],
      "slot_index": 0
     },
@@ -1409,7 +1410,7 @@
      "type": "MODEL",
      "links": [
       41,
-      54
+      57
      ],
      "slot_index": 0
     }
@@ -1562,7 +1563,7 @@
      "type": "NOISE",
      "links": [
       45,
-      56
+      59
      ],
      "slot_index": 0
     }
@@ -1729,14 +1730,14 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use `0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
+    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use `0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
    ]
   },
   {
    "id": 37,
    "type": "LTXVSeparateAVLatent",
    "pos": [
-    3560,
+    3300,
     1126
    ],
    "size": [
@@ -1780,7 +1781,7 @@
    "id": 38,
    "type": "MinimaxH3LatentUpscaler3D",
    "pos": [
-    3840,
+    3580,
     1126
    ],
    "size": [
@@ -1825,7 +1826,7 @@
    "id": 39,
    "type": "LTXVConcatAVLatent",
    "pos": [
-    4220,
+    3960,
     1126
    ],
    "size": [
@@ -1852,7 +1853,8 @@
      "name": "latent",
      "type": "LATENT",
      "links": [
-      60
+      55,
+      63
      ],
      "slot_index": 0
     }
@@ -1864,9 +1866,63 @@
   },
   {
    "id": 40,
+   "type": "Difforum_H3RefineGuides",
+   "pos": [
+    4240,
+    1126
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 39,
+   "mode": "re-encode",
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 54
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "link": 55
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 56
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      58
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_H3RefineGuides"
+   },
+   "widgets_values": [
+    "re-encode"
+   ]
+  },
+  {
+   "id": 41,
    "type": "BasicGuider",
    "pos": [
-    3300,
+    4580,
     1126
    ],
    "size": [
@@ -1874,18 +1930,18 @@
     54
    ],
    "flags": {},
-   "order": 39,
+   "order": 40,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 54
+     "link": 57
     },
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 55
+     "link": 58
     }
    ],
    "outputs": [
@@ -1893,7 +1949,7 @@
      "name": "GUIDER",
      "type": "GUIDER",
      "links": [
-      57
+      60
      ],
      "slot_index": 0
     }
@@ -1905,7 +1961,7 @@
    "title": "Refine guider"
   },
   {
-   "id": 41,
+   "id": 42,
    "type": "KSamplerSelect",
    "pos": [
     2880,
@@ -1916,7 +1972,7 @@
     60
    ],
    "flags": {},
-   "order": 40,
+   "order": 41,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1924,7 +1980,7 @@
      "name": "SAMPLER",
      "type": "SAMPLER",
      "links": [
-      58
+      61
      ],
      "slot_index": 0
     }
@@ -1937,7 +1993,7 @@
    ]
   },
   {
-   "id": 42,
+   "id": 43,
    "type": "ManualSigmas",
    "pos": [
     2880,
@@ -1948,7 +2004,7 @@
     60
    ],
    "flags": {},
-   "order": 41,
+   "order": 42,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1956,7 +2012,7 @@
      "name": "SIGMAS",
      "type": "SIGMAS",
      "links": [
-      59
+      62
      ],
      "slot_index": 0
     }
@@ -1970,10 +2026,10 @@
    "title": "Refine sigmas"
   },
   {
-   "id": 43,
+   "id": 44,
    "type": "SamplerCustomAdvanced",
    "pos": [
-    4500,
+    4840,
     1126
    ],
    "size": [
@@ -1981,33 +2037,33 @@
     120
    ],
    "flags": {},
-   "order": 42,
+   "order": 43,
    "mode": 0,
    "inputs": [
     {
      "name": "noise",
      "type": "NOISE",
-     "link": 56
+     "link": 59
     },
     {
      "name": "guider",
      "type": "GUIDER",
-     "link": 57
+     "link": 60
     },
     {
      "name": "sampler",
      "type": "SAMPLER",
-     "link": 58
+     "link": 61
     },
     {
      "name": "sigmas",
      "type": "SIGMAS",
-     "link": 59
+     "link": 62
     },
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 60
+     "link": 63
     }
    ],
    "outputs": [
@@ -2015,8 +2071,8 @@
      "name": "output",
      "type": "LATENT",
      "links": [
-      61,
-      63
+      64,
+      66
      ],
      "slot_index": 0
     },
@@ -2034,52 +2090,11 @@
    "title": "Refine at 2x"
   },
   {
-   "id": 44,
+   "id": 45,
    "type": "VAEDecode",
    "pos": [
     2562,
     1126
-   ],
-   "size": [
-    200,
-    60
-   ],
-   "flags": {},
-   "order": 43,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "samples",
-     "type": "LATENT",
-     "link": 61
-    },
-    {
-     "name": "vae",
-     "type": "VAE",
-     "link": 62
-    }
-   ],
-   "outputs": [
-    {
-     "name": "IMAGE",
-     "type": "IMAGE",
-     "links": [
-      65
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "VAEDecode"
-   },
-   "widgets_values": []
-  },
-  {
-   "id": 45,
-   "type": "VAEDecodeAudio",
-   "pos": [
-    2562,
-    1242
    ],
    "size": [
     200,
@@ -2092,12 +2107,53 @@
     {
      "name": "samples",
      "type": "LATENT",
-     "link": 63
+     "link": 64
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 64
+     "link": 65
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      68
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 46,
+   "type": "VAEDecodeAudio",
+   "pos": [
+    2562,
+    1242
+   ],
+   "size": [
+    200,
+    60
+   ],
+   "flags": {},
+   "order": 45,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 66
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 67
     }
    ],
    "outputs": [
@@ -2105,7 +2161,7 @@
      "name": "AUDIO",
      "type": "AUDIO",
      "links": [
-      68
+      71
      ],
      "slot_index": 0
     }
@@ -2116,10 +2172,10 @@
    "widgets_values": []
   },
   {
-   "id": 46,
+   "id": 47,
    "type": "UpscaleModelLoader",
    "pos": [
-    4878,
+    5218,
     1126
    ],
    "size": [
@@ -2127,7 +2183,7 @@
     80
    ],
    "flags": {},
-   "order": 45,
+   "order": 46,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -2135,7 +2191,7 @@
      "name": "UPSCALE_MODEL",
      "type": "UPSCALE_MODEL",
      "links": [
-      66
+      69
      ],
      "slot_index": 0
     }
@@ -2149,10 +2205,10 @@
    "title": "Upscale model"
   },
   {
-   "id": 47,
+   "id": 48,
    "type": "Difforum_Upscale",
    "pos": [
-    5238,
+    5578,
     1126
    ],
    "size": [
@@ -2160,18 +2216,18 @@
     200
    ],
    "flags": {},
-   "order": 46,
+   "order": 47,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 65
+     "link": 68
     },
     {
      "name": "upscale_model",
      "type": "UPSCALE_MODEL",
-     "link": 66
+     "link": 69
     }
    ],
    "outputs": [
@@ -2179,7 +2235,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      67
+      70
      ],
      "slot_index": 0
     },
@@ -2201,10 +2257,10 @@
    ]
   },
   {
-   "id": 48,
+   "id": 49,
    "type": "CreateVideo",
    "pos": [
-    5676,
+    6016,
     1126
    ],
    "size": [
@@ -2212,18 +2268,18 @@
     100
    ],
    "flags": {},
-   "order": 47,
+   "order": 48,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 67
+     "link": 70
     },
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 68
+     "link": 71
     }
    ],
    "outputs": [
@@ -2231,7 +2287,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      69
+      72
      ],
      "slot_index": 0
     }
@@ -2244,10 +2300,10 @@
    ]
   },
   {
-   "id": 49,
+   "id": 50,
    "type": "SaveVideo",
    "pos": [
-    5976,
+    6316,
     1126
    ],
    "size": [
@@ -2255,13 +2311,13 @@
     420
    ],
    "flags": {},
-   "order": 48,
+   "order": 49,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 69
+     "link": 72
     }
    ],
    "outputs": [],
@@ -2702,129 +2758,153 @@
   ],
   [
    54,
-   28,
+   27,
    0,
    40,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   55,
+   39,
+   0,
+   40,
+   1,
+   "LATENT"
+  ],
+  [
+   56,
+   16,
+   0,
+   40,
+   2,
+   "VAE"
+  ],
+  [
+   57,
+   28,
+   0,
+   41,
    0,
    "MODEL"
   ],
   [
-   55,
-   27,
-   0,
+   58,
    40,
+   0,
+   41,
    1,
    "CONDITIONING"
   ],
   [
-   56,
+   59,
    32,
    0,
-   43,
+   44,
    0,
    "NOISE"
   ],
   [
-   57,
-   40,
+   60,
+   41,
    0,
-   43,
+   44,
    1,
    "GUIDER"
   ],
   [
-   58,
-   41,
+   61,
+   42,
    0,
-   43,
+   44,
    2,
    "SAMPLER"
   ],
   [
-   59,
-   42,
-   0,
+   62,
    43,
+   0,
+   44,
    3,
    "SIGMAS"
   ],
   [
-   60,
+   63,
    39,
    0,
-   43,
+   44,
    4,
    "LATENT"
   ],
   [
-   61,
-   43,
-   0,
-   44,
-   0,
-   "LATENT"
-  ],
-  [
-   62,
-   16,
-   0,
-   44,
-   1,
-   "VAE"
-  ],
-  [
-   63,
-   43,
-   0,
-   45,
-   0,
-   "LATENT"
-  ],
-  [
    64,
-   17,
+   44,
    0,
    45,
-   1,
-   "VAE"
+   0,
+   "LATENT"
   ],
   [
    65,
-   44,
+   16,
    0,
-   47,
-   0,
-   "IMAGE"
+   45,
+   1,
+   "VAE"
   ],
   [
    66,
+   44,
+   0,
    46,
    0,
-   47,
-   1,
-   "UPSCALE_MODEL"
+   "LATENT"
   ],
   [
    67,
-   47,
+   17,
    0,
-   48,
-   0,
-   "IMAGE"
+   46,
+   1,
+   "VAE"
   ],
   [
    68,
    45,
    0,
    48,
+   0,
+   "IMAGE"
+  ],
+  [
+   69,
+   47,
+   0,
+   48,
+   1,
+   "UPSCALE_MODEL"
+  ],
+  [
+   70,
+   48,
+   0,
+   49,
+   0,
+   "IMAGE"
+  ],
+  [
+   71,
+   46,
+   0,
+   49,
    1,
    "AUDIO"
   ],
   [
-   69,
-   48,
-   0,
+   72,
    49,
+   0,
+   50,
    0,
    "VIDEO"
   ]
@@ -2966,7 +3046,7 @@
    "bounding": [
     2856,
     1060,
-    1928,
+    2268,
     702
    ],
    "color": "#b58b2a",
@@ -2977,7 +3057,7 @@
    "id": 12,
    "title": "Upscale 2K",
    "bounding": [
-    4854,
+    5194,
     1060,
     728,
     310
@@ -2990,7 +3070,7 @@
    "id": 13,
    "title": "Output",
    "bounding": [
-    5652,
+    5992,
     1060,
     828,
     530

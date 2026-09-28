@@ -451,12 +451,108 @@ class DifforumH3Guides:
             if k == 0 and audio is not None and fi == 0:
                 kw.update(audio=audio, audio_vae=audio_vae)
             positive = call_comfy_node("MiniMaxH3AddGuide", **kw)[0]
+            _stash_guide_pixels(positive, img.unsqueeze(0))
             lines.append(f"  guide @ frame {fi}" + (" + audio" if "audio" in kw else ""))
         if audio is not None and not any("audio" in x for x in lines):
             positive = call_comfy_node("MiniMaxH3AddGuide", positive=positive, latent=latent,
                                        frame_idx=0, audio=audio, audio_vae=audio_vae)[0]
             lines.append("  audio @ frame 0")
         return (positive, "H3 guides:\n" + "\n".join(lines))
+
+
+def _stash_guide_pixels(positive, image):
+    """Keep the full-size pixels of the guide just added, so H3 Refine Guides can
+    re-encode it at a two-stage refine size instead of stretching a small latent."""
+    for item in positive:
+        extra = item[1] if isinstance(item, (list, tuple)) and len(item) == 2 else None
+        kfs = extra.get("minimax_keyframes") if isinstance(extra, dict) else None
+        if kfs and kfs[-1].get("latent") is not None:
+            kfs[-1]["difforum_image"] = image.detach().cpu()
+
+
+def _h3_video_latent(latent):
+    samples = latent["samples"]
+    if getattr(samples, "is_nested", False):
+        return samples.tensors[0]
+    return samples
+
+
+def _decode_frames(vae, z):
+    img = vae.decode(z)
+    return img.reshape(-1, *img.shape[-3:])
+
+
+class DifforumH3RefineGuides:
+    """Make H3 guides fit a two-stage refine.
+
+    MiniMax H3 guides (first / last frame, Add Guide, Difforum H3 Guides) are
+    encoded at the size of the first render and shared with the target's
+    spatial grid, so the refine pass after a latent upscale fails with a
+    *shape mismatch* if it reuses the same conditioning. This node re-encodes
+    every guide at the upscaled latent's size: from the original full-size
+    pixels when Difforum H3 Guides added it, otherwise by decoding the small
+    guide, resizing it and encoding it again. `drop guides` removes the video
+    guides instead and lets the refine follow the upscaled render alone.
+    References (ref2va pictures) keep their own size and are left untouched.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "positive": ("CONDITIONING",),
+                "latent": ("LATENT", {"tooltip": "The upscaled MiniMax H3 AV latent the refine samples."}),
+                "vae": ("VAE", {"tooltip": "MiniMax H3 video VAE."}),
+                "mode": (["re-encode", "drop guides"], {"default": "re-encode"}),
+            },
+        }
+
+    RETURN_TYPES = ("CONDITIONING", "STRING")
+    RETURN_NAMES = ("positive", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_BRIDGE
+
+    def run(self, positive, latent, vae, mode):
+        target = _h3_video_latent(latent)
+        lh, lw = int(target.shape[-2]), int(target.shape[-1])
+        width, height = lw * 16, lh * 16
+        cache, out, lines = {}, [], []
+        for emb, extra in positive:
+            extra = dict(extra)
+            kfs = extra.get("minimax_keyframes")
+            if kfs:
+                new = []
+                for kf in kfs:
+                    z = kf.get("latent")
+                    if z is None or tuple(z.shape[-2:]) == (lh, lw):
+                        new.append(kf)
+                        continue
+                    kf = dict(kf)
+                    fi = kf.get("resolved_frame_index", 0)
+                    if mode == "drop guides":
+                        kf.pop("latent")
+                        kf.pop("difforum_image", None)
+                        if kf.get("audio_latent") is not None:
+                            new.append(kf)
+                        lines.append(f"  guide @ frame {fi}: dropped")
+                        continue
+                    key = id(z)
+                    if key not in cache:
+                        src = kf.get("difforum_image")
+                        how = "from full-size pixels"
+                        if src is None:
+                            src, how = _decode_frames(vae, z), "decoded and resized"
+                        frames = resize_bhwc(src[..., :3].float(), width, height)
+                        cache[key] = (vae.encode(frames), how)
+                    kf["latent"], how = cache[key]
+                    lines.append(f"  guide @ frame {fi}: {tuple(z.shape[-2:])} -> {(lh, lw)} latent, {how}")
+                    new.append(kf)
+                extra["minimax_keyframes"] = new
+            out.append([emb, extra])
+        info = f"H3 refine guides at {width}x{height}:\n" + ("\n".join(lines) if lines else "  nothing to change")
+        return (out, info)
 
 
 H3_LENGTHS = {"auto (from frames)": 0, "124 (~5s)": 124, "243 (~10s)": 243,
@@ -563,6 +659,7 @@ NODE_CLASS_MAPPINGS = {
     "Difforum_LTXGuides": DifforumLTXGuides,
     "Difforum_H3Shot": DifforumH3Shot,
     "Difforum_H3Guides": DifforumH3Guides,
+    "Difforum_H3RefineGuides": DifforumH3RefineGuides,
     "Difforum_FillReveal": DifforumFillReveal,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -572,5 +669,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_LTXGuides": "Difforum · LTX Guides",
     "Difforum_H3Shot": "Difforum · H3 Shot",
     "Difforum_H3Guides": "Difforum · H3 Guides",
+    "Difforum_H3RefineGuides": "Difforum · H3 Refine Guides",
     "Difforum_FillReveal": "Difforum · Fill Reveal (AI)",
 }

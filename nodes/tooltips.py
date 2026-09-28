@@ -254,6 +254,12 @@ TIPS = {
                       "rest evenly spaced. More = H3 follows your frames closely; fewer = more of H3's "
                       "own motion and invention. 4 for a camera path, 6-8 for a look pass.",
     },
+    "Difforum_H3RefineGuides": {
+        "positive": "The same conditioning the first H3 pass used (with its guides / first-last frames).",
+        "latent": "The upscaled AV latent (after the H3 Latent Upscaler), so the guides match its size.",
+        "mode": "re-encode: guides rebuilt at the refine size (from the original pixels when Difforum "
+                "H3 Guides added them). drop guides: the refine follows the upscaled render alone.",
+    },
     "Difforum_FillReveal": {
         "images": "Frames with holes where the camera uncovered new area (gray from Guide Frames).",
         "model": "An image model; an inpainting checkpoint (SDXL inpainting, Flux Fill) gives the "

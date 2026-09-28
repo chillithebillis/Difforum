@@ -624,6 +624,31 @@ the last and evenly spaced ones in between.
 
 **Outputs:** `positive` (CONDITIONING), `info` (STRING)
 
+### Difforum · H3 Refine Guides
+
+`Difforum_H3RefineGuides`
+
+Make H3 guides fit a two-stage refine.
+
+MiniMax H3 guides (first / last frame, Add Guide, Difforum H3 Guides) are
+encoded at the size of the first render and shared with the target's
+spatial grid, so the refine pass after a latent upscale fails with a
+*shape mismatch* if it reuses the same conditioning. This node re-encodes
+every guide at the upscaled latent's size: from the original full-size
+pixels when Difforum H3 Guides added it, otherwise by decoding the small
+guide, resizing it and encoding it again. `drop guides` removes the video
+guides instead and lets the refine follow the upscaled render alone.
+References (ref2va pictures) keep their own size and are left untouched.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `positive` | CONDITIONING |  | The same conditioning the first H3 pass used (with its guides / first-last frames). |
+| `latent` | LATENT |  | The upscaled AV latent (after the H3 Latent Upscaler), so the guides match its size. |
+| `vae` | VAE |  | MiniMax H3 video VAE. |
+| `mode` | choice (re-encode, drop guides) | re-encode | re-encode: guides rebuilt at the refine size (from the original pixels when Difforum H3 Guides added them). drop guides: the refine follows the upscaled render alone. |
+
+**Outputs:** `positive` (CONDITIONING), `info` (STRING)
+
 ### Difforum · Fill Reveal (AI)
 
 `Difforum_FillReveal`

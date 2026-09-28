@@ -70,6 +70,9 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - Deterministic 3D z-buffer on CUDA / MPS / CPU.
 
 ### Fixed
+- H3 two-stage refine (templates 08, 10, 11): guides and first / last frames were
+  reused at the first-pass size and the refine stopped with a shape mismatch. The new
+  **H3 Refine Guides** node re-encodes them at the upscaled size.
 - Widgets named `mode` collided with the node's own mode in the ComfyUI frontend (mute / bypass
   stopped working on those nodes). Renamed: Camera (keys) `camera_mode`, Look Mix `blend`,
   Symmetry `symmetry`, Audio Curve `combine`. Saved workflows keep their values.
