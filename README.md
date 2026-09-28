@@ -155,8 +155,7 @@ Deforum hard to use:
 
 | | |
 |---|---|
-| [Quality guide](docs/GUIDE.md) | The dials that matter, keyframe quality, depth, AE cameras, H3 prompts |
-| [Bridges](docs/BRIDGES.md) | MiniMax H3, LTX-2, After Effects, Blender |
+| [Bridges](docs/BRIDGES.md) | MiniMax H3, LTX-2, keyframes, H3 prompts, depth, After Effects, Blender |
 | [Node reference](docs/NODES.md) | Every input and output |
 | [Performance](docs/PERFORMANCE.md) | Speed vs. quality, Apple Silicon |
 | [Models](docs/MODELS.md) | What works well, and the settings |

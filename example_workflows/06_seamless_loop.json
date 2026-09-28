@@ -56,7 +56,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## Loop without a crossfade\n\nThe Camera path is made periodic over 120 frames and rendered for 3 laps; the feedback settles onto its cycle and **Loop** keeps the last lap. For projections that run for hours.\n\n**Speed:** cadence 2 and steps x energy (10 of 20 at 0.5). Faster: a DMD2 / Lightning LoRA (steps 4-6, cfg 1-2) or `long_edge` 512. Launch ComfyUI without `--lowvram` / `--disable-smart-memory` for feedback renders: they reload the model every frame."
+    "## Loop without a crossfade\n\nThe Camera path is made periodic over 120 frames and rendered for 3 laps; the feedback settles onto its cycle and **Loop** keeps the last lap. For projections that run for hours.\n\n**Speed:** cadence 2 and steps x energy (10 of 20 at 0.5). Faster: a DMD2 / Lightning LoRA (steps 4-6, cfg 1-2) or `long_edge` 512. Low-VRAM launch flags (`--lowvram`, `--disable-smart-memory`) reload the model every frame."
    ]
   },
   {

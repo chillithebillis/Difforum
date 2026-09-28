@@ -609,9 +609,8 @@ def wf_loop():
     control(g, "## Loop without a crossfade\n\nThe Camera path is made periodic over 120 frames and "
             "rendered for 3 laps; the feedback settles onto its cycle and **Loop** keeps the last lap. "
             "For projections that run for hours.\n\n**Speed:** cadence 2 and steps x energy (10 of 20 at "
-            "0.5). Faster: a DMD2 / Lightning LoRA (steps 4-6, cfg 1-2) or `long_edge` 512. Launch ComfyUI "
-            "without `--lowvram` / `--disable-smart-memory` for feedback renders: they reload the model "
-            "every frame.")
+            "0.5). Faster: a DMD2 / Lightning LoRA (steps 4-6, cfg 1-2) or `long_edge` 512. Low-VRAM "
+            "launch flags (`--lowvram`, `--disable-smart-memory`) reload the model every frame.")
     with g.block(B_DIRECT, C_DIRECT, col=1, row=0):
         s = g.add("Difforum_Setup", size=(320, 300), duration_mode="frames", duration=360.0)
         cam = g.add("Difforum_Camera", size=(380, 360), keys="0: orbit_right 1.0 0.8\n60: spiral 1.2 1.0",

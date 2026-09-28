@@ -27,7 +27,7 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - **Look Mix**: detail transfer, colour, flicker cuts or crossfade from a feedback pass onto
   an H3 / LTX render. New looks: disco_diffusion, vqgan_clip, flicker_experimental.
 - Template **12 · long shot with key moments** (30 s, installations).
-- **Hover help on every input** (one registry, `nodes/tooltips.py`) and a quality guide (`docs/GUIDE.md`).
+- **Hover help on every input** (one registry, `nodes/tooltips.py`, also in docs/NODES.md).
 - **H3 structured prompts**: Camera → Prompt and H3 Shot write the whole Director timeline (look,
   scenes, camera in H3 vocabulary, key events, soundscape, music) in MiniMax H3's native format,
   with the I2VA / FL2VA alignment lines or the full-reference sections.
@@ -54,8 +54,8 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - One shared feedback engine behind the Feedback Sampler, Live Sampler and Storyboard.
 - Depth follows the image in 3D, and pseudo-3D replaces the silent freeze without depth.
 - Steps scale with the energy, like Deforum (about 2x faster); the run report shows
-  seconds per frame and warns when ComfyUI was launched with `--lowvram` /
-  `--disable-smart-memory`, which reload the model every frame.
+  seconds per frame and warns when low-VRAM launch flags make ComfyUI reload the model
+  every frame.
 - Cadence crossfades between keys. Revealed areas are repainted with extra noise.
 - Colour anchoring per scene. Lazy prompt travel. Ring buffer in the Live Sampler.
 - Deterministic 3D z-buffer on CUDA / MPS / CPU.

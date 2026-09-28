@@ -168,3 +168,51 @@ one picture per key (or takes times such as `0, 4s, 9.5s`) and outputs
 The **Animatic** is the previz of the whole shot (low resolution, a few seconds
 even for a minute of footage). Press **Previz only** on the Director to mute every
 render output, queue, check, then press it again to render.
+
+## Keyframes for video models
+
+The guide keyframes are what H3 / LTX copy: their sharpness, palette and texture.
+
+**How many.** The Director's **Keys** track marks exact moments (with Keyframe
+Images). **Keyframes** samples a clip every `every_seconds` (or at explicit
+`indices` such as `0, 48, 96, -1`) on the model's latent grid. **H3 Guides**
+keeps up to `max_guides` of them: first, last, and the best spread in time. More
+guides follow the frames closely; fewer leave more to the model.
+
+**Quality.** Guide Frames warps one image along the camera, so keyframes soften as
+the camera travels and the uncovered areas are empty. The H3 templates run three
+switchable blocks before H3 Guides:
+
+| block | what it does |
+|---|---|
+| **Depth (Depth Anything 3)** | core depth estimation on the anchor, so 3d moves have real parallax |
+| **Fill Reveal (AI)** | an image model paints the uncovered areas (inpainting checkpoints seam best) |
+| **Keyframe Polish** | Restyle `clean restyle` at denoise ~0.35 re-paints each keyframe: detail back, composition kept |
+
+Consistent keyframes (same model, prompt and seed) interpolate better than a mix of
+styles. Hand-made stills on the Keys track beat warped frames for important moments.
+
+## H3 prompts from the timeline
+
+Camera → Prompt (`format = H3 structured`) and H3 Shot (`prompt_style = H3
+structured`) write the Director timeline in MiniMax H3's native prompt format:
+
+| timeline | prompt |
+|---|---|
+| look | style that opens `[Shot 1]` |
+| scenes | what is on screen; a transformation in one take, or a new `[Shot N]` at its cut time with `cuts` on |
+| camera blocks | H3 camera vocabulary (push in, truck, arc, pedestal...) with amplitude and speed |
+| key labels | the event at that moment |
+| `soundscape` / `music` | `overall_soundscape` / `non_diegetic_music` |
+
+`h3_mode` adds the I2VA or FL2VA alignment line, or writes the full-reference
+sections for ref2va with H3 Guides. Scene prompts and key labels work best as
+things that can be seen or heard.
+
+## Depth
+
+Set the Director to **3d** and connect a depth map (white = near) to Guide Frames
+or the Feedback Sampler. Templates 03, 08 and 10 use the core Depth Anything 3
+nodes (`depth_anything_3_mono_large` in `models/geometry_estimation`, `v2_style`
+render). The Feedback Sampler also outputs the tracked depth per frame for
+compositing. Lower `translation_scale` if the parallax is too strong.

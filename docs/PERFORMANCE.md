@@ -20,11 +20,10 @@ Only the first row is worth optimising. The rest is noise.
 
 ## Before anything: launch flags and step scaling
 
-- **Launch flags.** `--lowvram`, `--novram` and `--disable-smart-memory` (useful for
-  MiniMax H3 / LTX on 24 GB) make ComfyUI re-stage the image model for *every*
-  frame of a feedback render. SDXL fits easily on a 24 GB card: start ComfyUI
-  without these flags for Feedback / Live renders. The run report warns when they
-  are on.
+- **Launch flags.** `--lowvram`, `--novram` and `--disable-smart-memory` make
+  ComfyUI re-stage the image model for *every* frame of a feedback render. If the
+  image model fits in VRAM, run Feedback / Live renders without them. The run
+  report warns when they are on.
 - **Steps scale with the energy** (`step_scaling = by energy`, the default): a
   frame at denoise 0.5 runs 10 of 20 steps, as in Deforum. `fixed` runs all steps.
 

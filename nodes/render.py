@@ -115,7 +115,7 @@ def launch_warning() -> str:
     if not bad:
         return ""
     msg = (f"launched with {' '.join(bad)}: the image model is re-loaded for every frame. "
-           "For Feedback / Live renders start ComfyUI without these flags (keep them for H3 / LTX).")
+           "If the image model fits in VRAM, run Feedback / Live renders without these flags.")
     if not _WARNED:
         _WARNED.append(1)
         print(f"[Difforum] {msg}")
