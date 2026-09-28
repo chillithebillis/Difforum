@@ -1,6 +1,6 @@
 {
- "last_node_id": 14,
- "last_link_id": 24,
+ "last_node_id": 16,
+ "last_link_id": 28,
  "nodes": [
   {
    "id": 1,
@@ -155,7 +155,8 @@
      "links": [
       3,
       4,
-      18
+      18,
+      22
      ],
      "slot_index": 0
     },
@@ -242,7 +243,8 @@
      "name": "camera",
      "type": "DIFFORUM_CAMERA",
      "links": [
-      19
+      19,
+      23
      ],
      "slot_index": 0
     },
@@ -250,7 +252,7 @@
      "name": "cycle_frames",
      "type": "INT",
      "links": [
-      22
+      26
      ],
      "slot_index": 1
     },
@@ -466,7 +468,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      17
+      17,
+      21
      ],
      "slot_index": 0
     }
@@ -565,6 +568,16 @@
      "name": "control_image",
      "type": "IMAGE",
      "link": null
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": null
     }
    ],
    "outputs": [
@@ -572,7 +585,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      21
+      25
      ],
      "slot_index": 0
     },
@@ -597,13 +610,123 @@
     6.0,
     "euler",
     "normal",
-    1,
+    2,
     0.6,
-    0.5
+    0.5,
+    0.65,
+    12
    ]
   },
   {
    "id": 11,
+   "type": "Difforum_Storyboard",
+   "pos": [
+    -420,
+    360
+   ],
+   "size": [
+    380,
+    220
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 21
+    },
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": null
+    },
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": 22
+    },
+    {
+     "name": "camera",
+     "type": "DIFFORUM_CAMERA",
+     "link": 23
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "sheet",
+     "type": "IMAGE",
+     "links": [
+      24
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "camera_path",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 2
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 3
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Storyboard"
+   },
+   "widgets_values": [
+    8,
+    6,
+    0.5,
+    "none"
+   ],
+   "title": "Storyboard (previz the loop)"
+  },
+  {
+   "id": 12,
+   "type": "PreviewImage",
+   "pos": [
+    -420,
+    620
+   ],
+   "size": [
+    380,
+    300
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 24
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Contact sheet"
+  },
+  {
+   "id": 13,
    "type": "Difforum_Loop",
    "pos": [
     1260,
@@ -614,18 +737,18 @@
     160
    ],
    "flags": {},
-   "order": 10,
+   "order": 12,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 21
+     "link": 25
     },
     {
      "name": "cycle_frames",
      "type": "INT",
-     "link": 22,
+     "link": 26,
      "widget": {
       "name": "cycle_frames"
      }
@@ -636,7 +759,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      23
+      27
      ],
      "slot_index": 0
     },
@@ -657,7 +780,7 @@
    ]
   },
   {
-   "id": 12,
+   "id": 14,
    "type": "CreateVideo",
    "pos": [
     1600,
@@ -668,13 +791,13 @@
     100
    ],
    "flags": {},
-   "order": 11,
+   "order": 13,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 23
+     "link": 27
     },
     {
      "name": "audio",
@@ -687,7 +810,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      24
+      28
      ],
      "slot_index": 0
     }
@@ -700,7 +823,7 @@
    ]
   },
   {
-   "id": 13,
+   "id": 15,
    "type": "SaveVideo",
    "pos": [
     1600,
@@ -711,13 +834,13 @@
     320
    ],
    "flags": {},
-   "order": 12,
+   "order": 14,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 24
+     "link": 28
     }
    ],
    "outputs": [],
@@ -731,7 +854,7 @@
    ]
   },
   {
-   "id": 14,
+   "id": 16,
    "type": "MarkdownNote",
    "pos": [
     0,
@@ -739,10 +862,10 @@
    ],
    "size": [
     560,
-    180
+    260
    ],
    "flags": {},
-   "order": 13,
+   "order": 15,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -750,7 +873,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## Loop without a crossfade\n\nThe Camera path is made periodic over 120 frames and rendered for 3 laps; the feedback settles onto its cycle and **Loop** keeps the last lap. For projections that run for hours."
+    "## Loop without a crossfade\n\nThe Camera path is made periodic over 120 frames and rendered for 3 laps; the feedback settles onto its cycle and **Loop** keeps the last lap. For projections that run for hours.\n\n**Speed:** 360 frames at cadence 2 = 180 diffused frames, each running steps x energy (10 of 20 at 0.5). Previz with the Storyboard first. Faster: a DMD2 / Lightning LoRA (steps 4-6, cfg 1-2) or `long_edge` 512 on Setup. Launch ComfyUI without `--lowvram` / `--disable-smart-memory` for feedback renders: they reload the model every frame."
    ]
   }
  ],
@@ -917,7 +1040,7 @@
   ],
   [
    21,
-   10,
+   9,
    0,
    11,
    0,
@@ -925,14 +1048,22 @@
   ],
   [
    22,
-   5,
-   1,
+   4,
+   0,
    11,
-   1,
-   "INT"
+   2,
+   "DIFFORUM_PARAMS"
   ],
   [
    23,
+   5,
+   0,
+   11,
+   3,
+   "DIFFORUM_CAMERA"
+  ],
+  [
+   24,
    11,
    0,
    12,
@@ -940,10 +1071,34 @@
    "IMAGE"
   ],
   [
-   24,
-   12,
+   25,
+   10,
    0,
    13,
+   0,
+   "IMAGE"
+  ],
+  [
+   26,
+   5,
+   1,
+   13,
+   1,
+   "INT"
+  ],
+  [
+   27,
+   13,
+   0,
+   14,
+   0,
+   "IMAGE"
+  ],
+  [
+   28,
+   14,
+   0,
+   15,
    0,
    "VIDEO"
   ]

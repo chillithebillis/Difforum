@@ -368,15 +368,210 @@ class DifforumStoryboard:
         return (sheet, torch.cat(frames, dim=0), path, info)
 
 
+# ---------------------------------------------------------------------------
+# Keyframe Images (multikeyframing) and Animatic (previz)
+# ---------------------------------------------------------------------------
+
+def _parse_times(text: str, fps: float, n: int) -> list[int]:
+    """'0, 4s, 9.5s, 200' -> frame indices (seconds with an s suffix)."""
+    out = []
+    for tok in str(text or "").replace(";", ",").split(","):
+        tok = tok.strip().lower()
+        if not tok:
+            continue
+        try:
+            f = round(float(tok[:-1]) * fps) if tok.endswith("s") else int(float(tok))
+        except ValueError:
+            continue
+        out.append(max(0, min(n - 1, f)))
+    return out
+
+
+class DifforumKeyframeImages:
+    """Pin your own pictures to moments of the clip (multikeyframing).
+
+    Place markers on the Director's **Keys** track (or type times: `0, 4s,
+    9.5s`) and feed a batch of images in the same order. The keyframes then
+    drive every renderer: the Feedback Sampler travels *through* them, H3 /
+    LTX Guides anchor them, the Animatic shows them. Made for installations and
+    experimental pieces where the image has to hit a picture on a beat.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {"images": ("IMAGE", {"tooltip": "One image per key, in order (use a Batch Images node)."})},
+            "optional": {
+                "direction": (DIRECTION,),
+                "params": (PARAMS,),
+                "times": ("STRING", {"default": "", "tooltip": "Override: '0, 4s, 9.5s' or frame numbers."}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING")
+    RETURN_NAMES = ("keyframes", "indices", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_DIRECT
+
+    def run(self, images, direction=None, params=None, times=""):
+        from ..core.engine import resize_bhwc
+        params = params or (direction.params if direction is not None else None)
+        if params is None:
+            raise ValueError("Keyframe Images needs a direction or params.")
+        n, fps = int(params["max_frames"]), float(params["fps"])
+        notes = []
+        if str(times).strip():
+            idx = _parse_times(times, fps, n)
+        elif direction is not None and direction.direction.keys:
+            idx = [k["start"] for k in direction.direction.keys]
+        else:
+            m = images.shape[0]
+            idx = [round(i * (n - 1) / max(1, m - 1)) for i in range(m)]
+            notes.append("  no Keys markers or times: spread evenly")
+        count = min(len(idx), images.shape[0])
+        if count < max(len(idx), images.shape[0]):
+            notes.append(f"  {len(idx)} times for {images.shape[0]} images: using {count}")
+        pairs = sorted(zip(idx[:count], range(count)))
+        keys = resize_bhwc(images[[i for _f, i in pairs]][..., :3], int(params["width"]), int(params["height"]))
+        frames = [f for f, _i in pairs]
+        info = "\n".join([f"{count} keyframes: " + ", ".join(f"{f / fps:.2f}s" for f in frames), *notes])
+        return (keys, ",".join(map(str, frames)), info)
+
+
+def _synthetic_plate(w: int, h: int):
+    """A readable stand-in image (gradient, grid, circle) when no picture is given."""
+    import torch
+    ys, xs = torch.meshgrid(torch.linspace(0, 1, h), torch.linspace(0, 1, w), indexing="ij")
+    img = torch.stack([0.12 + 0.35 * xs, 0.10 + 0.20 * ys, 0.30 + 0.25 * (1 - xs)], dim=-1)
+    grid = ((torch.remainder(xs * 12, 1) < 0.03) | (torch.remainder(ys * 12 * h / w, 1) < 0.03)).float()
+    r = ((xs - 0.5) * w / h) ** 2 + (ys - 0.5) ** 2
+    ring = ((r > 0.16 ** 2) & (r < 0.175 ** 2)).float()
+    img = img + 0.25 * grid[..., None] + 0.6 * ring[..., None]
+    return img.clamp(0, 1).unsqueeze(0)
+
+
+class DifforumAnimatic:
+    """Previz the whole shot before rendering anything heavy.
+
+    Plays the Director's camera over your first frame (or a stand-in plate) at
+    low resolution, in about a second, with the timecode, the active scene
+    prompt, the camera move, the energy level and the keyframe markers burnt
+    in. Image keyframes, when connected, show up at their moments. Send it to
+    Create Video + Save Video; the Director's "Previz only" button mutes the
+    render outputs so only this runs.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "direction": (DIRECTION,),
+                "preview_scale": ("FLOAT", {"default": 0.4, "min": 0.1, "max": 1.0, "step": 0.05}),
+                "overlay": ("BOOLEAN", {"default": True}),
+            },
+            "optional": {
+                "init_image": ("IMAGE",),
+                "depth": ("IMAGE",),
+                "key_images": ("IMAGE",),
+                "key_indices": ("STRING", {"forceInput": True}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", "FLOAT", "STRING")
+    RETURN_NAMES = ("frames", "fps", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_DIRECT
+
+    def run(self, direction, preview_scale, overlay, init_image=None, depth=None,
+            key_images=None, key_indices=""):
+        import torch
+
+        from ..core.engine import EngineConfig, FeedbackEngine, iter_feedback
+        from .render import key_hook
+
+        params, camera, d = direction.params, direction.camera, direction.direction
+        n, fps = min(int(params["max_frames"]), len(camera.deltas)), float(params["fps"])
+        w = max(64, int(params["width"] * preview_scale) // 8 * 8)
+        h = max(64, int(params["height"] * preview_scale) // 8 * 8)
+        plate = init_image if init_image is not None else _synthetic_plate(w, h)
+        engine = FeedbackEngine(camera, EngineConfig(width=w, height=h, sharpen=0.0, noise=0.0,
+                                hole_noise=0.0, color_mode="none", anchor_mode="none"), depth=depth)
+        hook = key_hook(key_images, key_indices, w, h, 1.0, 6)
+        frames = [img for _f, img in iter_feedback(engine, plate, n, pre_warp=hook)]
+        video = torch.cat(frames, dim=0)
+        key_frames = [int(t) for t in str(key_indices or "").split(",") if t.strip().isdigit()]
+        key_frames = key_frames or [k["start"] for k in d.keys]
+        if overlay:
+            video = _burn_overlay(video, d, direction.strength, fps, key_frames)
+        info = (f"animatic {n} frames {w}x{h} ({engine.report.mode}), "
+                f"{len(key_frames)} key(s); {n / fps:.2f}s")
+        return (video, fps, info)
+
+
+def _burn_overlay(video, d, strength, fps, key_frames):
+    import numpy as np
+    import torch
+    from PIL import Image, ImageDraw, ImageFont
+
+    from ..core.camera_presets import MOVE_INFO
+
+    n, h, w = video.shape[0], video.shape[1], video.shape[2]
+    size = max(10, h // 22)
+    try:
+        font = ImageFont.load_default(size=size)
+    except TypeError:            # Pillow < 10.1
+        font = ImageFont.load_default()
+    out = []
+    for f in range(n):
+        img = Image.fromarray((video[f].clamp(0, 1).numpy() * 255).astype("uint8"))
+        dr = ImageDraw.Draw(img, "RGBA")
+        scene = next((s for s in reversed(d.scenes) if s["start"] <= f), None)
+        cam = next((c for c in reversed(d.camera_blocks) if c["start"] <= f), None)
+        sec = f / fps
+        head = f"{int(sec // 60):02d}:{sec % 60:05.2f}  f{f}"
+        move = MOVE_INFO[cam["move"]][0] if cam else "Still"
+        dr.rectangle([0, 0, w, size * 2 + 8], fill=(0, 0, 0, 150))
+        dr.text((6, 3), f"{head}   CAM {move}", fill=(255, 255, 255, 255), font=font)
+        if scene:
+            text = f"[{scene['mood']}] {scene['prompt']}"
+            while len(text) > 8 and dr.textlength(text, font=font) > w - 12:
+                text = text[:-4] + "..."
+            dr.text((6, size + 6), text, fill=(210, 210, 210, 255), font=font)
+        # bottom strip: energy + progress + key markers
+        bar = max(6, h // 40)
+        y0 = h - bar - 4
+        dr.rectangle([0, y0 - 2, w, h], fill=(0, 0, 0, 150))
+        e = float(strength.at(f)) if strength is not None else 0.0
+        dr.rectangle([4, y0, 4 + int((w - 8) * min(1.0, e)), y0 + bar // 2], fill=(240, 181, 58, 230))
+        px = int(4 + (w - 8) * f / max(1, n - 1))
+        dr.rectangle([4, y0 + bar // 2 + 1, px, y0 + bar], fill=(79, 142, 247, 230))
+        for k in key_frames:
+            kx = int(4 + (w - 8) * k / max(1, n - 1))
+            dr.polygon([(kx, y0 - 2), (kx + 4, y0 + bar // 2), (kx, y0 + bar + 2), (kx - 4, y0 + bar // 2)],
+                       fill=(255, 255, 255, 230))
+        if any(abs(f - k) <= 1 for k in key_frames):
+            dr.rectangle([0, 0, w - 1, h - 1], outline=(255, 255, 255, 255), width=max(2, h // 90))
+        out.append(torch.from_numpy(np.asarray(img).astype("float32") / 255.0))
+    return torch.stack(out, dim=0)
+
+
 NODE_CLASS_MAPPINGS = {
     "Difforum_Director": DifforumDirector,
     "Difforum_Camera": DifforumCamera,
     "Difforum_CameraExpr": DifforumCameraExpr,
     "Difforum_Storyboard": DifforumStoryboard,
+    "Difforum_KeyframeImages": DifforumKeyframeImages,
+    "Difforum_Animatic": DifforumAnimatic,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_Director": "Difforum · Director (timeline)",
     "Difforum_Camera": "Difforum · Camera (keys)",
     "Difforum_CameraExpr": "Difforum · Camera (expressions)",
     "Difforum_Storyboard": "Difforum · Storyboard",
+    "Difforum_KeyframeImages": "Difforum · Keyframe Images",
+    "Difforum_Animatic": "Difforum · Animatic (previz)",
 }

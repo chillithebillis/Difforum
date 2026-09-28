@@ -1,6 +1,6 @@
 # Migrating from Difforum 0.x
 
-Difforum 1.0 goes from 40 nodes to 27 and makes the Director timeline the main
+Difforum 1.0 goes from 40 nodes to 30 and makes the Director timeline the main
 way to drive a shot. Nothing breaks on load: every 0.x node is still
 registered, hidden from the node search and moved to **Difforum/legacy**, so
 old workflows open and run. Legacy nodes will be removed in 2.0.
@@ -16,7 +16,7 @@ old workflows open and run. Legacy nodes will be removed in 2.0.
 | Camera Move (presets) | **Camera (keys)** with a single key, or one Director block |
 | Seamless Camera | **Camera (keys)** with `loop_mode` |
 | Camera (advanced) | **Camera (expressions)**, where each axis also accepts a schedule socket (e.g. an Audio Curve) |
-| Camera Path Preview, Warp (2D/3D), Storyboard | **Storyboard** (sheet + frames + camera path, same engine as the sampler) |
+| Camera Path Preview, Warp (2D/3D), Storyboard | **Storyboard** (sheet + frames + camera path, same engine as the sampler), or **Animatic** for a previz video |
 | Schedule / Sample Schedule | **Schedule** |
 | Schedule Info / Schedule Plot | **Schedule Plot** (image + text) |
 | Audio Analyzer | **Audio Analyzer** (+ `offset_seconds`, a bands plot) |
@@ -42,6 +42,8 @@ old workflows open and run. Legacy nodes will be removed in 2.0.
 - **The depth map follows the image** (`depth_tracking = follow`). Set `static` for
   the 0.x behaviour.
 - **Cadence** in-betweens are crossfaded between keys instead of being plain warps.
+- **Steps scale with the energy** (`step_scaling = by energy`): a frame at denoise 0.5
+  runs half the steps, like Deforum. Set `fixed` on Render Options for the 0.x cost.
 - **Colour anchor** defaults to `scene`. Set `anchor_mode = first` for 0.x.
 - **The camera pose** accumulates in view order (`P_f = d_f · P_{f-1}`). Poses from
   combined rotation + translation moves differ slightly from 0.x; per-frame

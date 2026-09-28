@@ -115,3 +115,33 @@ To push a model like H3 toward the Deforum or AnimateDiff look, use template
 chosen look, Keyframes takes one per second, and H3 Guides anchors them - H3
 animates between Deforum frames. More guides stay closer to the look pass;
 fewer give H3 more freedom.
+
+**Look Mix** closes the loop: it takes the H3 / LTX render and the feedback look
+pass and combines them.
+
+| mode | what you get |
+|---|---|
+| `detail transfer` | H3's motion and light, the pass's brush / grain texture on top |
+| `colour + detail` | also pulls the palette toward the pass |
+| `flicker cuts` | cuts to the look pass every `flicker_every` frames: the AnimateDiff / Disco strobe |
+| `crossfade` | a plain mix by `amount` |
+| `none` | the clean H3 render |
+
+`step_fps` (8-12) holds frames for a hand-made stutter. The looks `disco_diffusion`,
+`vqgan_clip` and `flicker_experimental` are made for this pairing.
+
+## Multikeyframing and previz
+
+Put markers on the Director's **Keys** track (click the lane, drag to move,
+alt-click to remove, name each one in the inspector). **Keyframe Images** pins
+one picture per key (or takes times such as `0, 4s, 9.5s`) and outputs
+`keyframes` + `indices`, which go to:
+
+- **Feedback Sampler** `key_images` / `key_indices`: the travel steers toward each
+  picture during `key_approach` frames, `key_pull` 1.0 lands on it exactly;
+- **H3 Guides** / **LTX Guides**: anchored at those frames;
+- **Animatic**: shown at their moments, with a flash.
+
+The **Animatic** is the previz of the whole shot (low resolution, a few seconds
+even for a minute of footage). Press **Previz only** on the Director to mute every
+render output, queue, check, then press it again to render.

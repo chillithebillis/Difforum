@@ -53,6 +53,8 @@ EXTERNAL = {
     "DepthAnything_V2": ([("da_model", "DAMODEL"), ("images", "IMAGE")], [], [("image", "IMAGE")]),
     "EmptyLTXVLatentVideo": ([], ["width", "height", "length", "batch_size"], [("LATENT", "LATENT")]),
     "MarkdownNote": ([], ["text"], []),
+    "BatchImagesNode": ([("images.image0", "IMAGE"), ("images.image1", "IMAGE"), ("images.image2", "IMAGE")],
+                        [], [("IMAGE", "IMAGE")]),
     # MiniMax H3 (ComfyUI core) - names match the official templates
     "UNETLoader": ([], ["unet_name", "weight_dtype"], [("MODEL", "MODEL")]),
     "LoraLoaderModelOnly": ([("model", "MODEL")], ["lora_name", "strength_model"], [("MODEL", "MODEL")]),
@@ -175,6 +177,29 @@ def tl_json(frames, **patch):
 # workflows
 # ---------------------------------------------------------------------------
 
+def previz(g, d, x=-420, y=0, init=None, keys=None, depth=None, fps_src=None):
+    """Animatic -> video: every template can previz the whole shot before rendering."""
+    g.note((x, y), "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy "
+           "and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes "
+           "the render outputs: Queue then runs just this. Click it again to render.", size=(380, 200))
+    an = g.add("Difforum_Animatic", (x, y + 240), size=(380, 180), title="Animatic (previz)")
+    g.link(d, "direction", an, "direction")
+    if init:
+        g.link(init[0], init[1], an, "init_image")
+    if depth:
+        g.link(depth[0], depth[1], an, "depth")
+    if keys:
+        g.link(keys[0], "keyframes", an, "key_images")
+        g.link(keys[0], "indices", an, "key_indices")
+    cv = g.add("CreateVideo", (x, y + 460), size=(380, 100), fps=24.0)
+    g.link(an, "frames", cv, "images")
+    g.link(an, "fps", cv, "fps")
+    sv = g.add("SaveVideo", (x, y + 600), size=(380, 360), title="Previz video",
+               filename_prefix="video/difforum_previz", format="auto", codec="auto")
+    g.link(cv, "VIDEO", sv, "video")
+    return an
+
+
 def sd_front(g, x=0, y=0, ckpt="sd_xl_base_1.0.safetensors", pos_text="", steps=24, cfg=6.0,
              sampler="dpmpp_2m", scheduler="karras"):
     """Checkpoint + prompts + first frame. Returns ids."""
@@ -227,6 +252,7 @@ def wf_storyboard():
     g.link(d, "direction", cp, "direction")
     t = g.add("PreviewAny", (1200, 480), size=(320, 200), title="Camera in words")
     g.link(cp, "text", t, "source")
+    previz(g, d, init=(img, "IMAGE"))
     return g
 
 
@@ -255,6 +281,7 @@ def wf_feedback(depth=False, title="02 · Feedback render (SDXL)", camera_mode="
         g.link(dm, "da_v2_model", da, "da_model")
         g.link(dec, "IMAGE", da, "images")
         g.link(da, "image", fb, "depth")
+    previz(g, d, x=-420, y=360, init=(dec, "IMAGE"), depth=(da, "image") if depth else None)
     st = g.add("Difforum_FlowStabilize", (1660, 360), size=(300, 130), strength=0.45)
     g.link(fb, "frames", st, "frames")
     cv = g.add("CreateVideo", (2000, 360), size=(260, 100), fps=24.0)
@@ -337,6 +364,7 @@ def wf_live():
     g.link(neg, "CONDITIONING", lv, "negative")
     g.link(dec, "IMAGE", lv, "init_image")
     g.link(d, "direction", lv, "direction")
+    previz(g, d, x=-420, y=360, init=(dec, "IMAGE"))
     pv = g.add("PreviewImage", (1660, 360), size=(400, 300))
     g.link(lv, "frames", pv, "images")
     g.note((0, -320), "## Live\n\nQueue once: the node plays in place. `live_source` = `0` for a "
@@ -355,7 +383,7 @@ def wf_loop():
     sch = g.add("Difforum_Schedule", (420, 760), size=(380, 160), schedule="0:(0.5)")
     g.link(s, "params", sch, "params")
     dec = first_frame(g, ck, pos, neg, s, 820, 0)
-    fb = g.add("Difforum_FeedbackSampler", (860, 360), size=(360, 460))
+    fb = g.add("Difforum_FeedbackSampler", (860, 360), size=(360, 460), cadence=2)
     for a, b in (("MODEL", "model"), ("VAE", "vae")):
         g.link(ck, a, fb, b)
     g.link(pos, "CONDITIONING", fb, "positive")
@@ -364,6 +392,12 @@ def wf_loop():
     g.link(s, "params", fb, "params")
     g.link(cam, "camera", fb, "camera")
     g.link(sch, "schedule", fb, "strength")
+    sb = g.add("Difforum_Storyboard", (-420, 360), size=(380, 220), title="Storyboard (previz the loop)")
+    g.link(dec, "IMAGE", sb, "init_image")
+    g.link(s, "params", sb, "params")
+    g.link(cam, "camera", sb, "camera")
+    sbp = g.add("PreviewImage", (-420, 620), size=(380, 300), title="Contact sheet")
+    g.link(sb, "sheet", sbp, "images")
     lp = g.add("Difforum_Loop", (1260, 360), size=(300, 160), method="keep settled lap")
     g.link(fb, "frames", lp, "frames")
     g.link(cam, "cycle_frames", lp, "cycle_frames")
@@ -374,7 +408,11 @@ def wf_loop():
     g.link(cv, "VIDEO", sv, "video")
     g.note((0, -320), "## Loop without a crossfade\n\nThe Camera path is made periodic over 120 frames "
            "and rendered for 3 laps; the feedback settles onto its cycle and **Loop** keeps the last "
-           "lap. For projections that run for hours.", size=(560, 180))
+           "lap. For projections that run for hours.\n\n**Speed:** 360 frames at cadence 2 = 180 diffused "
+           "frames, each running steps x energy (10 of 20 at 0.5). Previz with the Storyboard first. "
+           "Faster: a DMD2 / Lightning LoRA (steps 4-6, cfg 1-2) or `long_edge` 512 on Setup. Launch "
+           "ComfyUI without `--lowvram` / `--disable-smart-memory` for feedback renders: they reload "
+           "the model every frame.", size=(560, 260))
     return g
 
 
@@ -402,6 +440,7 @@ def wf_ltx():
     g.link(lat, "LATENT", lg, "latent")
     cp = g.add("Difforum_CameraPrompt", (1580, 0), size=(340, 160), format="prompt suffix")
     g.link(d, "direction", cp, "direction")
+    previz(g, d, init=(img, "IMAGE"))
     pv = g.add("PreviewImage", (1580, 540), size=(340, 260), title="Keyframes")
     g.link(kf, "keyframes", pv, "images")
     g.note((1960, 0), "## Wire into your LTX graph\n\nConnect your LTX **positive / negative** "
@@ -415,7 +454,7 @@ def wf_ltx():
 
 
 def h3_render(g, x, y, conditioning_node, cond_out, latent_node, latent_out, model_node, setup, audio_vae,
-              video_vae, lora, steps=20):
+              video_vae, lora, steps=20, look_pass=None):
     """The official MiniMax H3 sampling tail: guider -> custom sampler -> AV decode -> video."""
     lo = g.add("LoraLoaderModelOnly", (x, y - 120), size=(360, 90), title="Turbo LoRA (Ctrl+B to enable, then steps 4-8)",
                mode=4, lora_name=lora, strength_model=1.0)
@@ -440,7 +479,14 @@ def h3_render(g, x, y, conditioning_node, cond_out, latent_node, latent_out, mod
     g.link(sa, "output", da, "samples")
     g.link(audio_vae, "VAE", da, "vae")
     cv = g.add("CreateVideo", (x + 840, y), size=(240, 100), fps=24.0)
-    g.link(dv, "IMAGE", cv, "images")
+    if look_pass is not None:
+        lm = g.add("Difforum_LookMix", (x + 560, y + 200), size=(260, 300), title="Look Mix (H3 motion + look)",
+                   mode="detail transfer", amount=0.6)
+        g.link(dv, "IMAGE", lm, "video")
+        g.link(look_pass[0], look_pass[1], lm, "look_pass")
+        g.link(lm, "frames", cv, "images")
+    else:
+        g.link(dv, "IMAGE", cv, "images")
     g.link(da, "AUDIO", cv, "audio")
     sv = g.add("SaveVideo", (x + 840, y + 140), size=(420, 420), filename_prefix="video/difforum_h3",
                format="auto", codec="auto")
@@ -523,6 +569,7 @@ def wf_h3():
     g.link(h3, "length", i2v, "length")
     h3_render(g, 2080, 120, i2v, "positive", i2v, "LATENT", un, s, va, vv,
               "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors")
+    previz(g, d, init=(img, "IMAGE"))
     p1 = g.add("PreviewImage", (1600, 620), size=(360, 260), title="Last frame, AI-filled")
     g.link(fr, "images", p1, "images")
     g.note((0, -360), "## MiniMax H3 · first / last frame\n\nThe **Director** draws the move, **Guide Frames** "
@@ -536,7 +583,7 @@ def wf_h3():
     return g
 
 
-def h3_guides_graph(g, s, d, kf_source, kf_masks, anchor, fm=None, max_guides=4, cp_prefix=""):
+def h3_guides_graph(g, s, d, kf_source, kf_masks, anchor, fm=None, max_guides=4, cp_prefix="", look_pass=None):
     """Keyframes -> (Fill Reveal) -> H3 Guides -> official ref2va tail."""
     kf = g.add("Difforum_Keyframes", (1200, 240), size=(340, 240), grid="MiniMax H3 (17k+5)",
                every_seconds=2.0 if max_guides <= 4 else 1.0)
@@ -568,7 +615,7 @@ def h3_guides_graph(g, s, d, kf_source, kf_masks, anchor, fm=None, max_guides=4,
     g.link(keys[0], keys[1], hg, "keyframes")
     g.link(kf, "indices", hg, "indices")
     h3_render(g, 2080, 120, hg, "positive", r2v, "LATENT", un, s, va, vv,
-              "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors")
+              "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", look_pass=look_pass)
     pv = g.add("PreviewImage", (1600, 900), size=(420, 280), title="Keyframes sent to H3")
     g.link(keys[0], keys[1], pv, "images")
 
@@ -583,6 +630,7 @@ def wf_h3_guides():
     g.link(img, "IMAGE", gf, "anchor_image")
     g.link(d, "direction", gf, "direction")
     fm = fill_model(g, 360, 930, SCENE)
+    previz(g, d, init=(img, "IMAGE"))
     h3_guides_graph(g, s, d, (gf, "guide_frames"), (gf, "masks"), (img, "IMAGE"), fm, 4,
                     "<Picture 1> shows a misty ancient forest at dawn. Keep its look, light and "
                     "composition. Soft ambient birdsong, a low wind.")
@@ -628,15 +676,18 @@ def wf_h3_deforum():
     g.link(neg, "CONDITIONING", fb, "negative")
     g.link(img, "IMAGE", fb, "init_image")
     g.link(d, "direction", fb, "direction")
+    previz(g, d, init=(img, "IMAGE"))
     h3_guides_graph(g, s, d, (fb, "frames"), None, (img, "IMAGE"), None, 6,
-                    "<Picture 1> is the opening image.")
+                    "<Picture 1> is the opening image.", look_pass=(fb, "frames"))
     g.note((0, -360), "## Deforum / AnimateDiff look, H3 motion\n\nA fast **Feedback Sampler** pass (a turbo "
            "model, 4 steps) renders the shot in the Deforum style: every frame re-imagines the last. "
            "**Keyframes** takes one per second and **H3 Guides** anchors them, so MiniMax H3 animates "
            "*between* Deforum frames - the morphing look with H3's temporal coherence and sound.\n\n"
            "- Change the Director **look**: `deforum_morph`, `animatediff_dream`, `psychedelic`, "
            "`hand_drawn`... It sets the feedback pass and the H3 prompt together.\n"
-           "- More guides (`max_guides` 6-8) = closer to the Deforum pass; fewer = more H3 freedom.",
+           "- More guides (`max_guides` 6-8) = closer to the Deforum pass; fewer = more H3 freedom.\n"
+           "- **Look Mix** puts the pass's texture back on the H3 frames (`detail transfer`), or cuts "
+           "between them (`flicker cuts`) for the AnimateDiff / Disco flicker. `none` = clean H3.",
            size=(640, 300))
     return g
 
@@ -659,6 +710,7 @@ def wf_export():
     g.link(im, "camera", sb, "camera")
     pv = g.add("PreviewImage", (1960, 260), size=(520, 320))
     g.link(sb, "sheet", pv, "images")
+    previz(g, d, init=(img, "IMAGE"))
     g.note((0, -320), "## Camera interchange\n\n**Camera Export** writes to `output/difforum/`: a "
            "`.jsx` for After Effects (File > Scripts > Run Script File), a `.py` for Blender "
            "(Text Editor > Run) and a `.json`. Composite titles or 3D on top of the render with "
@@ -667,6 +719,78 @@ def wf_export():
            "Difforum Export Camera.jsx` - so a move blocked in Blender or AE drives the AI shot. "
            "(The import branch errors until a file is in `input/`: bypass it with Ctrl+B.)",
            size=(620, 260))
+    return g
+
+
+def wf_long_shot():
+    g = Graph("12 · Long shot with key moments (installations)")
+    fps, secs_ = 24, 30
+    n = fps * secs_
+    tl = tl_json(n, scenes=[
+        {"start": 0, "mood": "calm", "prompt": "an empty white gallery, soft daylight, concrete floor"},
+        {"start": 6 * fps, "mood": "dream", "prompt": "the walls breathe, ink blooms across the plaster"},
+        {"start": 12 * fps, "mood": "build", "prompt": "a forest grows out of the ink, roots on the floor"},
+        {"start": 19 * fps, "mood": "climax", "prompt": "the forest burns into light, a nebula fills the room"},
+        {"start": 25 * fps, "mood": "resolve", "prompt": "stars settle into an empty white gallery"},
+    ], camera=[
+        {"start": 0, "move": "zoom_in", "speed": 0.5, "intensity": 0.6, "ease": "ease_in_out"},
+        {"start": 6 * fps, "move": "drift", "speed": 0.8, "intensity": 0.8, "ease": "ease_in_out"},
+        {"start": 12 * fps, "move": "pan_right", "speed": 0.9, "intensity": 0.8, "ease": "ease_in_out"},
+        {"start": 19 * fps, "move": "vortex", "speed": 1.4, "intensity": 1.1, "ease": "ease_in"},
+        {"start": 25 * fps, "move": "zoom_out", "speed": 0.5, "intensity": 0.6, "ease": "ease_out"},
+    ], keys=[
+        {"start": 0, "label": "opening image"},
+        {"start": 12 * fps, "label": "the forest"},
+        {"start": 25 * fps, "label": "back to the room"},
+    ])
+    ck, pos, neg = sd_front(g, 0, -420, ckpt="sd_xl_turbo_1.0_fp16.safetensors",
+                            pos_text="painterly, dreamy, rich detail, glowing light")
+    s = g.add("Difforum_Setup", (0, 0), size=(320, 300), duration=float(secs_), long_edge=768)
+    d = g.add("Difforum_Director", (360, 0), size=(800, 880), camera_mode="2d", look="disco_diffusion",
+              timeline=tl)
+    g.link(s, "params", d, "params")
+    g.link(ck, "CLIP", d, "clip")
+    imgs = [g.add("LoadImage", (0, 360 + 380 * i), size=(320, 340), image="example.png", title=t)
+            for i, t in enumerate(("Key 1 · opening", "Key 2 · the forest", "Key 3 · back to the room"))]
+    bt = g.add("BatchImagesNode", (360, 930), size=(260, 120), title="Batch Images (one per key)")
+    for i, im in enumerate(imgs):
+        g.link(im, "IMAGE", bt, f"images.image{i}")
+    ki = g.add("Difforum_KeyframeImages", (660, 930), size=(340, 160))
+    g.link(bt, "IMAGE", ki, "images")
+    g.link(d, "direction", ki, "direction")
+    kinfo = g.add("PreviewAny", (660, 1130), size=(340, 140), title="Where the keys land")
+    g.link(ki, "info", kinfo, "source")
+    previz(g, d, init=(imgs[0], "IMAGE"), keys=(ki,))
+    fb = g.add("Difforum_FeedbackSampler", (1200, 0), size=(360, 520), steps=4, cfg=1.0,
+               sampler_name="euler_ancestral", scheduler="sgm_uniform", cadence=2, key_pull=0.65,
+               key_approach=24)
+    for a_, b_ in (("MODEL", "model"), ("VAE", "vae")):
+        g.link(ck, a_, fb, b_)
+    g.link(pos, "CONDITIONING", fb, "positive")
+    g.link(neg, "CONDITIONING", fb, "negative")
+    g.link(imgs[0], "IMAGE", fb, "init_image")
+    g.link(d, "direction", fb, "direction")
+    g.link(ki, "keyframes", fb, "key_images")
+    g.link(ki, "indices", fb, "key_indices")
+    st = g.add("Difforum_FlowStabilize", (1600, 0), size=(300, 130), strength=0.35)
+    g.link(fb, "frames", st, "frames")
+    cv = g.add("CreateVideo", (1940, 0), size=(260, 100), fps=24.0)
+    g.link(st, "frames", cv, "images")
+    g.link(s, "fps", cv, "fps")
+    sv = g.add("SaveVideo", (1940, 140), size=(360, 320), filename_prefix="video/difforum_long",
+               format="auto", codec="auto")
+    g.link(cv, "VIDEO", sv, "video")
+    rp = g.add("PreviewAny", (1600, 180), size=(300, 200), title="Run report")
+    g.link(fb, "report", rp, "source")
+    g.note((1200, 580), "## Long shot, key moments\n\nA 30 s shot built for installations: five scenes, "
+           "five camera moves and three **Keys** (the pink diamonds on the Director). **Keyframe Images** "
+           "pins one picture to each key, and the **Feedback Sampler** travels *through* them: it steers "
+           "toward the next key during `key_approach` frames, so the piece lands on your image on cue.\n\n"
+           "1. Press **Previz only** on the Director and Queue: the Animatic shows the 30 s in seconds, "
+           "keys flashing.\n2. Mouse wheel on the timeline zooms, shift+wheel scrolls; **Fit** shows it all.\n"
+           "3. Click **Previz only** again to render. For H3 / LTX, feed Keyframe Images into their Guides "
+           "nodes instead.\n\nLook: `disco_diffusion`. Try `flicker_experimental`, `vqgan_clip`, "
+           "`animatediff_dream`.", size=(700, 380))
     return g
 
 
@@ -682,6 +806,7 @@ WORKFLOWS = {
     "09_camera_to_ae_blender.json": wf_export,
     "10_h3_multikeyframe_guides.json": wf_h3_guides,
     "11_h3_deforum_look.json": wf_h3_deforum,
+    "12_long_shot_keys.json": wf_long_shot,
 }
 
 

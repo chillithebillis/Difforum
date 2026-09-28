@@ -1,6 +1,6 @@
 {
- "last_node_id": 10,
- "last_link_id": 13,
+ "last_node_id": 14,
+ "last_link_id": 18,
  "nodes": [
   {
    "id": 1,
@@ -117,7 +117,8 @@
      "type": "DIFFORUM_DIRECTION",
      "links": [
       3,
-      12
+      12,
+      13
      ],
      "slot_index": 0
     },
@@ -156,7 +157,7 @@
     "Node name for S&R": "Difforum_Director"
    },
    "widgets_values": [
-    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 30, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 60, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 90, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 30, \"move\": \"pan_right\", \"speed\": 1.0, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 60, \"move\": \"spiral\", \"speed\": 1.4, \"intensity\": 1.1, \"lens\": 0.0, \"ease\": \"ease_in\", \"react\": \"none\"}, {\"start\": 90, \"move\": \"zoom_out\", \"speed\": 0.6, \"intensity\": 0.5, \"lens\": 0.0, \"ease\": \"ease_out\", \"react\": \"none\"}], \"energy\": [], \"guidance\": []}",
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 30, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 60, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 90, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 30, \"move\": \"pan_right\", \"speed\": 1.0, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 60, \"move\": \"spiral\", \"speed\": 1.4, \"intensity\": 1.1, \"lens\": 0.0, \"ease\": \"ease_in\", \"react\": \"none\"}, {\"start\": 90, \"move\": \"zoom_out\", \"speed\": 0.6, \"intensity\": 0.5, \"lens\": 0.0, \"ease\": \"ease_out\", \"react\": \"none\"}], \"keys\": [{\"start\": 60, \"label\": \"the light breaks\"}], \"energy\": [], \"guidance\": []}",
     "2d",
     "cinematic",
     1.0,
@@ -187,7 +188,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      2
+      2,
+      14
      ],
      "slot_index": 0
     },
@@ -319,7 +321,7 @@
      "type": "IMAGE",
      "links": [
       9,
-      13
+      18
      ],
      "slot_index": 0
     },
@@ -571,6 +573,186 @@
   },
   {
    "id": 9,
+   "type": "MarkdownNote",
+   "pos": [
+    -420,
+    0
+   ],
+   "size": [
+    380,
+    200
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes the render outputs: Queue then runs just this. Click it again to render."
+   ]
+  },
+  {
+   "id": 10,
+   "type": "Difforum_Animatic",
+   "pos": [
+    -420,
+    240
+   ],
+   "size": [
+    380,
+    180
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 13
+    },
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 14
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      16
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Animatic"
+   },
+   "widgets_values": [
+    0.4,
+    true
+   ],
+   "title": "Animatic (previz)"
+  },
+  {
+   "id": 11,
+   "type": "CreateVideo",
+   "pos": [
+    -420,
+    460
+   ],
+   "size": [
+    380,
+    100
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 15
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 16,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 12,
+   "type": "SaveVideo",
+   "pos": [
+    -420,
+    600
+   ],
+   "size": [
+    380,
+    360
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_previz",
+    "auto",
+    "auto"
+   ],
+   "title": "Previz video"
+  },
+  {
+   "id": 13,
    "type": "PreviewImage",
    "pos": [
     1580,
@@ -581,13 +763,13 @@
     260
    ],
    "flags": {},
-   "order": 8,
+   "order": 12,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 13
+     "link": 18
     }
    ],
    "outputs": [],
@@ -598,7 +780,7 @@
    "title": "Keyframes"
   },
   {
-   "id": 10,
+   "id": 14,
    "type": "MarkdownNote",
    "pos": [
     1960,
@@ -609,7 +791,7 @@
     300
    ],
    "flags": {},
-   "order": 9,
+   "order": 13,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -720,9 +902,49 @@
   ],
   [
    13,
+   2,
+   0,
+   10,
+   0,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   14,
+   3,
+   0,
+   10,
+   1,
+   "IMAGE"
+  ],
+  [
+   15,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   16,
+   10,
+   1,
+   11,
+   2,
+   "FLOAT"
+  ],
+  [
+   17,
+   11,
+   0,
+   12,
+   0,
+   "VIDEO"
+  ],
+  [
+   18,
    5,
    0,
-   9,
+   13,
    0,
    "IMAGE"
   ]

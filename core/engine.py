@@ -385,3 +385,27 @@ def iter_feedback(
 
     for (tf, fwd) in pending:   # defensive: the last frame is always a key
         yield tf, fwd
+
+
+def key_pull(keys: list[tuple[int, torch.Tensor]], pull: float = 0.65, approach: int = 12):
+    """pre_warp hook that steers the feedback toward image keyframes.
+
+    `keys` = [(frame, image [1,H,W,3])]. Over the `approach` frames before a key
+    the previous frame is blended toward the key image (quadratic ramp), fully
+    reaching `pull` on the key frame itself, so a Deforum-style travel passes
+    through the pictures you chose instead of drifting freely."""
+    keys = sorted(keys, key=lambda k: k[0])
+    ap = max(1, int(approach))
+
+    def hook(prev: torch.Tensor, f: int) -> torch.Tensor:
+        for idx, img in keys:
+            if idx < f:
+                continue
+            if idx - f >= ap:
+                break
+            w = 1.0 - (idx - f) / ap
+            a = float(pull) * w * w
+            return prev * (1.0 - a) + img.to(prev.device, prev.dtype) * a
+        return prev
+
+    return hook

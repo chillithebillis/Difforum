@@ -24,9 +24,15 @@ Video models render well, but you steer them with words. Difforum gives you
 back control over the **camera and the timing**:
 
 1. **Direct.** In the **Director** node you lay out *scenes* (prompt + mood), *camera
-   moves* (picked from 25 visual presets) and an *energy curve*. Press ▶ to
-   preview the move; the preview uses the same engine that renders.
-2. **Render.** One `direction` wire goes to the renderer of your choice:
+   moves* (picked from 25 visual presets), *keys* (exact frames where something
+   must happen) and an *energy curve*. Press ▶ to preview the move; the preview
+   uses the same engine that renders. The mouse wheel zooms the timeline, so a
+   60-second shot is as easy to edit as a 5-second one.
+2. **Previz.** Every template has an **Animatic**: the whole shot, with timecode,
+   prompt, camera move, energy and keys burnt in, in a few seconds. The
+   Director's **Previz only** button mutes the render outputs, so Queue runs
+   just the previz. Click it again to render.
+3. **Render.** One `direction` wire goes to the renderer of your choice:
 
    | Renderer | Difforum node | You get |
    |---|---|---|
@@ -35,14 +41,21 @@ back control over the **camera and the timing**:
    | **Any image model** (SDXL, Flux, SD1.5, turbo) | Feedback Sampler | The Deforum look: every frame re-imagines the last |
    | **Realtime** (turbo models, webcam) | Live Sampler | Plays inside the node, with Spout / OBS output |
 
-3. **Finish.** **Camera Export** writes the same camera for After Effects (`.jsx`)
+4. **Finish.** **Camera Export** writes the same camera for After Effects (`.jsx`)
    and Blender (`.py`) so titles, 3D and comp lock to the AI shot.
 
 **Pick a look once.** The Director's `look` (cinematic, documentary,
-deforum_morph, animatediff_dream, psychedelic, music_video, stop_motion,
-hand_drawn) sets the Feedback Sampler's colour, detail and energy, and adds the
-matching style sentence to the H3 / LTX prompt, so the same aesthetic carries
-across renderers.
+deforum_morph, animatediff_dream, disco_diffusion, vqgan_clip,
+flicker_experimental, psychedelic, music_video, stop_motion, hand_drawn) sets
+the Feedback Sampler's colour, detail and energy, and adds the matching style
+sentence to the H3 / LTX prompt, so the same aesthetic carries across
+renderers. **Look Mix** then puts the feedback pass's texture or flicker back on
+top of an H3 / LTX render: the experimental look with the video model's motion.
+
+**Multikeyframing.** Mark moments on the **Keys** track and feed one picture per
+key to **Keyframe Images**. The Feedback Sampler travels *through* them, H3 /
+LTX Guides anchor them, the Animatic flashes them. Built for installations and
+pieces that must hit an image on a beat.
 
 No camera expressions to write. They are still there if you want them.
 
@@ -70,7 +83,10 @@ No camera expressions to write. They are still there if you want them.
 | 08 | `h3_first_last_frame` | **MiniMax H3 FL2VA**: first frame + the frame where your camera ends | MiniMax H3 fl2va |
 | 09 | `camera_to_ae_blender` | Camera out to After Effects / Blender, and back in | nothing |
 | 10 | `h3_multikeyframe_guides` | **MiniMax H3**: keyframes along your camera, anchored inside the generation | MiniMax H3 ref2va |
-| 11 | `h3_deforum_look` | **Deforum / AnimateDiff look with H3 motion**: a turbo feedback pass sets the look, H3 animates between its frames | turbo SDXL + H3 ref2va |
+| 11 | `h3_deforum_look` | **Deforum / AnimateDiff look with H3 motion**: a turbo feedback pass sets the look, H3 animates between its frames, Look Mix brings the texture back | turbo SDXL + H3 ref2va |
+| 12 | `long_shot_keys` | **A 30 s long shot** with five scenes, three image keys and a previz, for installations | a turbo model + 3 images |
+
+Every template starts with an **Animatic** on the left: previz first, render second.
 
 ### MiniMax H3 in one picture
 
@@ -91,12 +107,12 @@ Both use ComfyUI's core MiniMax H3 nodes.
 | Group | Nodes |
 |---|---|
 | **Setup** | Setup: duration in seconds, aspect, and snapping to each model's grid (H3 17k+5 @ 24 fps, LTX 8k+1, Wan 4k+1) |
-| **Direction** | Director (timeline), Camera (keys), Camera (expressions), Storyboard |
+| **Direction** | Director (timeline), Camera (keys), Camera (expressions), Storyboard, Keyframe Images, Animatic (previz) |
 | **Curves & prompts** | Schedule, Schedule Plot, Audio Analyzer, Audio Curve, Prompt Travel |
 | **Render** | Feedback Sampler, Live Sampler, Render Options |
 | **Video model bridges** | Guide Frames, Keyframes, Fill Reveal (AI), Camera → Prompt, H3 Guides, H3 Shot, LTX Guides |
 | **Export** | Camera Export (AE / Blender / JSON), Camera Import |
-| **Post** | Loop, Symmetry, Echo Trails, Flow Stabilize, Detail Guard |
+| **Post** | Look Mix, Loop, Symmetry, Echo Trails, Flow Stabilize, Detail Guard |
 
 The full reference is in **[docs/NODES.md](docs/NODES.md)**. Every node also shows its description inside ComfyUI.
 
@@ -112,6 +128,8 @@ Deforum hard to use:
 - **Cadence without pops.** Only every Nth frame is diffused; the frames in between are crossfaded.
 - **Revealed edges are repainted** instead of smeared.
 - **Colour locks per scene**, so prompt travel can change the palette.
+- **Steps scale with the energy**, like Deforum: a frame at denoise 0.5 runs half the
+  steps. With `cadence 2` that is about 4x faster than sampling every frame in full.
 
 ## Documentation
 

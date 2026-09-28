@@ -1,6 +1,6 @@
 {
- "last_node_id": 26,
- "last_link_id": 39,
+ "last_node_id": 30,
+ "last_link_id": 44,
  "nodes": [
   {
    "id": 1,
@@ -111,7 +111,8 @@
      "type": "DIFFORUM_DIRECTION",
      "links": [
       3,
-      6
+      6,
+      39
      ],
      "slot_index": 0
     },
@@ -150,7 +151,7 @@
     "Node name for S&R": "Difforum_Director"
    },
    "widgets_values": [
-    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, light shafts through the canopy\"}, {\"start\": 62, \"mood\": \"build\", \"prompt\": \"the mist lifts, glowing moss and roots in the foreground\"}], \"camera\": [{\"start\": 0, \"move\": \"dolly_in\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 62, \"move\": \"orbit_right\", \"speed\": 0.9, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}], \"energy\": [], \"guidance\": []}",
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, light shafts through the canopy\"}, {\"start\": 62, \"mood\": \"build\", \"prompt\": \"the mist lifts, glowing moss and roots in the foreground\"}], \"camera\": [{\"start\": 0, \"move\": \"dolly_in\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 62, \"move\": \"orbit_right\", \"speed\": 0.9, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}], \"keys\": [{\"start\": 62, \"label\": \"the light breaks\"}], \"energy\": [], \"guidance\": []}",
     "3d",
     "cinematic",
     1.0,
@@ -181,7 +182,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      2
+      2,
+      40
      ],
      "slot_index": 0
     },
@@ -576,7 +578,7 @@
      "type": "IMAGE",
      "links": [
       18,
-      39
+      44
      ],
      "slot_index": 0
     },
@@ -1238,6 +1240,186 @@
   },
   {
    "id": 25,
+   "type": "MarkdownNote",
+   "pos": [
+    -420,
+    0
+   ],
+   "size": [
+    380,
+    200
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes the render outputs: Queue then runs just this. Click it again to render."
+   ]
+  },
+  {
+   "id": 26,
+   "type": "Difforum_Animatic",
+   "pos": [
+    -420,
+    240
+   ],
+   "size": [
+    380,
+    180
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 39
+    },
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 40
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      41
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      42
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Animatic"
+   },
+   "widgets_values": [
+    0.4,
+    true
+   ],
+   "title": "Animatic (previz)"
+  },
+  {
+   "id": 27,
+   "type": "CreateVideo",
+   "pos": [
+    -420,
+    460
+   ],
+   "size": [
+    380,
+    100
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 41
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 42,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      43
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 28,
+   "type": "SaveVideo",
+   "pos": [
+    -420,
+    600
+   ],
+   "size": [
+    380,
+    360
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 43
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_previz",
+    "auto",
+    "auto"
+   ],
+   "title": "Previz video"
+  },
+  {
+   "id": 29,
    "type": "PreviewImage",
    "pos": [
     1600,
@@ -1248,13 +1430,13 @@
     260
    ],
    "flags": {},
-   "order": 24,
+   "order": 28,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 39
+     "link": 44
     }
    ],
    "outputs": [],
@@ -1265,7 +1447,7 @@
    "title": "Last frame, AI-filled"
   },
   {
-   "id": 26,
+   "id": 30,
    "type": "MarkdownNote",
    "pos": [
     0,
@@ -1276,7 +1458,7 @@
     300
    ],
    "flags": {},
-   "order": 25,
+   "order": 29,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -1595,9 +1777,49 @@
   ],
   [
    39,
+   2,
+   0,
+   26,
+   0,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   40,
+   3,
+   0,
+   26,
+   1,
+   "IMAGE"
+  ],
+  [
+   41,
+   26,
+   0,
+   27,
+   0,
+   "IMAGE"
+  ],
+  [
+   42,
+   26,
+   1,
+   27,
+   2,
+   "FLOAT"
+  ],
+  [
+   43,
+   27,
+   0,
+   28,
+   0,
+   "VIDEO"
+  ],
+  [
+   44,
    9,
    0,
-   25,
+   29,
    0,
    "IMAGE"
   ]

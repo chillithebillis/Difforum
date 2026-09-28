@@ -36,7 +36,7 @@ def _stub_ksampler(model, seed, steps, cfg, sampler, scheduler, pos, neg, latent
     x = latent["samples"]
     g = torch.Generator().manual_seed(int(seed) & 0x7FFFFFFF)
     noise = torch.rand(x.shape, generator=g)
-    model.calls.append({"denoise": denoise, "cfg": cfg, "pos": pos})
+    model.calls.append({"denoise": denoise, "cfg": cfg, "pos": pos, "steps": steps})
     return ({"samples": x * (1 - 0.2 * denoise) + noise * 0.2 * denoise},)
 
 

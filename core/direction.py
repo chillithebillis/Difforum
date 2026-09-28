@@ -75,6 +75,20 @@ LOOKS = {
         color_coherence=0.60, color_mode="rgb", sharpen=0.20, noise=0.045, energy=0.10,
         prompt="Psychedelic visuals: saturated shifting colours, kaleidoscopic symmetry, liquid "
                "morphing patterns, hypnotic flow."),
+    "disco_diffusion": dict(
+        color_coherence=0.55, color_mode="rgb", sharpen=0.35, noise=0.050, energy=0.12,
+        prompt="Disco Diffusion-style animation: painterly CLIP-guided dreamscape, surreal fractal "
+               "detail, vivid saturated colours, smudged brush strokes, trending-on-artstation "
+               "fantasy, forms endlessly redrawing themselves."),
+    "vqgan_clip": dict(
+        color_coherence=0.50, color_mode="rgb", sharpen=0.45, noise=0.060, energy=0.14,
+        prompt="Early VQGAN+CLIP AI animation: crunchy tiled textures, repeating motifs, "
+               "hallucinated shapes blooming out of every surface, high-frequency boiling detail."),
+    "flicker_experimental": dict(
+        color_coherence=0.40, color_mode="rgb", sharpen=0.40, noise=0.070, energy=0.18,
+        prompt="Experimental flicker film: every frame a slightly different re-imagining, "
+               "stroboscopic changes of colour and texture, handmade analogue energy, "
+               "boiling and unstable imagery."),
     "music_video": dict(
         color_coherence=0.75, color_mode="lab", sharpen=0.35, noise=0.035, energy=0.03,
         prompt="90s music video shot on VHS: chroma bleed, tape noise, slightly unstable image, "
@@ -108,6 +122,7 @@ def default_timeline(frames: int = 120) -> dict:
             {"start": 2 * q, "move": "spiral", "speed": 1.4, "intensity": 1.1, "ease": "ease_in"},
             {"start": 3 * q, "move": "zoom_out", "speed": 0.6, "intensity": 0.5, "ease": "ease_out"},
         ],
+        "keys": [{"start": 2 * q, "label": "the light breaks"}],
         "energy": [],
         "guidance": [],
     }
@@ -126,6 +141,7 @@ class Direction:
     scenes: list[dict]
     camera_blocks: list[dict]
     camera_text: str
+    keys: list[dict] = field(default_factory=list)       # image keyframe markers
     warnings: list[str] = field(default_factory=list)
     summary: list[str] = field(default_factory=list)
 
@@ -147,7 +163,7 @@ def parse_timeline(raw) -> dict:
     if isinstance(raw, str):
         text = raw.strip()
         if not text:
-            return {"version": 2, "scenes": [], "camera": [], "energy": [], "guidance": []}
+            return {"version": 2, "scenes": [], "camera": [], "keys": [], "energy": [], "guidance": []}
         try:
             raw = json.loads(text)
         except json.JSONDecodeError:
@@ -168,7 +184,7 @@ def parse_timeline(raw) -> dict:
                 "lens": _num(item.get("lens"), 0.0) or 0.0,
                 "ease": item.get("ease") or m["ease"],
             })
-        raw = {"version": 2, "scenes": scenes, "camera": camera, "energy": [], "guidance": []}
+        raw = {"version": 2, "scenes": scenes, "camera": camera, "keys": [], "energy": [], "guidance": []}
 
     if not isinstance(raw, dict):
         raw = {}
@@ -195,6 +211,14 @@ def parse_timeline(raw) -> dict:
                 "react": c.get("react") if c.get("react") in REACTIONS else "none",
             })
 
+    keys = []
+    for k in raw.get("keys", []) or []:
+        if isinstance(k, dict):
+            keys.append({"start": max(0, int(_num(k.get("start", 0), 0))),
+                         "label": str(k.get("label", "")).strip()})
+        elif isinstance(k, (int, float)):
+            keys.append({"start": max(0, int(k)), "label": ""})
+
     def env(key):
         pts = []
         for p in raw.get(key, []) or []:
@@ -208,6 +232,7 @@ def parse_timeline(raw) -> dict:
         "version": 2,
         "scenes": sorted(scenes, key=lambda s: s["start"]),
         "camera": sorted(camera, key=lambda c: c["start"]),
+        "keys": sorted(keys, key=lambda k: k["start"]),
         "energy": env("energy"),
         "guidance": env("guidance"),
     }
@@ -398,6 +423,7 @@ def build_direction(
         frames=n, fps=fps, mode=mode, axes=axes, lens=lens, strength=strength, cfg=cfg,
         prompts=prompts, scenes=scenes, camera_blocks=blocks,
         camera_text=describe_blocks(blocks, n, fps), warnings=warnings, summary=summary,
+        keys=[k for k in tl["keys"] if k["start"] < n],
     )
 
 

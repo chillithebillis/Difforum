@@ -18,16 +18,28 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - **Looks** on the Director (cinematic, documentary, deforum_morph, animatediff_dream,
   psychedelic, music_video, stop_motion, hand_drawn): one choice sets the feedback pass and the
   video-model prompt.
+- **Previz everywhere**: the **Animatic** node renders the whole shot in seconds with timecode,
+  prompt, move, energy and keys burnt in; every template has one, and the Director's
+  **Previz only** button mutes the render outputs so Queue runs only the previz.
+- **Keys track** on the Director (point markers at exact frames), timeline **zoom and scroll**
+  for long shots, and **Keyframe Images** for multikeyframing: the Feedback Sampler travels
+  through your pictures (`key_pull`, `key_approach`), H3 / LTX Guides anchor them.
+- **Look Mix**: detail transfer, colour, flicker cuts or crossfade from a feedback pass onto
+  an H3 / LTX render. New looks: disco_diffusion, vqgan_clip, flicker_experimental.
+- Template **12 · long shot with key moments** (30 s, installations).
 - **Camera Export** to After Effects (.jsx), Blender (.py) and JSON; **Camera Import**
   from them, with helper exporters in `tools/`.
 - 7 new moves: tilt up/down, crane up, handheld, drift, breathe, vortex.
 - Feedback Sampler outputs the tracked depth per frame and a run report; its fine-tuning
   moved to a separate **Render Options** node, so the sampler stays small.
-- 11 templates in ComfyUI's template browser, generated from the node definitions.
+- 12 templates in ComfyUI's template browser, generated from the node definitions.
 
 ### Improved
 - One shared feedback engine behind the Feedback Sampler, Live Sampler and Storyboard.
 - Depth follows the image in 3D, and pseudo-3D replaces the silent freeze without depth.
+- Steps scale with the energy, like Deforum (about 2x faster); the run report shows
+  seconds per frame and warns when ComfyUI was launched with `--lowvram` /
+  `--disable-smart-memory`, which reload the model every frame.
 - Cadence crossfades between keys. Revealed areas are repainted with extra noise.
 - Colour anchoring per scene. Lazy prompt travel. Ring buffer in the Live Sampler.
 - Deterministic 3D z-buffer on CUDA / MPS / CPU.

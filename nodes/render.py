@@ -3,6 +3,7 @@ and the Live Sampler (realtime loop with live preview and VJ outputs)."""
 
 from __future__ import annotations
 
+import math
 import time
 
 import torch
@@ -43,10 +44,25 @@ def _resolve(direction, params, camera, strength, cfg_curve, prompts):
     return params, camera, strength, cfg_curve, prompts
 
 
+def key_hook(key_images, key_indices, w, h, pull, approach):
+    """pre_warp hook for image keyframes, or None."""
+    if key_images is None or not str(key_indices or "").strip():
+        return None
+    from ..core.engine import key_pull
+    idx = [int(t) for t in str(key_indices).replace(";", ",").split(",") if t.strip().lstrip("-").isdigit()]
+    imgs = resize_bhwc(key_images[..., :3], w, h)
+    keys = [(i, imgs[min(k, imgs.shape[0] - 1):min(k, imgs.shape[0] - 1) + 1]) for k, i in enumerate(idx)]
+    return key_pull(keys, pull, approach)
+
+
 def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, scheduler,
                   strength_at, cfg_at, prompts, seed, seed_mode,
-                  control_net=None, control_image=None, control_strength=0.6):
-    """The img2img step the engine calls on key frames."""
+                  control_net=None, control_image=None, control_strength=0.6, step_scaling="fixed"):
+    """The img2img step the engine calls on key frames.
+
+    step_scaling "by energy": a frame at denoise d runs ceil(steps * d) steps
+    (Deforum / A1111 img2img); "fixed" runs `steps` on the truncated schedule.
+    """
     from nodes import common_ksampler
 
     cn_apply = None
@@ -68,7 +84,10 @@ def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, sche
                                 0.0, 1.0, vae=vae)
         latent = {"samples": vae.encode(img[..., :3])}
         seed_f = int(seed) if seed_mode == "fixed" else int(seed) + f
-        out = common_ksampler(model, seed_f, int(steps), float(cfg_at(f)), sampler_name,
+        n_steps = int(steps)
+        if step_scaling.startswith("by energy") and 0.0 < denoise < 1.0:
+            n_steps = max(1, math.ceil(n_steps * denoise))
+        out = common_ksampler(model, seed_f, n_steps, float(cfg_at(f)), sampler_name,
                               scheduler, pos, neg, latent, denoise=denoise)[0]
         image = vae.decode(out["samples"])
         if image.dim() == 5:                 # video VAEs return [B,T,H,W,C]
@@ -76,6 +95,31 @@ def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, sche
         return image[:1]
 
     return diffuse
+
+
+_WARNED = []
+
+
+def launch_warning() -> str:
+    """Launch flags that make per-frame sampling slow (model re-staged every frame)."""
+    try:
+        import comfy.model_management as mm
+        from comfy.cli_args import args
+    except Exception:
+        return ""
+    bad = []
+    if getattr(mm, "vram_state", None) in (mm.VRAMState.LOW_VRAM, mm.VRAMState.NO_VRAM):
+        bad.append("--lowvram/--novram")
+    if getattr(args, "disable_smart_memory", False):
+        bad.append("--disable-smart-memory")
+    if not bad:
+        return ""
+    msg = (f"launched with {' '.join(bad)}: the image model is re-loaded for every frame. "
+           "For Feedback / Live renders start ComfyUI without these flags (keep them for H3 / LTX).")
+    if not _WARNED:
+        _WARNED.append(1)
+        print(f"[Difforum] {msg}")
+    return msg
 
 
 def _options(direction, options) -> dict:
@@ -110,6 +154,9 @@ _COMMON_OPTIONAL = {
     "near": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 1000.0}),
     "far": ("FLOAT", {"default": 100.0, "min": 0.02, "max": 10000.0}),
     "invert_depth": ("BOOLEAN", {"default": False, "tooltip": "Enable if near things are dark in your depth map."}),
+    "step_scaling": (["by energy (fast)", "fixed"], {"default": "by energy (fast)",
+                     "tooltip": "by energy: a frame at denoise 0.5 runs half the steps, like Deforum "
+                                "(about 2x faster at the same look). fixed: every frame runs all steps."}),
     "seed_mode": (["fixed", "increment"], {"default": "fixed",
                   "tooltip": "fixed = same noise every frame (calmer texture)."}),
     "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000000,
@@ -189,6 +236,12 @@ class DifforumFeedbackSampler:
                 "control_strength": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 3.0, "step": 0.05}),
                 "energy": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01,
                            "tooltip": "Denoise when neither a Director nor a strength curve is connected."}),
+                "key_images": ("IMAGE", {"tooltip": "Keyframe Images: the travel passes through these pictures."}),
+                "key_indices": ("STRING", {"forceInput": True}),
+                "key_pull": ("FLOAT", {"default": 0.65, "min": 0.0, "max": 1.0, "step": 0.05,
+                             "tooltip": "How hard each keyframe image pulls the frame (1 = lands exactly on it)."}),
+                "key_approach": ("INT", {"default": 12, "min": 1, "max": 240,
+                                 "tooltip": "Frames before a key over which the pull ramps in."}),
             },
         }
 
@@ -200,7 +253,8 @@ class DifforumFeedbackSampler:
     def run(self, model, positive, negative, vae, init_image, steps, cfg, sampler_name,
             scheduler, cadence, direction=None, options=None, params=None, camera=None,
             strength=None, cfg_curve=None, prompts=None, depth=None, control_net=None,
-            control_image=None, control_strength=0.6, energy=0.5):
+            control_image=None, control_strength=0.6, energy=0.5, key_images=None,
+            key_indices="", key_pull=0.65, key_approach=12):
         kw = _options(direction, options)
         start_frame, end_frame = int(kw["start_frame"]), int(kw["end_frame"])
         params, camera, strength, cfg_curve, prompts = _resolve(
@@ -214,7 +268,9 @@ class DifforumFeedbackSampler:
         ctrl = resize_bhwc(control_image, w, h) if control_image is not None else None
         diffuse = make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name,
                                 scheduler, strength.at, cfg_at, prompts, seed,
-                                kw["seed_mode"], control_net, ctrl, control_strength)
+                                kw["seed_mode"], control_net, ctrl, control_strength,
+                                step_scaling=str(kw["step_scaling"]))
+        slow = launch_warning()
 
         cfg_e = EngineConfig(
             width=w, height=h, border=kw["border"], symmetry=kw["symmetry"],
@@ -227,16 +283,23 @@ class DifforumFeedbackSampler:
             sharpen=float(kw["sharpen"]), noise=float(kw["noise"]),
         )
         engine = FeedbackEngine(camera, cfg_e, depth=depth)
+        hook = key_hook(key_images, key_indices, w, h, key_pull, key_approach)
         pbar = progress_bar(n)
         frames = []
+        t0 = time.perf_counter()
         for f, img in iter_feedback(engine, init_image, n, diffuse=diffuse, prompt_track=prompts,
-                                    start_frame=start_frame, end_frame=end_frame):
+                                    start_frame=start_frame, end_frame=end_frame, pre_warp=hook):
             frames.append(img)
             pbar.update_absolute(f + 1, n)
 
         out = torch.cat(frames, dim=0)
         depth_out = self._depth_batch(engine, start_frame, len(frames), w, h)
         report = engine.report.text()
+        dt = time.perf_counter() - t0
+        report += (f"\n  {len(frames)} frames in {dt:.0f}s ({dt / max(1, len(frames)):.2f}s/frame, "
+                   f"cadence {int(cadence)}, steps {kw['step_scaling'].split(' (')[0]})")
+        if slow:
+            report += f"\n  ! {slow}"
         if direction is not None and direction.direction.warnings:
             report += "\n" + "\n".join(f"  ! {x}" for x in direction.direction.warnings)
         return (out, depth_out, report)
@@ -484,7 +547,8 @@ class DifforumLiveSampler:
             sink.close()
         fps_real = total / max(1e-6, time.perf_counter() - t0)
         return (torch.cat(list(kept), dim=0),
-                engine.report.text() + f"\n  {fps_real:.2f} fps measured")
+                engine.report.text() + f"\n  {fps_real:.2f} fps measured"
+                + (f"\n  ! {launch_warning()}" if launch_warning() else ""))
 
 
 NODE_CLASS_MAPPINGS = {

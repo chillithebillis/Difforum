@@ -53,7 +53,7 @@ there for custom graphs.
 | `params` | DIFFORUM_PARAMS |  |  |
 | `timeline` | STRING | {"version": 2, "scenes": [{"start": 0... |  |
 | `camera_mode` | choice (2d, 3d) | 2d | 3d = real parallax when a depth map reaches the sampler (pseudo-3D otherwise). |
-| `look` | choice (cinematic, documentary, deforum_morph, animatediff_dream, psychedelic, music_video, ...) | cinematic | Render aesthetic. Feedback Sampler: colour lock, detail, grain and energy. H3 / LTX: a look sentence added to the prompt. |
+| `look` | choice (cinematic, documentary, deforum_morph, animatediff_dream, psychedelic, disco_diffusion, ...) | cinematic | Render aesthetic. Feedback Sampler: colour lock, detail, grain and energy. H3 / LTX: a look sentence added to the prompt. |
 | `transition` | FLOAT | 1.0 | How much of each camera block is spent easing into the next. 0 = hard cuts. |
 | `camera_scale` | FLOAT | 1.0 | Master multiplier on every move. |
 | `energy_bias` | FLOAT | 0.0 | Shifts the whole denoise curve up or down. |
@@ -148,6 +148,52 @@ frames themselves, the camera path from above, and a pacing verdict.
 | `symmetry` *(optional)* | choice (none, mirror_h, mirror_v, mirror_quad, kaleidoscope) | none |  |
 
 **Outputs:** `sheet` (IMAGE), `frames` (IMAGE), `camera_path` (IMAGE), `info` (STRING)
+
+### Difforum · Keyframe Images
+
+`Difforum_KeyframeImages`
+
+Pin your own pictures to moments of the clip (multikeyframing).
+
+Place markers on the Director's **Keys** track (or type times: `0, 4s,
+9.5s`) and feed a batch of images in the same order. The keyframes then
+drive every renderer: the Feedback Sampler travels *through* them, H3 /
+LTX Guides anchor them, the Animatic shows them. Made for installations and
+experimental pieces where the image has to hit a picture on a beat.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `images` | IMAGE |  | One image per key, in order (use a Batch Images node). |
+| `direction` *(optional)* | DIFFORUM_DIRECTION |  |  |
+| `params` *(optional)* | DIFFORUM_PARAMS |  |  |
+| `times` *(optional)* | STRING |  | Override: '0, 4s, 9.5s' or frame numbers. |
+
+**Outputs:** `keyframes` (IMAGE), `indices` (STRING), `info` (STRING)
+
+### Difforum · Animatic (previz)
+
+`Difforum_Animatic`
+
+Previz the whole shot before rendering anything heavy.
+
+Plays the Director's camera over your first frame (or a stand-in plate) at
+low resolution, in about a second, with the timecode, the active scene
+prompt, the camera move, the energy level and the keyframe markers burnt
+in. Image keyframes, when connected, show up at their moments. Send it to
+Create Video + Save Video; the Director's "Previz only" button mutes the
+render outputs so only this runs.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `direction` | DIFFORUM_DIRECTION |  |  |
+| `preview_scale` | FLOAT | 0.4 |  |
+| `overlay` | BOOLEAN | True |  |
+| `init_image` *(optional)* | IMAGE |  |  |
+| `depth` *(optional)* | IMAGE |  |  |
+| `key_images` *(optional)* | IMAGE |  |  |
+| `key_indices` *(optional)* | STRING |  |  |
+
+**Outputs:** `frames` (IMAGE), `fps` (FLOAT), `info` (STRING)
 
 ## 3 · Curves & Prompts
 
@@ -282,6 +328,10 @@ video-model guides) and a run report.
 | `control_image` *(optional)* | IMAGE |  |  |
 | `control_strength` *(optional)* | FLOAT | 0.6 |  |
 | `energy` *(optional)* | FLOAT | 0.5 | Denoise when neither a Director nor a strength curve is connected. |
+| `key_images` *(optional)* | IMAGE |  | Keyframe Images: the travel passes through these pictures. |
+| `key_indices` *(optional)* | STRING |  |  |
+| `key_pull` *(optional)* | FLOAT | 0.65 | How hard each keyframe image pulls the frame (1 = lands exactly on it). |
+| `key_approach` *(optional)* | INT | 12 | Frames before a key over which the pull ramps in. |
 
 **Outputs:** `frames` (IMAGE), `depth` (IMAGE), `report` (STRING)
 
@@ -355,6 +405,7 @@ calibration, noise seeding and chunked rendering.
 | `near` | FLOAT | 1.0 |  |
 | `far` | FLOAT | 100.0 |  |
 | `invert_depth` | BOOLEAN | False | Enable if near things are dark in your depth map. |
+| `step_scaling` | choice (by energy (fast), fixed) | by energy (fast) | by energy: a frame at denoise 0.5 runs half the steps, like Deforum (about 2x faster at the same look). fixed: every frame runs all steps. |
 | `seed_mode` | choice (fixed, increment) | fixed | fixed = same noise every frame (calmer texture). |
 | `start_frame` | INT | 0 | Feedback Sampler: render a chunk; init_image is the frame at start_frame. |
 | `end_frame` | INT | 0 | 0 = to the end. |
@@ -616,6 +667,39 @@ Reports how visible the seam is.
 | `blend_frames` | INT | 12 | flow crossfade: overlap length. |
 
 **Outputs:** `frames` (IMAGE), `seam_info` (STRING)
+
+### Difforum · Look Mix
+
+`Difforum_LookMix`
+
+Keep the experimental look while a video model supplies the motion.
+
+Video models such as MiniMax H3 render fluid, coherent motion - and smooth
+away the boiling, flickering texture that makes Deforum, AnimateDiff and
+Disco Diffusion feel alive. Feed the video-model render and the Feedback
+Sampler look pass (same length or not; it is resampled in time):
+
+* detail transfer - H3's motion, the look pass's high-frequency texture
+* colour + detail - also pulls each frame's palette to the look pass
+* flicker cuts - every Nth frame (seeded jitter) swaps to the look pass
+* crossfade - plain mix
+
+`step_fps` then holds frames to 8-12 fps for a stop-motion / AnimateDiff
+stutter, independently of the mode (works without a look pass too).
+
+| input | type | default | notes |
+|---|---|---|---|
+| `video` | IMAGE |  | The video-model render (H3, LTX...). |
+| `mode` | choice (detail transfer, colour + detail, flicker cuts, crossfade, none) | detail transfer |  |
+| `amount` | FLOAT | 0.6 |  |
+| `detail_radius` | INT | 3 | Texture scale taken from the look pass. |
+| `flicker_every` | INT | 3 |  |
+| `step_fps` | FLOAT | 0.0 | 0 = off. 8-12 gives a hand-made stutter. |
+| `fps` | FLOAT | 24.0 |  |
+| `seed` | INT | 0 |  |
+| `look_pass` *(optional)* | IMAGE |  | Feedback Sampler frames in the chosen look. |
+
+**Outputs:** `frames` (IMAGE)
 
 ### Difforum · Symmetry
 

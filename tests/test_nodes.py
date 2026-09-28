@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 27
+    assert len(v1) == 30
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:
@@ -82,6 +82,10 @@ def test_director_storyboard_and_sampler():
     # the energy curve reached the sampler, and prompt travel conditioning too
     assert len({round(c["denoise"], 3) for c in model.calls}) > 1
     assert all(c["pos"] is not None for c in model.calls)
+    # steps scale with the energy (Deforum-style): never more than asked, fewer when denoise < 1
+    assert all(1 <= c["steps"] <= 4 for c in model.calls)
+    assert any(c["steps"] < 4 for c in model.calls if c["denoise"] < 0.75)
+    assert "s/frame" in report
 
 
 def test_sampler_without_director():
@@ -228,3 +232,32 @@ def test_fill_reveal_keeps_known_pixels(monkeypatch):
     assert torch.equal(out[2, :, :30], imgs[2, :, :30])   # known pixels untouched
     assert not torch.allclose(out[2, :, 44:], imgs[2, :, 44:])
     assert "filled" in info
+
+
+def test_keyframes_animatic_look_mix():
+    from difforum.nodes.direction import DifforumAnimatic, DifforumKeyframeImages
+    from difforum.nodes.post import DifforumLookMix
+    params = setup(seconds=2.0)[0]
+    tl = default_timeline(params["max_frames"])
+    tl["keys"] = [{"start": 0, "label": "A"}, {"start": 24, "label": "B"}, {"start": 47, "label": "C"}]
+    bundle = director(params, tl=tl)[0]
+    imgs = torch.rand(3, 50, 60, 3)
+    keys, idx, info = DifforumKeyframeImages().run(imgs, direction=bundle)
+    assert idx == "0,24,47" and keys.shape[1:] == (72, 128, 3)
+    assert DifforumKeyframeImages().run(imgs, direction=bundle, times="0, 1s, 1.5s")[1] == "0,24,36"
+
+    frames, fps, ainfo = DifforumAnimatic().run(bundle, 0.5, True, key_images=keys, key_indices=idx)
+    assert frames.shape[0] == params["max_frames"] and fps == 24.0 and "3 key" in ainfo
+
+    out = DifforumFeedbackSampler().run(StubModel(), _c(), _c(), StubVAE(), gradient(72, 128), 2, 5.0,
+                                        "euler", "normal", 1, direction=bundle, key_images=keys,
+                                        key_indices=idx, key_pull=1.0)[0]
+    assert out.shape[0] == params["max_frames"]
+
+    video = torch.rand(48, 32, 32, 3)
+    look = torch.rand(24, 16, 16, 3)
+    for mode in ("detail transfer", "colour + detail", "flicker cuts", "crossfade", "none"):
+        (res,) = DifforumLookMix().run(video, mode, 0.6, 2, 3, 12.0, 24.0, 0, look_pass=look)
+        assert res.shape == video.shape
+    (stepped,) = DifforumLookMix().run(video, "none", 0.6, 2, 3, 12.0, 24.0, 0)
+    assert torch.equal(stepped[0], stepped[1]) and not torch.equal(stepped[1], stepped[2])

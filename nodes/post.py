@@ -53,6 +53,83 @@ class DifforumLoop:
         return (out, f"{method}: {total} -> {out.shape[0]} frames\n{report}")
 
 
+class DifforumLookMix:
+    """Keep the experimental look while a video model supplies the motion.
+
+    Video models such as MiniMax H3 render fluid, coherent motion - and smooth
+    away the boiling, flickering texture that makes Deforum, AnimateDiff and
+    Disco Diffusion feel alive. Feed the video-model render and the Feedback
+    Sampler look pass (same length or not; it is resampled in time):
+
+    * detail transfer - H3's motion, the look pass's high-frequency texture
+    * colour + detail - also pulls each frame's palette to the look pass
+    * flicker cuts - every Nth frame (seeded jitter) swaps to the look pass
+    * crossfade - plain mix
+
+    `step_fps` then holds frames to 8-12 fps for a stop-motion / AnimateDiff
+    stutter, independently of the mode (works without a look pass too).
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {
+            "video": ("IMAGE", {"tooltip": "The video-model render (H3, LTX...)."}),
+            "mode": (["detail transfer", "colour + detail", "flicker cuts", "crossfade", "none"],
+                     {"default": "detail transfer"}),
+            "amount": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 2.0, "step": 0.05}),
+            "detail_radius": ("INT", {"default": 3, "min": 1, "max": 16,
+                              "tooltip": "Texture scale taken from the look pass."}),
+            "flicker_every": ("INT", {"default": 3, "min": 1, "max": 48}),
+            "step_fps": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 60.0, "step": 1.0,
+                         "tooltip": "0 = off. 8-12 gives a hand-made stutter."}),
+            "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0}),
+            "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFF}),
+        }, "optional": {
+            "look_pass": ("IMAGE", {"tooltip": "Feedback Sampler frames in the chosen look."}),
+        }}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
+    FUNCTION = "run"
+    CATEGORY = CAT_POST
+
+    def run(self, video, mode, amount, detail_radius, flicker_every, step_fps, fps, seed,
+            look_pass=None):
+        import random
+
+
+        from ..core.color import match_color
+        from ..core.engine import resize_bhwc
+        from ..core.look import _gaussian_blur
+
+        n, h, w = int(video.shape[0]), int(video.shape[1]), int(video.shape[2])
+        out = video[..., :3].clone()
+        if look_pass is not None and mode != "none":
+            m = int(look_pass.shape[0])
+            idx = [min(m - 1, round(i * (m - 1) / max(1, n - 1))) for i in range(n)]
+            lp = resize_bhwc(look_pass[idx][..., :3], w, h).to(out.dtype)
+            a = float(amount)
+            if mode in ("detail transfer", "colour + detail"):
+                if mode == "colour + detail":
+                    out = match_color(out, lp, strength=min(1.0, a), mode="lab")
+                blur = _gaussian_blur(lp.permute(0, 3, 1, 2), int(detail_radius)).permute(0, 2, 3, 1)
+                out = out + a * (lp - blur)
+            elif mode == "flicker cuts":
+                rng = random.Random(int(seed))
+                every = max(1, int(flicker_every))
+                for i in range(n):
+                    if i % every == 0 and rng.random() < 0.85:
+                        out[i] = out[i] * (1 - min(1.0, a)) + lp[i] * min(1.0, a)
+            else:
+                out = out * (1 - min(1.0, a)) + lp * min(1.0, a)
+        if step_fps and step_fps < fps:
+            hold = float(fps) / float(step_fps)
+            out = out[[int(int(i / hold) * hold) for i in range(n)]]
+        return (out.clamp(0, 1),)
+
+
 class DifforumSymmetry:
     """Mirror or kaleidoscope a frame or batch (the Feedback Sampler can also
     do it inside the loop, where it compounds into a living pattern)."""
@@ -159,6 +236,7 @@ class DifforumDetailGuard:
 
 NODE_CLASS_MAPPINGS = {
     "Difforum_Loop": DifforumLoop,
+    "Difforum_LookMix": DifforumLookMix,
     "Difforum_Symmetry": DifforumSymmetry,
     "Difforum_EchoTrails": DifforumEchoTrails,
     "Difforum_FlowStabilize": DifforumFlowStabilize,
@@ -166,6 +244,7 @@ NODE_CLASS_MAPPINGS = {
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_Loop": "Difforum · Loop",
+    "Difforum_LookMix": "Difforum · Look Mix",
     "Difforum_Symmetry": "Difforum · Symmetry",
     "Difforum_EchoTrails": "Difforum · Echo Trails",
     "Difforum_FlowStabilize": "Difforum · Flow Stabilize",

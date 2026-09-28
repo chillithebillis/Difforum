@@ -1,13 +1,13 @@
 {
- "last_node_id": 18,
- "last_link_id": 28,
+ "last_node_id": 21,
+ "last_link_id": 30,
  "nodes": [
   {
    "id": 1,
    "type": "CheckpointLoaderSimple",
    "pos": [
     0,
-    0
+    -420
    ],
    "size": [
     320,
@@ -22,8 +22,7 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      7,
-      13
+      18
      ],
      "slot_index": 0
     },
@@ -41,8 +40,7 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      12,
-      14
+      19
      ],
      "slot_index": 2
     }
@@ -51,7 +49,7 @@
     "Node name for S&R": "CheckpointLoaderSimple"
    },
    "widgets_values": [
-    "sd_xl_base_1.0.safetensors"
+    "sd_xl_turbo_1.0_fp16.safetensors"
    ]
   },
   {
@@ -59,7 +57,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     360,
-    0
+    -420
    ],
    "size": [
     380,
@@ -80,8 +78,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      8,
-      15
+      20
      ],
      "slot_index": 0
     }
@@ -90,7 +87,7 @@
     "Node name for S&R": "CLIPTextEncode"
    },
    "widgets_values": [
-    "cinematic film still, rich detail, volumetric light, 35mm"
+    "painterly, dreamy, rich detail, glowing light"
    ],
    "title": "Look / style (positive)"
   },
@@ -99,7 +96,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     360,
-    180
+    -240
    ],
    "size": [
     380,
@@ -120,8 +117,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      9,
-      16
+      21
      ],
      "slot_index": 0
     }
@@ -139,7 +135,7 @@
    "type": "Difforum_Setup",
    "pos": [
     0,
-    360
+    0
    ],
    "size": [
     320,
@@ -161,17 +157,13 @@
     {
      "name": "width",
      "type": "INT",
-     "links": [
-      5
-     ],
+     "links": [],
      "slot_index": 1
     },
     {
      "name": "height",
      "type": "INT",
-     "links": [
-      6
-     ],
+     "links": [],
      "slot_index": 2
     },
     {
@@ -184,7 +176,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      26
+      28
      ],
      "slot_index": 4
     },
@@ -201,10 +193,10 @@
    "widgets_values": [
     "feedback (SD/SDXL/Flux)",
     "seconds",
-    5.0,
+    30.0,
     24.0,
     "16:9 landscape",
-    1024,
+    768,
     0,
     "fixed",
     16.0,
@@ -216,8 +208,8 @@
    "id": 5,
    "type": "Difforum_Director",
    "pos": [
-    420,
-    360
+    360,
+    0
    ],
    "size": [
     800,
@@ -248,8 +240,9 @@
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
      "links": [
-      18,
-      19
+      9,
+      11,
+      23
      ],
      "slot_index": 0
     },
@@ -288,9 +281,9 @@
     "Node name for S&R": "Difforum_Director"
    },
    "widgets_values": [
-    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 30, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 60, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 90, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 30, \"move\": \"pan_right\", \"speed\": 1.0, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 60, \"move\": \"spiral\", \"speed\": 1.4, \"intensity\": 1.1, \"lens\": 0.0, \"ease\": \"ease_in\", \"react\": \"none\"}, {\"start\": 90, \"move\": \"zoom_out\", \"speed\": 0.6, \"intensity\": 0.5, \"lens\": 0.0, \"ease\": \"ease_out\", \"react\": \"none\"}], \"keys\": [{\"start\": 60, \"label\": \"the light breaks\"}], \"energy\": [], \"guidance\": []}",
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"an empty white gallery, soft daylight, concrete floor\"}, {\"start\": 144, \"mood\": \"dream\", \"prompt\": \"the walls breathe, ink blooms across the plaster\"}, {\"start\": 288, \"mood\": \"build\", \"prompt\": \"a forest grows out of the ink, roots on the floor\"}, {\"start\": 456, \"mood\": \"climax\", \"prompt\": \"the forest burns into light, a nebula fills the room\"}, {\"start\": 600, \"mood\": \"resolve\", \"prompt\": \"stars settle into an empty white gallery\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.5, \"intensity\": 0.6, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 144, \"move\": \"drift\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 288, \"move\": \"pan_right\", \"speed\": 0.9, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 456, \"move\": \"vortex\", \"speed\": 1.4, \"intensity\": 1.1, \"lens\": 0.0, \"ease\": \"ease_in\", \"react\": \"none\"}, {\"start\": 600, \"move\": \"zoom_out\", \"speed\": 0.5, \"intensity\": 0.6, \"lens\": 0.0, \"ease\": \"ease_out\", \"react\": \"none\"}], \"keys\": [{\"start\": 0, \"label\": \"opening image\"}, {\"start\": 288, \"label\": \"the forest\"}, {\"start\": 600, \"label\": \"back to the room\"}], \"energy\": [], \"guidance\": []}",
     "2d",
-    "cinematic",
+    "disco_diffusion",
     1.0,
     1.0,
     0.0,
@@ -301,139 +294,155 @@
   },
   {
    "id": 6,
-   "type": "EmptyLatentImage",
+   "type": "LoadImage",
    "pos": [
-    820,
-    0
+    0,
+    360
    ],
    "size": [
-    260,
-    110
+    320,
+    340
    ],
    "flags": {},
    "order": 5,
    "mode": 0,
-   "inputs": [
-    {
-     "name": "width",
-     "type": "INT",
-     "link": 5,
-     "widget": {
-      "name": "width"
-     }
-    },
-    {
-     "name": "height",
-     "type": "INT",
-     "link": 6,
-     "widget": {
-      "name": "height"
-     }
-    }
-   ],
+   "inputs": [],
    "outputs": [
     {
-     "name": "LATENT",
-     "type": "LATENT",
+     "name": "IMAGE",
+     "type": "IMAGE",
      "links": [
-      10
+      5,
+      12,
+      22
      ],
      "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
     }
    ],
    "properties": {
-    "Node name for S&R": "EmptyLatentImage"
+    "Node name for S&R": "LoadImage"
    },
    "widgets_values": [
-    1024,
-    576,
-    1
-   ]
+    "example.png",
+    null
+   ],
+   "title": "Key 1 · opening"
   },
   {
    "id": 7,
-   "type": "KSampler",
+   "type": "LoadImage",
    "pos": [
-    1110,
-    0
+    0,
+    740
    ],
    "size": [
-    300,
-    260
+    320,
+    340
    ],
    "flags": {},
    "order": 6,
    "mode": 0,
-   "inputs": [
-    {
-     "name": "model",
-     "type": "MODEL",
-     "link": 7
-    },
-    {
-     "name": "positive",
-     "type": "CONDITIONING",
-     "link": 8
-    },
-    {
-     "name": "negative",
-     "type": "CONDITIONING",
-     "link": 9
-    },
-    {
-     "name": "latent_image",
-     "type": "LATENT",
-     "link": 10
-    }
-   ],
+   "inputs": [],
    "outputs": [
     {
-     "name": "LATENT",
-     "type": "LATENT",
+     "name": "IMAGE",
+     "type": "IMAGE",
      "links": [
-      11
+      6
      ],
      "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
     }
    ],
    "properties": {
-    "Node name for S&R": "KSampler"
+    "Node name for S&R": "LoadImage"
    },
    "widgets_values": [
-    7,
-    "fixed",
-    24,
-    6.0,
-    "dpmpp_2m",
-    "karras",
-    1.0
+    "example.png",
+    null
    ],
-   "title": "First frame"
+   "title": "Key 2 · the forest"
   },
   {
    "id": 8,
-   "type": "VAEDecode",
+   "type": "LoadImage",
    "pos": [
-    1440,
-    0
+    0,
+    1120
    ],
    "size": [
-    200,
-    60
+    320,
+    340
    ],
    "flags": {},
    "order": 7,
    "mode": 0,
-   "inputs": [
+   "inputs": [],
+   "outputs": [
     {
-     "name": "samples",
-     "type": "LATENT",
-     "link": 11
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      7
+     ],
+     "slot_index": 0
     },
     {
-     "name": "vae",
-     "type": "VAE",
-     "link": 12
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    null
+   ],
+   "title": "Key 3 · back to the room"
+  },
+  {
+   "id": 9,
+   "type": "BatchImagesNode",
+   "pos": [
+    360,
+    930
+   ],
+   "size": [
+    260,
+    120
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images.image0",
+     "type": "IMAGE",
+     "link": 5
+    },
+    {
+     "name": "images.image1",
+     "type": "IMAGE",
+     "link": 6
+    },
+    {
+     "name": "images.image2",
+     "type": "IMAGE",
+     "link": 7
     }
    ],
    "outputs": [
@@ -441,61 +450,342 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      17,
-      20
+      8
      ],
      "slot_index": 0
     }
    ],
    "properties": {
-    "Node name for S&R": "VAEDecode"
+    "Node name for S&R": "BatchImagesNode"
    },
-   "widgets_values": []
+   "widgets_values": [],
+   "title": "Batch Images (one per key)"
   },
   {
-   "id": 9,
+   "id": 10,
+   "type": "Difforum_KeyframeImages",
+   "pos": [
+    660,
+    930
+   ],
+   "size": [
+    340,
+    160
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 8
+    },
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 9
+    },
+    {
+     "name": "params",
+     "type": "DIFFORUM_PARAMS",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "keyframes",
+     "type": "IMAGE",
+     "links": [
+      13,
+      24
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "indices",
+     "type": "STRING",
+     "links": [
+      14,
+      25
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [
+      10
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_KeyframeImages"
+   },
+   "widgets_values": [
+    ""
+   ]
+  },
+  {
+   "id": 11,
+   "type": "PreviewAny",
+   "pos": [
+    660,
+    1130
+   ],
+   "size": [
+    340,
+    140
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "Where the keys land"
+  },
+  {
+   "id": 12,
+   "type": "MarkdownNote",
+   "pos": [
+    -420,
+    0
+   ],
+   "size": [
+    380,
+    200
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes the render outputs: Queue then runs just this. Click it again to render."
+   ]
+  },
+  {
+   "id": 13,
+   "type": "Difforum_Animatic",
+   "pos": [
+    -420,
+    240
+   ],
+   "size": [
+    380,
+    180
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 11
+    },
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 12
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": 13
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      16
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Animatic"
+   },
+   "widgets_values": [
+    0.4,
+    true
+   ],
+   "title": "Animatic (previz)"
+  },
+  {
+   "id": 14,
+   "type": "CreateVideo",
+   "pos": [
+    -420,
+    460
+   ],
+   "size": [
+    380,
+    100
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 15
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 16,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 15,
+   "type": "SaveVideo",
+   "pos": [
+    -420,
+    600
+   ],
+   "size": [
+    380,
+    360
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_previz",
+    "auto",
+    "auto"
+   ],
+   "title": "Previz video"
+  },
+  {
+   "id": 16,
    "type": "Difforum_FeedbackSampler",
    "pos": [
-    1260,
-    360
+    1200,
+    0
    ],
    "size": [
     360,
-    460
+    520
    ],
    "flags": {},
-   "order": 8,
+   "order": 15,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 13
+     "link": 18
     },
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 15
+     "link": 20
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 16
+     "link": 21
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 14
+     "link": 19
     },
     {
      "name": "init_image",
      "type": "IMAGE",
-     "link": 17
+     "link": 22
     },
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 18
+     "link": 23
     },
     {
      "name": "options",
@@ -545,12 +835,12 @@
     {
      "name": "key_images",
      "type": "IMAGE",
-     "link": null
+     "link": 24
     },
     {
      "name": "key_indices",
      "type": "STRING",
-     "link": null
+     "link": 25
     }
    ],
    "outputs": [
@@ -558,7 +848,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      24
+      26
      ],
      "slot_index": 0
     },
@@ -572,7 +862,7 @@
      "name": "report",
      "type": "STRING",
      "links": [
-      28
+      30
      ],
      "slot_index": 2
     }
@@ -581,216 +871,36 @@
     "Node name for S&R": "Difforum_FeedbackSampler"
    },
    "widgets_values": [
-    20,
-    6.0,
-    "dpmpp_2m",
-    "karras",
+    4,
+    1.0,
+    "euler_ancestral",
+    "sgm_uniform",
     2,
     0.6,
     0.5,
     0.65,
-    12
+    24
    ]
   },
   {
-   "id": 10,
-   "type": "MarkdownNote",
-   "pos": [
-    -420,
-    360
-   ],
-   "size": [
-    380,
-    200
-   ],
-   "flags": {},
-   "order": 9,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "MarkdownNote"
-   },
-   "widgets_values": [
-    "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes the render outputs: Queue then runs just this. Click it again to render."
-   ]
-  },
-  {
-   "id": 11,
-   "type": "Difforum_Animatic",
-   "pos": [
-    -420,
-    600
-   ],
-   "size": [
-    380,
-    180
-   ],
-   "flags": {},
-   "order": 10,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "direction",
-     "type": "DIFFORUM_DIRECTION",
-     "link": 19
-    },
-    {
-     "name": "init_image",
-     "type": "IMAGE",
-     "link": 20
-    },
-    {
-     "name": "depth",
-     "type": "IMAGE",
-     "link": null
-    },
-    {
-     "name": "key_images",
-     "type": "IMAGE",
-     "link": null
-    },
-    {
-     "name": "key_indices",
-     "type": "STRING",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "frames",
-     "type": "IMAGE",
-     "links": [
-      21
-     ],
-     "slot_index": 0
-    },
-    {
-     "name": "fps",
-     "type": "FLOAT",
-     "links": [
-      22
-     ],
-     "slot_index": 1
-    },
-    {
-     "name": "info",
-     "type": "STRING",
-     "links": [],
-     "slot_index": 2
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "Difforum_Animatic"
-   },
-   "widgets_values": [
-    0.4,
-    true
-   ],
-   "title": "Animatic (previz)"
-  },
-  {
-   "id": 12,
-   "type": "CreateVideo",
-   "pos": [
-    -420,
-    820
-   ],
-   "size": [
-    380,
-    100
-   ],
-   "flags": {},
-   "order": 11,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "images",
-     "type": "IMAGE",
-     "link": 21
-    },
-    {
-     "name": "audio",
-     "type": "AUDIO",
-     "link": null
-    },
-    {
-     "name": "fps",
-     "type": "FLOAT",
-     "link": 22,
-     "widget": {
-      "name": "fps"
-     }
-    }
-   ],
-   "outputs": [
-    {
-     "name": "VIDEO",
-     "type": "VIDEO",
-     "links": [
-      23
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "CreateVideo"
-   },
-   "widgets_values": [
-    24.0
-   ]
-  },
-  {
-   "id": 13,
-   "type": "SaveVideo",
-   "pos": [
-    -420,
-    960
-   ],
-   "size": [
-    380,
-    360
-   ],
-   "flags": {},
-   "order": 12,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "video",
-     "type": "VIDEO",
-     "link": 23
-    }
-   ],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "SaveVideo"
-   },
-   "widgets_values": [
-    "video/difforum_previz",
-    "auto",
-    "auto"
-   ],
-   "title": "Previz video"
-  },
-  {
-   "id": 14,
+   "id": 17,
    "type": "Difforum_FlowStabilize",
    "pos": [
-    1660,
-    360
+    1600,
+    0
    ],
    "size": [
     300,
     130
    ],
    "flags": {},
-   "order": 13,
+   "order": 16,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 24
+     "link": 26
     }
    ],
    "outputs": [
@@ -798,7 +908,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      25
+      27
      ],
      "slot_index": 0
     }
@@ -807,30 +917,30 @@
     "Node name for S&R": "Difforum_FlowStabilize"
    },
    "widgets_values": [
-    0.45,
+    0.35,
     0.5,
     0.15
    ]
   },
   {
-   "id": 15,
+   "id": 18,
    "type": "CreateVideo",
    "pos": [
-    2000,
-    360
+    1940,
+    0
    ],
    "size": [
     260,
     100
    ],
    "flags": {},
-   "order": 14,
+   "order": 17,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 25
+     "link": 27
     },
     {
      "name": "audio",
@@ -840,7 +950,7 @@
     {
      "name": "fps",
      "type": "FLOAT",
-     "link": 26,
+     "link": 28,
      "widget": {
       "name": "fps"
      }
@@ -851,7 +961,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      27
+      29
      ],
      "slot_index": 0
     }
@@ -864,24 +974,24 @@
    ]
   },
   {
-   "id": 16,
+   "id": 19,
    "type": "SaveVideo",
    "pos": [
-    2000,
-    500
+    1940,
+    140
    ],
    "size": [
-    300,
+    360,
     320
    ],
    "flags": {},
-   "order": 15,
+   "order": 18,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 27
+     "link": 29
     }
    ],
    "outputs": [],
@@ -889,30 +999,30 @@
     "Node name for S&R": "SaveVideo"
    },
    "widgets_values": [
-    "video/difforum",
+    "video/difforum_long",
     "auto",
     "auto"
    ]
   },
   {
-   "id": 17,
+   "id": 20,
    "type": "PreviewAny",
    "pos": [
-    1660,
-    540
+    1600,
+    180
    ],
    "size": [
     300,
     200
    ],
    "flags": {},
-   "order": 16,
+   "order": 19,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "*",
-     "link": 28
+     "link": 30
     }
    ],
    "outputs": [
@@ -930,18 +1040,18 @@
    "title": "Run report"
   },
   {
-   "id": 18,
+   "id": 21,
    "type": "MarkdownNote",
    "pos": [
-    0,
-    -320
+    1200,
+    580
    ],
    "size": [
-    560,
-    260
+    700,
+    380
    ],
    "flags": {},
-   "order": 17,
+   "order": 20,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -949,7 +1059,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## Feedback render (SDXL)\n\nThe classic Deforum look on a modern model. **Director** drives camera, energy and prompt travel through one `direction` wire.\n\n- Any SD1.5 / SDXL / Flux checkpoint works (plain MODEL/VAE/CONDITIONING).\n- `cadence 2` diffuses every other frame and crossfades the rest (~2x faster).\n- Faster still: a DMD2 / Lightning / Turbo LoRA at 4-8 steps, cfg 1-2.\n- Director prompts replace the positive prompt once CLIP is connected; the positive box still sets the first frame."
+    "## Long shot, key moments\n\nA 30 s shot built for installations: five scenes, five camera moves and three **Keys** (the pink diamonds on the Director). **Keyframe Images** pins one picture to each key, and the **Feedback Sampler** travels *through* them: it steers toward the next key during `key_approach` frames, so the piece lands on your image on cue.\n\n1. Press **Previz only** on the Director and Queue: the Animatic shows the 30 s in seconds, keys flashing.\n2. Mouse wheel on the timeline zooms, shift+wheel scrolls; **Fit** shows it all.\n3. Click **Previz only** again to render. For H3 / LTX, feed Keyframe Images into their Guides nodes instead.\n\nLook: `disco_diffusion`. Try `flicker_experimental`, `vqgan_clip`, `animatediff_dream`."
    ]
   }
  ],
@@ -988,193 +1098,209 @@
   ],
   [
    5,
-   4,
-   1,
    6,
    0,
-   "INT"
+   9,
+   0,
+   "IMAGE"
   ],
   [
    6,
-   4,
+   7,
+   0,
+   9,
+   1,
+   "IMAGE"
+  ],
+  [
+   7,
+   8,
+   0,
+   9,
    2,
-   6,
-   1,
-   "INT"
-  ],
-  [
-   7,
-   1,
-   0,
-   7,
-   0,
-   "MODEL"
+   "IMAGE"
   ],
   [
    8,
-   2,
+   9,
    0,
-   7,
-   1,
-   "CONDITIONING"
+   10,
+   0,
+   "IMAGE"
   ],
   [
    9,
-   3,
+   5,
    0,
-   7,
-   2,
-   "CONDITIONING"
+   10,
+   1,
+   "DIFFORUM_DIRECTION"
   ],
   [
    10,
-   6,
+   10,
+   2,
+   11,
    0,
-   7,
-   3,
-   "LATENT"
+   "STRING"
   ],
   [
    11,
-   7,
+   5,
    0,
-   8,
+   13,
    0,
-   "LATENT"
+   "DIFFORUM_DIRECTION"
   ],
   [
    12,
+   6,
+   0,
+   13,
    1,
-   2,
-   8,
-   1,
-   "VAE"
+   "IMAGE"
   ],
   [
    13,
-   1,
+   10,
    0,
-   9,
-   0,
-   "MODEL"
+   13,
+   3,
+   "IMAGE"
   ],
   [
    14,
+   10,
    1,
-   2,
-   9,
-   3,
-   "VAE"
+   13,
+   4,
+   "STRING"
   ],
   [
    15,
-   2,
+   13,
    0,
-   9,
-   1,
-   "CONDITIONING"
+   14,
+   0,
+   "IMAGE"
   ],
   [
    16,
-   3,
-   0,
-   9,
-   2,
-   "CONDITIONING"
-  ],
-  [
-   17,
-   8,
-   0,
-   9,
-   4,
-   "IMAGE"
-  ],
-  [
-   18,
-   5,
-   0,
-   9,
-   5,
-   "DIFFORUM_DIRECTION"
-  ],
-  [
-   19,
-   5,
-   0,
-   11,
-   0,
-   "DIFFORUM_DIRECTION"
-  ],
-  [
-   20,
-   8,
-   0,
-   11,
+   13,
    1,
-   "IMAGE"
-  ],
-  [
-   21,
-   11,
-   0,
-   12,
-   0,
-   "IMAGE"
-  ],
-  [
-   22,
-   11,
-   1,
-   12,
+   14,
    2,
    "FLOAT"
   ],
   [
-   23,
-   12,
+   17,
+   14,
    0,
-   13,
+   15,
    0,
    "VIDEO"
   ],
   [
+   18,
+   1,
+   0,
+   16,
+   0,
+   "MODEL"
+  ],
+  [
+   19,
+   1,
+   2,
+   16,
+   3,
+   "VAE"
+  ],
+  [
+   20,
+   2,
+   0,
+   16,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   21,
+   3,
+   0,
+   16,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   22,
+   6,
+   0,
+   16,
+   4,
+   "IMAGE"
+  ],
+  [
+   23,
+   5,
+   0,
+   16,
+   5,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
    24,
-   9,
+   10,
    0,
-   14,
-   0,
+   16,
+   15,
    "IMAGE"
   ],
   [
    25,
-   14,
+   10,
+   1,
+   16,
+   16,
+   "STRING"
+  ],
+  [
+   26,
+   16,
    0,
-   15,
+   17,
    0,
    "IMAGE"
   ],
   [
-   26,
+   27,
+   17,
+   0,
+   18,
+   0,
+   "IMAGE"
+  ],
+  [
+   28,
    4,
    4,
-   15,
+   18,
    2,
    "FLOAT"
   ],
   [
-   27,
-   15,
+   29,
+   18,
    0,
-   16,
+   19,
    0,
    "VIDEO"
   ],
   [
-   28,
-   9,
+   30,
+   16,
    2,
-   17,
+   20,
    0,
    "STRING"
   ]
@@ -1190,7 +1316,7 @@
    ]
   },
   "difforum": "1.0",
-  "title": "02 · Feedback render (SDXL)"
+  "title": "12 · Long shot with key moments (installations)"
  },
  "version": 0.4
 }

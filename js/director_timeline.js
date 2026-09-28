@@ -208,7 +208,7 @@ const el = (tag, cls, text) => {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function emptyTimeline() {
-    return { version: 2, scenes: [], camera: [], energy: [], guidance: [] };
+    return { version: 2, scenes: [], camera: [], keys: [], energy: [], guidance: [] };
 }
 function normalise(v) {
     if (Array.isArray(v)) {               // 0.x list -> v2
@@ -222,10 +222,11 @@ function normalise(v) {
         return t;
     }
     const t = Object.assign(emptyTimeline(), v || {});
-    for (const k of ["scenes", "camera", "energy", "guidance"]) if (!Array.isArray(t[k])) t[k] = [];
+    for (const k of ["scenes", "camera", "keys", "energy", "guidance"]) if (!Array.isArray(t[k])) t[k] = [];
     t.scenes = t.scenes.map((s) => ({ start: 0, mood: "calm", prompt: "", ...s }));
     t.camera = t.camera.map((c) => ({ start: 0, move: "still", speed: 1, intensity: 1, lens: 0,
                                       ease: "ease_in_out", react: "none", ...c }));
+    t.keys = t.keys.map((k) => ({ start: 0, label: "", ...k }));
     return t;
 }
 
@@ -256,6 +257,43 @@ function readSetup(node) {
 }
 
 // ---------------------------------------------------------------------------
+// previz only: mute the render outputs, keep the Animatic / Storyboard
+// ---------------------------------------------------------------------------
+const PREVIZ_TYPES = new Set(["Difforum_Animatic", "Difforum_Storyboard", "Difforum_SchedulePlot"]);
+const graphNodes = () => app.graph?._nodes || app.graph?.nodes || [];
+const isOutput = (n) => !!(n.constructor?.nodeData?.output_node);
+function feedsFromPreviz(n) {
+    const seen = new Set(), stack = [n];
+    while (stack.length) {
+        const cur = stack.pop();
+        if (!cur || seen.has(cur.id)) continue;
+        seen.add(cur.id);
+        if (cur !== n && PREVIZ_TYPES.has(cur.type)) return true;
+        for (let i = 0; i < (cur.inputs?.length || 0); i++) {
+            try { stack.push(cur.getInputNode?.(i)); } catch (_) { /* dangling link */ }
+        }
+    }
+    return false;
+}
+function previzOn(node) { return Array.isArray(node.properties?.difforum_previz_muted); }
+function setPreviz(node, on) {
+    node.properties = node.properties || {};
+    if (on) {
+        const muted = [];
+        for (const n of graphNodes()) {
+            if (!isOutput(n) || n.mode !== 0 || PREVIZ_TYPES.has(n.type) || feedsFromPreviz(n)) continue;
+            n.mode = 2; muted.push(n.id);
+        }
+        node.properties.difforum_previz_muted = muted;
+    } else {
+        const ids = new Set(node.properties.difforum_previz_muted || []);
+        for (const n of graphNodes()) if (ids.has(n.id) && n.mode === 2) n.mode = 0;
+        delete node.properties.difforum_previz_muted;
+    }
+    app.graph?.setDirtyCanvas?.(true, true);
+}
+
+// ---------------------------------------------------------------------------
 // the editor
 // ---------------------------------------------------------------------------
 function buildEditor(node, tw) {
@@ -275,9 +313,15 @@ function buildEditor(node, tw) {
     const addScene = el("button", "dfx-btn", "+ Scene");
     const addCam = el("button", "dfx-btn", "+ Camera");
     const autoE = el("button", "dfx-btn", "Energy: auto");
+    const addKeyBtn = el("button", "dfx-btn", "+ Key");
+    const fitBtn = el("button", "dfx-btn", "Fit");
+    const previzBtn = el("button", "dfx-btn", "Previz only");
     const del = el("button", "dfx-btn", "Delete");
-    bar.append(playBtn, time, el("span", "dfx-sp"), addScene, addCam, autoE, del);
-    for (const b of [playBtn, addScene, addCam, autoE, del]) b.type = "button";
+    addKeyBtn.title = "Mark a key moment at the playhead (Keyframe Images / Animatic / Feedback Sampler use them)";
+    fitBtn.title = "Show the whole shot (mouse wheel zooms the timeline, shift+wheel scrolls it)";
+    previzBtn.title = "Mute every output except the Animatic / Storyboard, so Queue renders only the previz";
+    bar.append(playBtn, time, el("span", "dfx-sp"), addScene, addCam, addKeyBtn, autoE, fitBtn, previzBtn, del);
+    for (const b of [playBtn, addScene, addCam, addKeyBtn, autoE, fitBtn, previzBtn, del]) b.type = "button";
 
     // preview + tracks
     const main = el("div", "dfx-main");
@@ -302,6 +346,7 @@ function buildEditor(node, tw) {
     function sortAll() {
         tl.scenes.sort((a, b) => a.start - b.start);
         tl.camera.sort((a, b) => a.start - b.start);
+        tl.keys.sort((a, b) => a.start - b.start);
         tl.energy.sort((a, b) => a[0] - b[0]);
     }
     function save() {
@@ -337,15 +382,24 @@ function buildEditor(node, tw) {
     }
 
     // ---- geometry --------------------------------------------------------
-    const RULER = 18, LANE = 34, PAD = 8;
+    const RULER = 18, LANE = 34, KEYS = 20, PAD = 8;
     let tlH = 160;
     const lanes = () => ({
         scenes: [RULER + 4, LANE],
         camera: [RULER + 8 + LANE, LANE],
-        energy: [RULER + 12 + 2 * LANE, Math.max(40, tlH - (RULER + 12 + 2 * LANE) - 6)],
+        keys: [RULER + 12 + 2 * LANE, KEYS],
+        energy: [RULER + 16 + 2 * LANE + KEYS, Math.max(40, tlH - (RULER + 16 + 2 * LANE + KEYS) - 6)],
     });
-    function fx(frame, W) { return PAD + (frame / Math.max(1, N())) * (W - 2 * PAD); }
-    function frameAt(x, W) { return clamp(Math.round(((x - PAD) / (W - 2 * PAD)) * N()), 0, N() - 1); }
+    // visible window [v0, v1) in frames: wheel zooms, shift+wheel scrolls (long shots)
+    let v0 = 0, vSpan = 0;                     // vSpan 0 = whole shot
+    const span = () => (vSpan > 0 ? Math.min(vSpan, N()) : N());
+    function clampView() {
+        const s = span();
+        if (s >= N()) { vSpan = 0; v0 = 0; return; }
+        v0 = clamp(v0, 0, N() - s);
+    }
+    function fx(frame, W) { return PAD + ((frame - v0) / Math.max(1, span())) * (W - 2 * PAD); }
+    function frameAt(x, W) { return clamp(Math.round(v0 + ((x - PAD) / (W - 2 * PAD)) * span()), 0, N() - 1); }
     function blockEnd(list, i) { return i + 1 < list.length ? list[i + 1].start : N(); }
     function energyCurve() {
         if (tl.energy.length) return tl.energy;
@@ -375,19 +429,32 @@ function buildEditor(node, tw) {
         // ruler
         ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, 0, W, RULER);
         ctx.fillStyle = "#6c6c6c"; ctx.font = "9px sans-serif";
-        const total = N() / setup.fps;
-        const stepS = total > 40 ? 5 : total > 16 ? 2 : total > 6 ? 1 : 0.5;
-        for (let s = 0; s <= total + 1e-6; s += stepS) {
+        clampView();
+        const visS = span() / setup.fps;
+        const pxPerS = (W - 2 * PAD) / Math.max(1e-6, visS);
+        const stepS = [0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120].find((st) => st * pxPerS >= 46) || 300;
+        const s0 = Math.ceil(v0 / setup.fps / stepS) * stepS;
+        for (let s = s0; s * setup.fps <= v0 + span() + 1e-6; s += stepS) {
             const x = fx(s * setup.fps, W);
             ctx.fillRect(x, RULER - 6, 1, 6);
-            ctx.fillText(s % 1 ? s.toFixed(1) + "s" : s + "s", x + 2, 11);
+            const lab = s >= 60 ? `${Math.floor(s / 60)}:${String(+(s % 60).toFixed(2)).padStart(2, "0")}` :
+                        (s % 1 ? +s.toFixed(2) + "s" : s + "s");
+            ctx.fillText(lab, x + 2, 11);
         }
+        if (vSpan > 0) {                      // mini-map of the visible window
+            ctx.fillStyle = "#4f8ef755";
+            ctx.fillRect(PAD + (v0 / N()) * (W - 2 * PAD), RULER - 2, (span() / N()) * (W - 2 * PAD), 2);
+        }
+        ctx.save();
+        ctx.beginPath(); ctx.rect(PAD, RULER, W - 2 * PAD, H - RULER); ctx.clip();
         // lane backgrounds + labels
         for (const [name, [y, h]] of Object.entries(L)) {
             ctx.fillStyle = "#181818"; ctx.fillRect(PAD, y, W - 2 * PAD, h);
             if (name === "energy" || !tl[name]?.length) {
                 ctx.fillStyle = "#4a4a4a"; ctx.font = "9px sans-serif";
-                ctx.fillText(name === "energy" ? "ENERGY (denoise)" : `${name.toUpperCase()} · double-click to add`,
+                ctx.fillText(name === "energy" ? "ENERGY (denoise)" :
+                             name === "keys" ? "KEYS · click to mark a key moment" :
+                             `${name.toUpperCase()} · double-click to add`,
                              PAD + 4, name === "energy" ? y + h - 4 : y + h / 2 + 3);
             }
         }
@@ -422,6 +489,19 @@ function buildEditor(node, tw) {
             clipText(ctx, sub, x0 + 31, y + 27, x1 - x0 - 36);
             grip(ctx, x0, y, h);
         });
+        // keys: point markers
+        tl.keys.forEach((k, i) => {
+            const [y, h] = L.keys;
+            const x = fx(k.start, W), cy = y + h / 2;
+            const on = sel?.track === "keys" && sel.i === i;
+            ctx.strokeStyle = "#ff5fa266"; ctx.beginPath(); ctx.moveTo(x, L.scenes[0]); ctx.lineTo(x, y); ctx.stroke();
+            ctx.fillStyle = on ? "#fff" : "#ff5fa2";
+            ctx.beginPath(); ctx.moveTo(x, cy - 6); ctx.lineTo(x + 6, cy); ctx.lineTo(x, cy + 6); ctx.lineTo(x - 6, cy);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#ffd3e6"; ctx.font = "9px sans-serif";
+            const nx = i + 1 < tl.keys.length ? fx(tl.keys[i + 1].start, W) : W - PAD;
+            clipText(ctx, k.label || `K${i + 1}`, x + 9, cy + 3, nx - x - 14);
+        });
         // energy
         {
             const [y, h] = L.energy;
@@ -449,6 +529,7 @@ function buildEditor(node, tw) {
             ctx.fillText(auto ? "auto from moods · click to draw" : "click: add · drag: move · alt-click: remove",
                          W - PAD - 190, y + 10);
         }
+        ctx.restore();
         // playhead
         const px = fx(playhead, W);
         ctx.fillStyle = "#4f8ef7"; ctx.fillRect(px, 0, 1.5, H);
@@ -493,7 +574,9 @@ function buildEditor(node, tw) {
 
         const sc = [...tl.scenes].reverse().find((s) => s.start <= playhead);
         const cm = [...tl.camera].reverse().find((c) => c.start <= playhead);
-        cap.textContent = `${cm ? moveOf(cm.move).label : "still"} - ${sc ? sc.prompt : ""}`;
+        const near = tl.keys.find((k) => Math.abs(k.start - playhead) <= Math.max(2, setup.fps / 3));
+        cap.textContent = (near ? `◆ ${near.label || "key"}  ·  ` : "") +
+                          `${cm ? moveOf(cm.move).label : "still"} - ${sc ? sc.prompt : ""}`;
         time.textContent = `${secs(playhead)} / ${secs(N())}  (${playhead}f)`;
     }
 
@@ -526,6 +609,13 @@ function buildEditor(node, tw) {
             }
             return { track, i: -1 };
         }
+        const [ky, kh] = L.keys;
+        if (y >= ky && y <= ky + kh) {
+            for (let i = tl.keys.length - 1; i >= 0; i--) {
+                if (Math.abs(fx(tl.keys[i].start, W) - x) < 7) return { track: "keys", i };
+            }
+            return { track: "keys", i: -1 };
+        }
         const [ey, eh] = L.energy;
         if (y >= ey && y <= ey + eh) {
             const vy = (v) => ey + eh - 4 - clamp(v, 0, 1) * (eh - 8);
@@ -546,6 +636,14 @@ function buildEditor(node, tw) {
         const f = frameAt(x, W);
         tc.setPointerCapture(e.pointerId);
         if (!h || h.track === "ruler") { playhead = f; drag = { kind: "scrub" }; draw(); return; }
+        if (h.track === "keys") {
+            if (h.i >= 0 && e.altKey) { tl.keys.splice(h.i, 1); sel = null; save(); renderInspector(); draw(); return; }
+            if (h.i < 0) { addKey(f); h.i = sel.i; }
+            sel = { track: "keys", i: h.i };
+            drag = { kind: "key", i: h.i, f0: f, start0: tl.keys[h.i].start };
+            playhead = tl.keys[h.i].start;
+            renderInspector(); draw(); return;
+        }
         if (h.track === "energy") {
             if (h.i >= 0 && e.altKey) { tl.energy.splice(h.i, 1); sel = null; save(); renderInspector(); return; }
             if (h.i < 0) {
@@ -571,6 +669,11 @@ function buildEditor(node, tw) {
         const r = tc.getBoundingClientRect();
         const W = r.width, f = frameAt(e.clientX - r.left, W);
         if (drag.kind === "scrub") { playhead = f; draw(); return; }
+        if (drag.kind === "key") {
+            tl.keys[drag.i].start = clamp(drag.start0 + (f - drag.f0), 0, N() - 1);
+            playhead = tl.keys[drag.i].start;
+            draw(); return;
+        }
         if (drag.kind === "energy") {
             const [ey, eh] = lanes().energy;
             const v = clamp((ey + eh - 4 - (e.clientY - r.top)) / (eh - 8), 0.02, 0.98);
@@ -587,7 +690,11 @@ function buildEditor(node, tw) {
         draw();
     });
     tc.addEventListener("pointerup", () => {
-        if (drag && drag.kind !== "scrub") save();
+        if (drag?.kind === "key") {
+            const k = tl.keys[drag.i];
+            save();
+            sel = { track: "keys", i: tl.keys.indexOf(k) };
+        } else if (drag && drag.kind !== "scrub") save();
         drag = null;
         renderInspector();
     });
@@ -598,6 +705,29 @@ function buildEditor(node, tw) {
         if (h?.track === "scenes") addBlock("scenes", f);
         else if (h?.track === "camera") addBlock("camera", f);
     });
+
+    tc.addEventListener("wheel", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const r = tc.getBoundingClientRect(), W = r.width;
+        const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+            v0 += (d / 400) * span();
+        } else {
+            const fAt = v0 + ((e.clientX - r.left - PAD) / (W - 2 * PAD)) * span();
+            const ns = clamp(span() * Math.exp(d * 0.0015), Math.min(N(), 12), N());
+            v0 = fAt - ((fAt - v0) / span()) * ns;
+            vSpan = ns >= N() ? 0 : ns;
+        }
+        clampView(); draw();
+    }, { passive: false });
+
+    function addKey(f) {
+        f = clamp(Math.round(f), 0, N() - 1);
+        let k = tl.keys.find((q) => Math.abs(q.start - f) < 1);
+        if (!k) { k = { start: f, label: "" }; tl.keys.push(k); sortAll(); save(); }
+        sel = { track: "keys", i: tl.keys.indexOf(k) };
+        renderInspector(); draw();
+    }
 
     function addBlock(track, f) {
         f = clamp(Math.round(f), 0, N() - 2);
@@ -644,6 +774,22 @@ function buildEditor(node, tw) {
             ins.append(el("div", "dfx-hint",
                 "Click a block to edit it · double-click a lane to add a block · drag a block's left edge to retime · " +
                 "click the ruler to scrub · ▶ plays the camera the renderer will use."));
+            return;
+        }
+        if (sel.track === "keys") {
+            const k = tl.keys[sel.i];
+            const r1 = el("div", "dfx-row");
+            r1.append(el("b", null, `◆ Key ${sel.i + 1} @ ${secs(k.start)} (${k.start}f)`));
+            const inp = el("input");
+            inp.type = "text"; inp.placeholder = "what happens here (e.g. doors open, drop, face appears)";
+            inp.value = k.label; inp.style.flex = "1";
+            inp.addEventListener("input", () => { k.label = inp.value; draw(); });
+            inp.addEventListener("change", save);
+            inp.addEventListener("keydown", (e) => e.stopPropagation());
+            r1.append(inp);
+            ins.append(r1, el("div", "dfx-hint",
+                "Keys mark exact frames: Keyframe Images pins your pictures there, the Animatic flashes them, " +
+                "the Feedback Sampler steers toward them. Drag to move, alt-click to remove."));
             return;
         }
         if (sel.track === "energy") {
@@ -713,10 +859,20 @@ function buildEditor(node, tw) {
     // ---- toolbar -----------------------------------------------------------
     addScene.onclick = () => addBlock("scenes", playhead);
     addCam.onclick = () => addBlock("camera", playhead);
+    addKeyBtn.onclick = () => addKey(playhead);
+    fitBtn.onclick = () => { vSpan = 0; v0 = 0; draw(); };
+    previzBtn.onclick = () => { setPreviz(node, !previzOn(node)); syncPreviz(); };
+    const syncPreviz = () => {
+        const on = previzOn(node);
+        previzBtn.classList.toggle("on", on);
+        previzBtn.textContent = on ? "Previz only ✓" : "Previz only";
+    };
+    syncPreviz();
     autoE.onclick = () => { tl.energy = []; sel = null; save(); renderInspector(); draw(); };
     del.onclick = () => {
         if (!sel) return;
         if (sel.track === "energy") tl.energy.splice(sel.i, 1);
+        else if (sel.track === "keys") tl.keys.splice(sel.i, 1);
         else if (tl[sel.track].length > 1) {
             tl[sel.track].splice(sel.i, 1);
             if (tl[sel.track][0]) tl[sel.track][0].start = 0;
@@ -746,6 +902,7 @@ function buildEditor(node, tw) {
     // keep in sync with Setup / widget changes
     const syncTimer = setInterval(() => {
         if (!root.isConnected) return;
+        syncPreviz();
         const s = readSetup(node);
         if (s.frames !== setup.frames || s.fps !== setup.fps || s.width !== setup.width || s.height !== setup.height) {
             setup = s; schedulePreview(); draw();
@@ -789,8 +946,8 @@ app.registerExtension({
             this.addDOMWidget("difforum_timeline", "div", ed.root, {
                 serialize: false,
                 hideOnZoom: false,
-                getHeight: () => 640,
-                getMinHeight: () => 560,
+                getHeight: () => 670,
+                getMinHeight: () => 590,
             });
             // other widgets (camera_mode, transition...) refresh the preview
             for (const w of this.widgets || []) {
@@ -805,7 +962,7 @@ app.registerExtension({
                 return onDraw?.apply(this, a);
             };
             this.__dfx = ed;
-            this.setSize([Math.max(this.size[0], 800), Math.max(this.size[1], 880)]);
+            this.setSize([Math.max(this.size[0], 800), Math.max(this.size[1], 910)]);
         };
 
         const onConfigure = nodeType.prototype.onConfigure;

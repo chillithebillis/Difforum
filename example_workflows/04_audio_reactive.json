@@ -1,6 +1,6 @@
 {
- "last_node_id": 17,
- "last_link_id": 28,
+ "last_node_id": 21,
+ "last_link_id": 33,
  "nodes": [
   {
    "id": 1,
@@ -155,7 +155,7 @@
      "type": "DIFFORUM_PARAMS",
      "links": [
       3,
-      24
+      29
      ],
      "slot_index": 0
     },
@@ -185,7 +185,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      21
+      26
      ],
      "slot_index": 4
     },
@@ -241,7 +241,7 @@
     {
      "name": "audio",
      "type": "DIFFORUM_AUDIO",
-     "link": 26
+     "link": 31
     }
    ],
    "outputs": [
@@ -249,7 +249,8 @@
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
      "links": [
-      18
+      18,
+      19
      ],
      "slot_index": 0
     },
@@ -288,7 +289,7 @@
     "Node name for S&R": "Difforum_Director"
    },
    "widgets_values": [
-    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 60, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 120, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 180, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.7, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"beat_pulse\"}, {\"start\": 96, \"move\": \"spiral\", \"speed\": 1.0, \"intensity\": 1.0, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"bass_speed\"}, {\"start\": 180, \"move\": \"handheld\", \"speed\": 1.0, \"intensity\": 1.2, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"onset_shake\"}], \"energy\": [], \"guidance\": []}",
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, volumetric light, wide shot\"}, {\"start\": 60, \"mood\": \"build\", \"prompt\": \"glowing roots and moss, bioluminescent details, macro\"}, {\"start\": 120, \"mood\": \"climax\", \"prompt\": \"explosion of light, cosmic transformation, high contrast\"}, {\"start\": 180, \"mood\": \"resolve\", \"prompt\": \"embers becoming stars, calm, vast cosmic scale\"}], \"camera\": [{\"start\": 0, \"move\": \"zoom_in\", \"speed\": 0.7, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"beat_pulse\"}, {\"start\": 96, \"move\": \"spiral\", \"speed\": 1.0, \"intensity\": 1.0, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"bass_speed\"}, {\"start\": 180, \"move\": \"handheld\", \"speed\": 1.0, \"intensity\": 1.2, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"onset_shake\"}], \"keys\": [{\"start\": 120, \"label\": \"the light breaks\"}], \"energy\": [], \"guidance\": []}",
     "2d",
     "cinematic",
     1.0,
@@ -441,7 +442,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      17
+      17,
+      20
      ],
      "slot_index": 0
     }
@@ -540,6 +542,16 @@
      "name": "control_image",
      "type": "IMAGE",
      "link": null
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": null
     }
    ],
    "outputs": [
@@ -547,7 +559,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      19
+      24
      ],
      "slot_index": 0
     },
@@ -561,7 +573,7 @@
      "name": "report",
      "type": "STRING",
      "links": [
-      23
+      28
      ],
      "slot_index": 2
     }
@@ -576,11 +588,193 @@
     "karras",
     2,
     0.6,
-    0.5
+    0.5,
+    0.65,
+    12
    ]
   },
   {
    "id": 10,
+   "type": "MarkdownNote",
+   "pos": [
+    -420,
+    360
+   ],
+   "size": [
+    380,
+    200
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes the render outputs: Queue then runs just this. Click it again to render."
+   ]
+  },
+  {
+   "id": 11,
+   "type": "Difforum_Animatic",
+   "pos": [
+    -420,
+    600
+   ],
+   "size": [
+    380,
+    180
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 19
+    },
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 20
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      22
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Animatic"
+   },
+   "widgets_values": [
+    0.4,
+    true
+   ],
+   "title": "Animatic (previz)"
+  },
+  {
+   "id": 12,
+   "type": "CreateVideo",
+   "pos": [
+    -420,
+    820
+   ],
+   "size": [
+    380,
+    100
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 21
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 22,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      23
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 13,
+   "type": "SaveVideo",
+   "pos": [
+    -420,
+    960
+   ],
+   "size": [
+    380,
+    360
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 23
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_previz",
+    "auto",
+    "auto"
+   ],
+   "title": "Previz video"
+  },
+  {
+   "id": 14,
    "type": "Difforum_FlowStabilize",
    "pos": [
     1660,
@@ -591,13 +785,13 @@
     130
    ],
    "flags": {},
-   "order": 9,
+   "order": 13,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 19
+     "link": 24
     }
    ],
    "outputs": [
@@ -605,7 +799,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      20
+      25
      ],
      "slot_index": 0
     }
@@ -620,7 +814,7 @@
    ]
   },
   {
-   "id": 11,
+   "id": 15,
    "type": "CreateVideo",
    "pos": [
     2000,
@@ -631,23 +825,23 @@
     100
    ],
    "flags": {},
-   "order": 10,
+   "order": 14,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 20
+     "link": 25
     },
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 27
+     "link": 32
     },
     {
      "name": "fps",
      "type": "FLOAT",
-     "link": 21,
+     "link": 26,
      "widget": {
       "name": "fps"
      }
@@ -658,7 +852,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      22
+      27
      ],
      "slot_index": 0
     }
@@ -671,7 +865,7 @@
    ]
   },
   {
-   "id": 12,
+   "id": 16,
    "type": "SaveVideo",
    "pos": [
     2000,
@@ -682,13 +876,13 @@
     320
    ],
    "flags": {},
-   "order": 11,
+   "order": 15,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 22
+     "link": 27
     }
    ],
    "outputs": [],
@@ -702,7 +896,7 @@
    ]
   },
   {
-   "id": 13,
+   "id": 17,
    "type": "PreviewAny",
    "pos": [
     1660,
@@ -713,13 +907,13 @@
     200
    ],
    "flags": {},
-   "order": 12,
+   "order": 16,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "*",
-     "link": 23
+     "link": 28
     }
    ],
    "outputs": [
@@ -737,7 +931,7 @@
    "title": "Run report"
   },
   {
-   "id": 14,
+   "id": 18,
    "type": "LoadAudio",
    "pos": [
     0,
@@ -748,7 +942,7 @@
     140
    ],
    "flags": {},
-   "order": 13,
+   "order": 17,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -756,8 +950,8 @@
      "name": "AUDIO",
      "type": "AUDIO",
      "links": [
-      25,
-      27
+      30,
+      32
      ],
      "slot_index": 0
     }
@@ -772,7 +966,7 @@
    ]
   },
   {
-   "id": 15,
+   "id": 19,
    "type": "Difforum_AudioAnalyzer",
    "pos": [
     0,
@@ -783,18 +977,18 @@
     200
    ],
    "flags": {},
-   "order": 14,
+   "order": 18,
    "mode": 0,
    "inputs": [
     {
      "name": "params",
      "type": "DIFFORUM_PARAMS",
-     "link": 24
+     "link": 29
     },
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 25
+     "link": 30
     }
    ],
    "outputs": [
@@ -802,7 +996,7 @@
      "name": "audio_curves",
      "type": "DIFFORUM_AUDIO",
      "links": [
-      26
+      31
      ],
      "slot_index": 0
     },
@@ -810,7 +1004,7 @@
      "name": "bands_plot",
      "type": "IMAGE",
      "links": [
-      28
+      33
      ],
      "slot_index": 1
     },
@@ -831,7 +1025,7 @@
    ]
   },
   {
-   "id": 16,
+   "id": 20,
    "type": "PreviewImage",
    "pos": [
     0,
@@ -842,13 +1036,13 @@
     260
    ],
    "flags": {},
-   "order": 15,
+   "order": 19,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 28
+     "link": 33
     }
    ],
    "outputs": [],
@@ -859,7 +1053,7 @@
    "title": "Bands: low / mid / high / beat"
   },
   {
-   "id": 17,
+   "id": 21,
    "type": "MarkdownNote",
    "pos": [
     0,
@@ -870,7 +1064,7 @@
     220
    ],
    "flags": {},
-   "order": 16,
+   "order": 20,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -1029,81 +1223,121 @@
   ],
   [
    19,
-   9,
-   0,
-   10,
-   0,
-   "IMAGE"
-  ],
-  [
-   20,
-   10,
+   5,
    0,
    11,
    0,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   20,
+   8,
+   0,
+   11,
+   1,
    "IMAGE"
   ],
   [
    21,
-   4,
-   4,
-   11,
-   2,
-   "FLOAT"
-  ],
-  [
-   22,
    11,
    0,
    12,
    0,
-   "VIDEO"
+   "IMAGE"
+  ],
+  [
+   22,
+   11,
+   1,
+   12,
+   2,
+   "FLOAT"
   ],
   [
    23,
-   9,
-   2,
+   12,
+   0,
    13,
    0,
-   "STRING"
+   "VIDEO"
   ],
   [
    24,
-   4,
+   9,
    0,
-   15,
+   14,
    0,
-   "DIFFORUM_PARAMS"
+   "IMAGE"
   ],
   [
    25,
    14,
    0,
    15,
+   0,
+   "IMAGE"
+  ],
+  [
+   26,
+   4,
+   4,
+   15,
+   2,
+   "FLOAT"
+  ],
+  [
+   27,
+   15,
+   0,
+   16,
+   0,
+   "VIDEO"
+  ],
+  [
+   28,
+   9,
+   2,
+   17,
+   0,
+   "STRING"
+  ],
+  [
+   29,
+   4,
+   0,
+   19,
+   0,
+   "DIFFORUM_PARAMS"
+  ],
+  [
+   30,
+   18,
+   0,
+   19,
    1,
    "AUDIO"
   ],
   [
-   26,
-   15,
+   31,
+   19,
    0,
    5,
    2,
    "DIFFORUM_AUDIO"
   ],
   [
-   27,
-   14,
+   32,
+   18,
    0,
-   11,
+   15,
    1,
    "AUDIO"
   ],
   [
-   28,
-   15,
+   33,
+   19,
    1,
-   16,
+   20,
    0,
    "IMAGE"
   ]
