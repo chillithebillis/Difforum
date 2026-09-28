@@ -1,6 +1,6 @@
 # Migrating from Difforum 0.x
 
-Difforum 1.0 goes from 40 nodes to 30 and makes the Director timeline the main
+Difforum 1.0 goes from 40 nodes to 33 and makes the Director timeline the main
 way to drive a shot. Nothing breaks on load: every 0.x node is still
 registered, hidden from the node search and moved to **Difforum/legacy**, so
 old workflows open and run. Legacy nodes will be removed in 2.0.

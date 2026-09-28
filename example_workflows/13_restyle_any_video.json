@@ -1,0 +1,793 @@
+{
+ "last_node_id": 13,
+ "last_link_id": 15,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Difforum_Switches",
+   "pos": [
+    24,
+    66
+   ],
+   "size": [
+    340,
+    228
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Difforum_Switches",
+    "locked": [
+     "0 · Control",
+     "1 · Source",
+     "Models"
+    ],
+    "modes": {
+     "Restyle (look pass)": "bypass",
+     "Upscale 2K": "bypass",
+     "Output": "mute"
+    }
+   },
+   "widgets_values": [],
+   "title": "Workflow Switches"
+  },
+  {
+   "id": 2,
+   "type": "MarkdownNote",
+   "pos": [
+    24,
+    350
+   ],
+   "size": [
+    480,
+    340
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## Restyle any video\n\nLoad a clip you already rendered (MiniMax H3, LTX, Seedance, live action) and give it the Deforum / AnimateDiff / Disco look: an image model re-paints every frame, with the previous painted frame carried along the clip's own motion.\n\n- `style`: deforum morph, animatediff boil, disco flicker, clean restyle, custom.\n- `denoise` 0.3 keeps the clip, 0.6 re-imagines it; `cadence 2` halves the time.\n- The audio and fps of the source are kept. **Upscale 2K** on a switch."
+   ]
+  },
+  {
+   "id": 3,
+   "type": "LoadVideo",
+   "pos": [
+    622,
+    66
+   ],
+   "size": [
+    360,
+    420
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadVideo"
+   },
+   "widgets_values": [
+    "input.mp4",
+    "image"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "GetVideoComponents",
+   "pos": [
+    1022,
+    66
+   ],
+   "size": [
+    260,
+    120
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      13
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      14
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "bit_depth",
+     "type": "COMBO",
+     "links": [],
+     "slot_index": 3
+    },
+    {
+     "name": "color_space",
+     "type": "COMBO",
+     "links": [],
+     "slot_index": 4
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "GetVideoComponents"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 5,
+   "type": "CheckpointLoaderSimple",
+   "pos": [
+    24,
+    870
+   ],
+   "size": [
+    320,
+    100
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      2,
+      3
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      6
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CheckpointLoaderSimple"
+   },
+   "widgets_values": [
+    "sd_xl_turbo_1.0_fp16.safetensors"
+   ],
+   "title": "Look model (SDXL-Turbo / DMD2)"
+  },
+  {
+   "id": 6,
+   "type": "CLIPTextEncode",
+   "pos": [
+    384,
+    870
+   ],
+   "size": [
+    380,
+    140
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "oil painting, thick impasto brush strokes, vivid colour, painterly, dreamy"
+   ],
+   "title": "Look / style (positive)"
+  },
+  {
+   "id": 7,
+   "type": "CLIPTextEncode",
+   "pos": [
+    384,
+    1066
+   ],
+   "size": [
+    380,
+    110
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "blurry, text, watermark, photo"
+   ],
+   "title": "Negative"
+  },
+  {
+   "id": 8,
+   "type": "Difforum_Restyle",
+   "pos": [
+    882,
+    870
+   ],
+   "size": [
+    360,
+    520
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "IMAGE",
+     "link": 4
+    },
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 5
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 8
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 6
+    },
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": null
+    },
+    {
+     "name": "prompts",
+     "type": "DIFFORUM_PROMPT",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      9
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Restyle"
+   },
+   "widgets_values": [
+    "deforum morph",
+    0.45,
+    6,
+    1.5,
+    "euler_ancestral",
+    "sgm_uniform",
+    1,
+    1024,
+    0,
+    "fixed",
+    0.35,
+    "fixed",
+    0.5,
+    true,
+    0.5
+   ]
+  },
+  {
+   "id": 9,
+   "type": "PreviewAny",
+   "pos": [
+    1282,
+    870
+   ],
+   "size": [
+    300,
+    160
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "Restyle report"
+  },
+  {
+   "id": 10,
+   "type": "UpscaleModelLoader",
+   "pos": [
+    1700,
+    870
+   ],
+   "size": [
+    320,
+    80
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "UPSCALE_MODEL",
+     "type": "UPSCALE_MODEL",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UpscaleModelLoader"
+   },
+   "widgets_values": [
+    "RealESRGAN_x4plus.safetensors"
+   ],
+   "title": "Upscale model"
+  },
+  {
+   "id": 11,
+   "type": "Difforum_Upscale",
+   "pos": [
+    2060,
+    870
+   ],
+   "size": [
+    320,
+    200
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "link": 10
+    },
+    {
+     "name": "upscale_model",
+     "type": "UPSCALE_MODEL",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Upscale"
+   },
+   "widgets_values": [
+    "2K (2048 long edge)",
+    "lanczos",
+    0.15,
+    16
+   ]
+  },
+  {
+   "id": 12,
+   "type": "CreateVideo",
+   "pos": [
+    2498,
+    870
+   ],
+   "size": [
+    260,
+    100
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 12
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 13
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 14,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 13,
+   "type": "SaveVideo",
+   "pos": [
+    2798,
+    870
+   ],
+   "size": [
+    480,
+    420
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 15
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_restyle",
+    "auto",
+    "auto"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   3,
+   0,
+   4,
+   0,
+   "VIDEO"
+  ],
+  [
+   2,
+   5,
+   1,
+   6,
+   0,
+   "CLIP"
+  ],
+  [
+   3,
+   5,
+   1,
+   7,
+   0,
+   "CLIP"
+  ],
+  [
+   4,
+   4,
+   0,
+   8,
+   0,
+   "IMAGE"
+  ],
+  [
+   5,
+   5,
+   0,
+   8,
+   1,
+   "MODEL"
+  ],
+  [
+   6,
+   5,
+   2,
+   8,
+   4,
+   "VAE"
+  ],
+  [
+   7,
+   6,
+   0,
+   8,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   7,
+   0,
+   8,
+   3,
+   "CONDITIONING"
+  ],
+  [
+   9,
+   8,
+   1,
+   9,
+   0,
+   "STRING"
+  ],
+  [
+   10,
+   8,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   11,
+   10,
+   0,
+   11,
+   1,
+   "UPSCALE_MODEL"
+  ],
+  [
+   12,
+   11,
+   0,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   13,
+   4,
+   1,
+   12,
+   1,
+   "AUDIO"
+  ],
+  [
+   14,
+   4,
+   2,
+   12,
+   2,
+   "FLOAT"
+  ],
+  [
+   15,
+   12,
+   0,
+   13,
+   0,
+   "VIDEO"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 1,
+   "title": "0 · Control",
+   "bounding": [
+    0,
+    0,
+    528,
+    734
+   ],
+   "color": "#444",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "1 · Source",
+   "bounding": [
+    598,
+    0,
+    708,
+    530
+   ],
+   "color": "#3f789e",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "Models",
+   "bounding": [
+    0,
+    804,
+    788,
+    416
+   ],
+   "color": "#88A",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "Restyle (look pass)",
+   "bounding": [
+    858,
+    804,
+    748,
+    630
+   ],
+   "color": "#a1309b",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 5,
+   "title": "Upscale 2K",
+   "bounding": [
+    1676,
+    804,
+    728,
+    310
+   ],
+   "color": "#b58b2a",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 6,
+   "title": "Output",
+   "bounding": [
+    2474,
+    804,
+    828,
+    530
+   ],
+   "color": "#8A8",
+   "font_size": 22,
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    60,
+    80
+   ]
+  },
+  "difforum": "1.0",
+  "title": "13 · Restyle any video (Deforum / AnimateDiff look)"
+ },
+ "version": 0.4
+}

@@ -128,7 +128,7 @@ class DifforumAudioCurve:
             "params": (PARAMS,),
             "audio_curves": (AUDIO,),
             "source": (list(REACTIVE_SOURCES), {"default": "low"}),
-            "mode": (list(REACTIVE_MODES), {"default": "add"}),
+            "combine": (list(REACTIVE_MODES), {"default": "add"}),
             "base": ("FLOAT", {"default": 0.45, "min": -100.0, "max": 100.0, "step": 0.01}),
             "amount": ("FLOAT", {"default": 0.2, "min": -100.0, "max": 100.0, "step": 0.01}),
             "smoothing": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 0.99, "step": 0.01}),
@@ -139,11 +139,11 @@ class DifforumAudioCurve:
     FUNCTION = "run"
     CATEGORY = CAT_CURVES
 
-    def run(self, params, audio_curves, source, mode, base, amount, smoothing):
-        vals = reactive_curve(audio_vars(audio_curves) or {}, source, base, amount, mode=mode,
+    def run(self, params, audio_curves, source, combine, base, amount, smoothing):
+        vals = reactive_curve(audio_vars(audio_curves) or {}, source, base, amount, mode=combine,
                               smoothing=float(smoothing), max_frames=params["max_frames"])
         return (Schedule(values=vals, fps=params["fps"],
-                         source=f"audio {source} {mode} {base:g}+{amount:g}"),)
+                         source=f"audio {source} {combine} {base:g}+{amount:g}"),)
 
 
 class DifforumPromptTravel:

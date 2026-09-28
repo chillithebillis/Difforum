@@ -116,19 +116,31 @@ chosen look, Keyframes takes one per second, and H3 Guides anchors them - H3
 animates between Deforum frames. More guides stay closer to the look pass;
 fewer give H3 more freedom.
 
-**Look Mix** closes the loop: it takes the H3 / LTX render and the feedback look
-pass and combines them.
+### How the look gets onto H3 (and what each stage does)
 
-| mode | what you get |
-|---|---|
-| `detail transfer` | H3's motion and light, the pass's brush / grain texture on top |
-| `colour + detail` | also pulls the palette toward the pass |
-| `flicker cuts` | cuts to the look pass every `flicker_every` frames: the AnimateDiff / Disco strobe |
-| `crossfade` | a plain mix by `amount` |
-| `none` | the clean H3 render |
+H3 makes smooth, coherent motion and smooths away the boiling texture that made
+Deforum, AnimateDiff and Disco Diffusion feel alive. Three stages bring it back,
+each one a block you can switch off:
 
-`step_fps` (8-12) holds frames for a hand-made stutter. The looks `disco_diffusion`,
-`vqgan_clip` and `flicker_experimental` are made for this pairing.
+| stage | what it does | what you see |
+|---|---|---|
+| **Look pass** (template 11) | a turbo Feedback Sampler renders the shot the Deforum way; its frames guide H3 | the morphs and dissolves happen inside H3's motion |
+| **Restyle** | an image model re-paints every H3 frame (img2img at `denoise` 0.3-0.6), mixing in the previous painted frame moved along the clip's optical flow | the actual Deforum / AnimateDiff texture, following H3's motion |
+| **Look Mix** | compositing only: high-frequency detail, colour or cut-ins from the look pass | extra grain, strobe, stutter |
+
+Restyle styles:
+
+| style | feedback | seed | colour | reads as |
+|---|---|---|---|---|
+| `clean restyle` | 0 | fixed | held | a steady painted version of the clip |
+| `animatediff boil` | 0.15 | per frame | mostly held | texture re-rolling every frame |
+| `deforum morph` | 0.55 | fixed | loose | smear and morph along the motion |
+| `disco flicker` | 0.25 | per frame, +25 % denoise | free | high-energy flicker |
+| `custom` | your `feedback` | your `seed_mode` | your `color_hold` | |
+
+Look Mix on its own does **not** re-paint anything: it layers texture from a
+look pass that was rendered separately, so where the two drift apart the texture
+swims. Use it on top of Restyle, or for flicker cuts and stutter.
 
 ## Multikeyframing and previz
 

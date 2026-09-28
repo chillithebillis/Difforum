@@ -1,152 +1,77 @@
 {
- "last_node_id": 20,
- "last_link_id": 32,
+ "last_node_id": 23,
+ "last_link_id": 34,
  "nodes": [
   {
    "id": 1,
-   "type": "CheckpointLoaderSimple",
+   "type": "Difforum_Switches",
    "pos": [
-    0,
-    0
+    24,
+    66
    ],
    "size": [
-    320,
-    100
+    340,
+    296
    ],
    "flags": {},
    "order": 0,
    "mode": 0,
    "inputs": [],
-   "outputs": [
-    {
-     "name": "MODEL",
-     "type": "MODEL",
-     "links": [
-      7,
-      13
-     ],
-     "slot_index": 0
-    },
-    {
-     "name": "CLIP",
-     "type": "CLIP",
-     "links": [
-      1,
-      2,
-      4
-     ],
-     "slot_index": 1
-    },
-    {
-     "name": "VAE",
-     "type": "VAE",
-     "links": [
-      12,
-      14
-     ],
-     "slot_index": 2
-    }
-   ],
+   "outputs": [],
    "properties": {
-    "Node name for S&R": "CheckpointLoaderSimple"
+    "Node name for S&R": "Difforum_Switches",
+    "locked": [
+     "0 · Control",
+     "1 · Direction",
+     "Models",
+     "First frame"
+    ],
+    "modes": {
+     "2 · Previz": "mute",
+     "3 · Render · Feedback Sampler": "mute",
+     "Upscale 2K": "bypass",
+     "Output": "mute"
+    }
    },
-   "widgets_values": [
-    "sd_xl_base_1.0.safetensors"
-   ]
+   "widgets_values": [],
+   "title": "Workflow Switches"
   },
   {
    "id": 2,
-   "type": "CLIPTextEncode",
+   "type": "MarkdownNote",
    "pos": [
-    360,
-    0
+    24,
+    418
    ],
    "size": [
-    380,
-    140
+    460,
+    300
    ],
    "flags": {},
    "order": 1,
    "mode": 0,
-   "inputs": [
-    {
-     "name": "clip",
-     "type": "CLIP",
-     "link": 1
-    }
-   ],
-   "outputs": [
-    {
-     "name": "CONDITIONING",
-     "type": "CONDITIONING",
-     "links": [
-      8,
-      15
-     ],
-     "slot_index": 0
-    }
-   ],
+   "inputs": [],
+   "outputs": [],
    "properties": {
-    "Node name for S&R": "CLIPTextEncode"
+    "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "cinematic film still, rich detail, volumetric light, 35mm"
-   ],
-   "title": "Look / style (positive)"
+    "## Real parallax\n\nDepth Anything V2 reads the first frame, the Director is in **3d**, and the sampler re-projects the depth with the image every frame - near things move faster than far ones for the whole clip.\n\nNeeds **ComfyUI-DepthAnythingV2** (Kijai). Too strong? Lower `translation_scale` on Render Options. The sampler's `depth` output is the tracked depth per frame."
+   ]
   },
   {
    "id": 3,
-   "type": "CLIPTextEncode",
-   "pos": [
-    360,
-    180
-   ],
-   "size": [
-    380,
-    120
-   ],
-   "flags": {},
-   "order": 2,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "clip",
-     "type": "CLIP",
-     "link": 2
-    }
-   ],
-   "outputs": [
-    {
-     "name": "CONDITIONING",
-     "type": "CONDITIONING",
-     "links": [
-      9,
-      16
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "CLIPTextEncode"
-   },
-   "widgets_values": [
-    "blurry, low quality, watermark, text, frame, border"
-   ],
-   "title": "Negative"
-  },
-  {
-   "id": 4,
    "type": "Difforum_Setup",
    "pos": [
-    0,
-    360
+    602,
+    66
    ],
    "size": [
     320,
-    300
+    378
    ],
    "flags": {},
-   "order": 3,
+   "order": 2,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -154,7 +79,7 @@
      "name": "params",
      "type": "DIFFORUM_PARAMS",
      "links": [
-      3
+      1
      ],
      "slot_index": 0
     },
@@ -184,7 +109,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      30
+      33
      ],
      "slot_index": 4
     },
@@ -213,24 +138,24 @@
    ]
   },
   {
-   "id": 5,
+   "id": 4,
    "type": "Difforum_Director",
    "pos": [
-    420,
-    360
+    962,
+    66
    ],
    "size": [
     800,
     880
    ],
    "flags": {},
-   "order": 4,
+   "order": 3,
    "mode": 0,
    "inputs": [
     {
      "name": "params",
      "type": "DIFFORUM_PARAMS",
-     "link": 3
+     "link": 1
     },
     {
      "name": "clip",
@@ -248,8 +173,8 @@
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
      "links": [
-      18,
-      22
+      15,
+      26
      ],
      "slot_index": 0
     },
@@ -300,18 +225,151 @@
    ]
   },
   {
+   "id": 5,
+   "type": "CheckpointLoaderSimple",
+   "pos": [
+    24,
+    1126
+   ],
+   "size": [
+    320,
+    100
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      7,
+      21
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      2,
+      3,
+      4
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      12,
+      22
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CheckpointLoaderSimple"
+   },
+   "widgets_values": [
+    "sd_xl_base_1.0.safetensors"
+   ],
+   "title": "Checkpoint"
+  },
+  {
    "id": 6,
+   "type": "CLIPTextEncode",
+   "pos": [
+    384,
+    1126
+   ],
+   "size": [
+    380,
+    140
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      8,
+      23
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "cinematic film still, rich detail, volumetric light, 35mm"
+   ],
+   "title": "Look / style (positive)"
+  },
+  {
+   "id": 7,
+   "type": "CLIPTextEncode",
+   "pos": [
+    384,
+    1322
+   ],
+   "size": [
+    380,
+    110
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      9,
+      24
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "blurry, low quality, watermark, text, frame, border"
+   ],
+   "title": "Negative"
+  },
+  {
+   "id": 8,
    "type": "EmptyLatentImage",
    "pos": [
-    820,
-    0
+    1282,
+    1126
    ],
    "size": [
     260,
     110
    ],
    "flags": {},
-   "order": 5,
+   "order": 7,
    "mode": 0,
    "inputs": [
     {
@@ -351,18 +409,18 @@
    ]
   },
   {
-   "id": 7,
+   "id": 9,
    "type": "KSampler",
    "pos": [
-    1110,
-    0
+    1582,
+    1126
    ],
    "size": [
     300,
-    260
+    264
    ],
    "flags": {},
-   "order": 6,
+   "order": 8,
    "mode": 0,
    "inputs": [
     {
@@ -411,18 +469,18 @@
    "title": "First frame"
   },
   {
-   "id": 8,
+   "id": 10,
    "type": "VAEDecode",
    "pos": [
-    1440,
-    0
+    1922,
+    1126
    ],
    "size": [
     200,
     60
    ],
    "flags": {},
-   "order": 7,
+   "order": 9,
    "mode": 0,
    "inputs": [
     {
@@ -441,9 +499,9 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      17,
-      20,
-      23
+      14,
+      16,
+      25
      ],
      "slot_index": 0
     }
@@ -454,49 +512,303 @@
    "widgets_values": []
   },
   {
-   "id": 9,
-   "type": "Difforum_FeedbackSampler",
+   "id": 11,
+   "type": "DownloadAndLoadDepthAnythingV2Model",
    "pos": [
-    1260,
-    360
+    882,
+    1126
    ],
    "size": [
     360,
-    460
+    80
    ],
    "flags": {},
-   "order": 8,
+   "order": 10,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "da_v2_model",
+     "type": "DAMODEL",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DownloadAndLoadDepthAnythingV2Model"
+   },
+   "widgets_values": [
+    "depth_anything_v2_vitl_fp32.safetensors"
+   ]
+  },
+  {
+   "id": 12,
+   "type": "DepthAnything_V2",
+   "pos": [
+    2162,
+    1126
+   ],
+   "size": [
+    360,
+    80
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "da_model",
+     "type": "DAMODEL",
+     "link": 13
+    },
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      17,
+      27
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DepthAnything_V2"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 13,
+   "type": "MarkdownNote",
+   "pos": [
+    1880,
+    66
+   ],
+   "size": [
+    360,
+    200
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in seconds.\n\nSwitch **Render** off (or press **Previz only** on the Director) and Queue: only this runs."
+   ]
+  },
+  {
+   "id": 14,
+   "type": "Difforum_Animatic",
+   "pos": [
+    2280,
+    66
+   ],
+   "size": [
+    360,
+    180
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 15
+    },
+    {
+     "name": "init_image",
+     "type": "IMAGE",
+     "link": 16
+    },
+    {
+     "name": "depth",
+     "type": "IMAGE",
+     "link": 17
+    },
+    {
+     "name": "key_images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "key_indices",
+     "type": "STRING",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      19
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Animatic"
+   },
+   "widgets_values": [
+    0.4,
+    true
+   ],
+   "title": "Animatic (previz)"
+  },
+  {
+   "id": 15,
+   "type": "CreateVideo",
+   "pos": [
+    2680,
+    66
+   ],
+   "size": [
+    260,
+    100
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 18
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 19,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      20
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 16,
+   "type": "SaveVideo",
+   "pos": [
+    2980,
+    66
+   ],
+   "size": [
+    360,
+    320
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 20
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_previz",
+    "auto",
+    "auto"
+   ],
+   "title": "Previz video"
+  },
+  {
+   "id": 17,
+   "type": "Difforum_FeedbackSampler",
+   "pos": [
+    2640,
+    1126
+   ],
+   "size": [
+    360,
+    585
+   ],
+   "flags": {},
+   "order": 16,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 13
+     "link": 21
     },
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 15
+     "link": 23
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 16
+     "link": 24
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 14
+     "link": 22
     },
     {
      "name": "init_image",
      "type": "IMAGE",
-     "link": 17
+     "link": 25
     },
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 18
+     "link": 26
     },
     {
      "name": "options",
@@ -531,7 +843,7 @@
     {
      "name": "depth",
      "type": "IMAGE",
-     "link": 21
+     "link": 27
     },
     {
      "name": "control_net",
@@ -573,7 +885,7 @@
      "name": "report",
      "type": "STRING",
      "links": [
-      32
+      29
      ],
      "slot_index": 2
     }
@@ -594,272 +906,18 @@
    ]
   },
   {
-   "id": 10,
-   "type": "DownloadAndLoadDepthAnythingV2Model",
-   "pos": [
-    1260,
-    0
-   ],
-   "size": [
-    360,
-    80
-   ],
-   "flags": {},
-   "order": 9,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "da_v2_model",
-     "type": "DAMODEL",
-     "links": [
-      19
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "DownloadAndLoadDepthAnythingV2Model"
-   },
-   "widgets_values": [
-    "depth_anything_v2_vitl_fp32.safetensors"
-   ]
-  },
-  {
-   "id": 11,
-   "type": "DepthAnything_V2",
-   "pos": [
-    1260,
-    120
-   ],
-   "size": [
-    360,
-    80
-   ],
-   "flags": {},
-   "order": 10,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "da_model",
-     "type": "DAMODEL",
-     "link": 19
-    },
-    {
-     "name": "images",
-     "type": "IMAGE",
-     "link": 20
-    }
-   ],
-   "outputs": [
-    {
-     "name": "image",
-     "type": "IMAGE",
-     "links": [
-      21,
-      24
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "DepthAnything_V2"
-   },
-   "widgets_values": []
-  },
-  {
-   "id": 12,
-   "type": "MarkdownNote",
-   "pos": [
-    -420,
-    360
-   ],
-   "size": [
-    380,
-    200
-   ],
-   "flags": {},
-   "order": 11,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "MarkdownNote"
-   },
-   "widgets_values": [
-    "## ① Previz first\n\nThe **Animatic** plays the Director's camera, scenes, energy and keys over the first frame in about a second.\n\nOn the Director, **Previz only** mutes the render outputs: Queue then runs just this. Click it again to render."
-   ]
-  },
-  {
-   "id": 13,
-   "type": "Difforum_Animatic",
-   "pos": [
-    -420,
-    600
-   ],
-   "size": [
-    380,
-    180
-   ],
-   "flags": {},
-   "order": 12,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "direction",
-     "type": "DIFFORUM_DIRECTION",
-     "link": 22
-    },
-    {
-     "name": "init_image",
-     "type": "IMAGE",
-     "link": 23
-    },
-    {
-     "name": "depth",
-     "type": "IMAGE",
-     "link": 24
-    },
-    {
-     "name": "key_images",
-     "type": "IMAGE",
-     "link": null
-    },
-    {
-     "name": "key_indices",
-     "type": "STRING",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "frames",
-     "type": "IMAGE",
-     "links": [
-      25
-     ],
-     "slot_index": 0
-    },
-    {
-     "name": "fps",
-     "type": "FLOAT",
-     "links": [
-      26
-     ],
-     "slot_index": 1
-    },
-    {
-     "name": "info",
-     "type": "STRING",
-     "links": [],
-     "slot_index": 2
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "Difforum_Animatic"
-   },
-   "widgets_values": [
-    0.4,
-    true
-   ],
-   "title": "Animatic (previz)"
-  },
-  {
-   "id": 14,
-   "type": "CreateVideo",
-   "pos": [
-    -420,
-    820
-   ],
-   "size": [
-    380,
-    100
-   ],
-   "flags": {},
-   "order": 13,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "images",
-     "type": "IMAGE",
-     "link": 25
-    },
-    {
-     "name": "audio",
-     "type": "AUDIO",
-     "link": null
-    },
-    {
-     "name": "fps",
-     "type": "FLOAT",
-     "link": 26,
-     "widget": {
-      "name": "fps"
-     }
-    }
-   ],
-   "outputs": [
-    {
-     "name": "VIDEO",
-     "type": "VIDEO",
-     "links": [
-      27
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "CreateVideo"
-   },
-   "widgets_values": [
-    24.0
-   ]
-  },
-  {
-   "id": 15,
-   "type": "SaveVideo",
-   "pos": [
-    -420,
-    960
-   ],
-   "size": [
-    380,
-    360
-   ],
-   "flags": {},
-   "order": 14,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "video",
-     "type": "VIDEO",
-     "link": 27
-    }
-   ],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "SaveVideo"
-   },
-   "widgets_values": [
-    "video/difforum_previz",
-    "auto",
-    "auto"
-   ],
-   "title": "Previz video"
-  },
-  {
-   "id": 16,
+   "id": 18,
    "type": "Difforum_FlowStabilize",
    "pos": [
-    1660,
-    360
+    3040,
+    1126
    ],
    "size": [
     300,
     130
    ],
    "flags": {},
-   "order": 15,
+   "order": 17,
    "mode": 0,
    "inputs": [
     {
@@ -873,7 +931,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      29
+      30
      ],
      "slot_index": 0
     }
@@ -888,93 +946,11 @@
    ]
   },
   {
-   "id": 17,
-   "type": "CreateVideo",
-   "pos": [
-    2000,
-    360
-   ],
-   "size": [
-    260,
-    100
-   ],
-   "flags": {},
-   "order": 16,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "images",
-     "type": "IMAGE",
-     "link": 29
-    },
-    {
-     "name": "audio",
-     "type": "AUDIO",
-     "link": null
-    },
-    {
-     "name": "fps",
-     "type": "FLOAT",
-     "link": 30,
-     "widget": {
-      "name": "fps"
-     }
-    }
-   ],
-   "outputs": [
-    {
-     "name": "VIDEO",
-     "type": "VIDEO",
-     "links": [
-      31
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "CreateVideo"
-   },
-   "widgets_values": [
-    24.0
-   ]
-  },
-  {
-   "id": 18,
-   "type": "SaveVideo",
-   "pos": [
-    2000,
-    500
-   ],
-   "size": [
-    300,
-    320
-   ],
-   "flags": {},
-   "order": 17,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "video",
-     "type": "VIDEO",
-     "link": 31
-    }
-   ],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "SaveVideo"
-   },
-   "widgets_values": [
-    "video/difforum",
-    "auto",
-    "auto"
-   ]
-  },
-  {
    "id": 19,
    "type": "PreviewAny",
    "pos": [
-    1660,
-    540
+    3040,
+    1312
    ],
    "size": [
     300,
@@ -987,7 +963,7 @@
     {
      "name": "source",
      "type": "*",
-     "link": 32
+     "link": 29
     }
    ],
    "outputs": [
@@ -1006,294 +982,559 @@
   },
   {
    "id": 20,
-   "type": "MarkdownNote",
+   "type": "UpscaleModelLoader",
    "pos": [
-    0,
-    -320
+    3458,
+    1126
    ],
    "size": [
-    560,
-    240
+    320,
+    80
    ],
    "flags": {},
    "order": 19,
    "mode": 0,
    "inputs": [],
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "UPSCALE_MODEL",
+     "type": "UPSCALE_MODEL",
+     "links": [
+      31
+     ],
+     "slot_index": 0
+    }
+   ],
    "properties": {
-    "Node name for S&R": "MarkdownNote"
+    "Node name for S&R": "UpscaleModelLoader"
    },
    "widgets_values": [
-    "## Real parallax\n\nDepth Anything V2 reads the first frame, the Director is in **3d**, and the sampler re-projects the depth with the image every frame - near things move faster than far ones for the whole clip, not just the start.\n\nNeeds **ComfyUI-DepthAnythingV2** (Kijai). Too strong? Lower the sampler's `translation_scale`. The `depth` output is the tracked depth per frame, ready for compositing."
+    "RealESRGAN_x4plus.safetensors"
+   ],
+   "title": "Upscale model"
+  },
+  {
+   "id": 21,
+   "type": "Difforum_Upscale",
+   "pos": [
+    3818,
+    1126
+   ],
+   "size": [
+    320,
+    200
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "link": 30
+    },
+    {
+     "name": "upscale_model",
+     "type": "UPSCALE_MODEL",
+     "link": 31
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      32
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Upscale"
+   },
+   "widgets_values": [
+    "2K (2048 long edge)",
+    "lanczos",
+    0.15,
+    16
+   ]
+  },
+  {
+   "id": 22,
+   "type": "CreateVideo",
+   "pos": [
+    4256,
+    1126
+   ],
+   "size": [
+    260,
+    100
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 32
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 33,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      34
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 23,
+   "type": "SaveVideo",
+   "pos": [
+    4556,
+    1126
+   ],
+   "size": [
+    480,
+    420
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 34
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum",
+    "auto",
+    "auto"
    ]
   }
  ],
  "links": [
   [
    1,
-   1,
-   1,
-   2,
-   0,
-   "CLIP"
-  ],
-  [
-   2,
-   1,
-   1,
    3,
    0,
-   "CLIP"
-  ],
-  [
-   3,
    4,
-   0,
-   5,
    0,
    "DIFFORUM_PARAMS"
   ],
   [
-   4,
-   1,
-   1,
+   2,
    5,
+   1,
+   6,
+   0,
+   "CLIP"
+  ],
+  [
+   3,
+   5,
+   1,
+   7,
+   0,
+   "CLIP"
+  ],
+  [
+   4,
+   5,
+   1,
+   4,
    1,
    "CLIP"
   ],
   [
    5,
-   4,
+   3,
    1,
-   6,
+   8,
    0,
    "INT"
   ],
   [
    6,
-   4,
+   3,
    2,
-   6,
+   8,
    1,
    "INT"
   ],
   [
    7,
-   1,
+   5,
    0,
-   7,
+   9,
    0,
    "MODEL"
   ],
   [
    8,
-   2,
+   6,
    0,
-   7,
+   9,
    1,
    "CONDITIONING"
   ],
   [
    9,
-   3,
-   0,
    7,
+   0,
+   9,
    2,
    "CONDITIONING"
   ],
   [
    10,
-   6,
+   8,
    0,
-   7,
+   9,
    3,
    "LATENT"
   ],
   [
    11,
-   7,
+   9,
    0,
-   8,
+   10,
    0,
    "LATENT"
   ],
   [
    12,
-   1,
+   5,
    2,
-   8,
+   10,
    1,
    "VAE"
   ],
   [
    13,
-   1,
-   0,
-   9,
-   0,
-   "MODEL"
-  ],
-  [
-   14,
-   1,
-   2,
-   9,
-   3,
-   "VAE"
-  ],
-  [
-   15,
-   2,
-   0,
-   9,
-   1,
-   "CONDITIONING"
-  ],
-  [
-   16,
-   3,
-   0,
-   9,
-   2,
-   "CONDITIONING"
-  ],
-  [
-   17,
-   8,
-   0,
-   9,
-   4,
-   "IMAGE"
-  ],
-  [
-   18,
-   5,
-   0,
-   9,
-   5,
-   "DIFFORUM_DIRECTION"
-  ],
-  [
-   19,
-   10,
-   0,
    11,
+   0,
+   12,
    0,
    "DAMODEL"
   ],
   [
-   20,
-   8,
+   14,
+   10,
    0,
-   11,
+   12,
    1,
    "IMAGE"
   ],
   [
-   21,
-   11,
+   15,
+   4,
    0,
-   9,
-   12,
-   "IMAGE"
-  ],
-  [
-   22,
-   5,
-   0,
-   13,
+   14,
    0,
    "DIFFORUM_DIRECTION"
   ],
   [
-   23,
-   8,
+   16,
+   10,
    0,
-   13,
+   14,
    1,
    "IMAGE"
   ],
   [
-   24,
-   11,
+   17,
+   12,
    0,
-   13,
+   14,
    2,
    "IMAGE"
   ],
   [
-   25,
-   13,
-   0,
-   14,
-   0,
-   "IMAGE"
-  ],
-  [
-   26,
-   13,
-   1,
-   14,
-   2,
-   "FLOAT"
-  ],
-  [
-   27,
+   18,
    14,
    0,
    15,
    0,
+   "IMAGE"
+  ],
+  [
+   19,
+   14,
+   1,
+   15,
+   2,
+   "FLOAT"
+  ],
+  [
+   20,
+   15,
+   0,
+   16,
+   0,
    "VIDEO"
   ],
   [
-   28,
-   9,
+   21,
+   5,
    0,
-   16,
+   17,
+   0,
+   "MODEL"
+  ],
+  [
+   22,
+   5,
+   2,
+   17,
+   3,
+   "VAE"
+  ],
+  [
+   23,
+   6,
+   0,
+   17,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   24,
+   7,
+   0,
+   17,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   25,
+   10,
+   0,
+   17,
+   4,
+   "IMAGE"
+  ],
+  [
+   26,
+   4,
+   0,
+   17,
+   5,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   27,
+   12,
+   0,
+   17,
+   12,
+   "IMAGE"
+  ],
+  [
+   28,
+   17,
+   0,
+   18,
    0,
    "IMAGE"
   ],
   [
    29,
-   16,
-   0,
    17,
-   0,
-   "IMAGE"
-  ],
-  [
-   30,
-   4,
-   4,
-   17,
-   2,
-   "FLOAT"
-  ],
-  [
-   31,
-   17,
-   0,
-   18,
-   0,
-   "VIDEO"
-  ],
-  [
-   32,
-   9,
    2,
    19,
    0,
    "STRING"
+  ],
+  [
+   30,
+   18,
+   0,
+   21,
+   0,
+   "IMAGE"
+  ],
+  [
+   31,
+   20,
+   0,
+   21,
+   1,
+   "UPSCALE_MODEL"
+  ],
+  [
+   32,
+   21,
+   0,
+   22,
+   0,
+   "IMAGE"
+  ],
+  [
+   33,
+   3,
+   4,
+   22,
+   2,
+   "FLOAT"
+  ],
+  [
+   34,
+   22,
+   0,
+   23,
+   0,
+   "VIDEO"
   ]
  ],
- "groups": [],
+ "groups": [
+  {
+   "id": 1,
+   "title": "0 · Control",
+   "bounding": [
+    0,
+    0,
+    508,
+    762
+   ],
+   "color": "#444",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "1 · Direction",
+   "bounding": [
+    578,
+    0,
+    1208,
+    990
+   ],
+   "color": "#3f789e",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "Models",
+   "bounding": [
+    0,
+    1060,
+    788,
+    416
+   ],
+   "color": "#88A",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "First frame",
+   "bounding": [
+    858,
+    1060,
+    1688,
+    374
+   ],
+   "color": "#88A",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 5,
+   "title": "2 · Previz",
+   "bounding": [
+    1856,
+    0,
+    1508,
+    430
+   ],
+   "color": "#8AA",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 6,
+   "title": "3 · Render · Feedback Sampler",
+   "bounding": [
+    2616,
+    1060,
+    748,
+    695
+   ],
+   "color": "#8A8",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 7,
+   "title": "Upscale 2K",
+   "bounding": [
+    3434,
+    1060,
+    728,
+    310
+   ],
+   "color": "#b58b2a",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 8,
+   "title": "Output",
+   "bounding": [
+    4232,
+    1060,
+    828,
+    530
+   ],
+   "color": "#8A8",
+   "font_size": 22,
+   "flags": {}
+  }
+ ],
  "config": {},
  "extra": {
   "ds": {
-   "scale": 0.65,
+   "scale": 0.55,
    "offset": [
-    40,
-    40
+    60,
+    80
    ]
   },
   "difforum": "1.0",

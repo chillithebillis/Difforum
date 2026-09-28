@@ -27,12 +27,20 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - **Look Mix**: detail transfer, colour, flicker cuts or crossfade from a feedback pass onto
   an H3 / LTX render. New looks: disco_diffusion, vqgan_clip, flicker_experimental.
 - Template **12 · long shot with key moments** (30 s, installations).
+- **Restyle**: gives any H3 / LTX / live-action clip the Deforum / AnimateDiff / Disco look with
+  an image model, feedback carried along the clip's optical flow. Template **13 · restyle any video**.
+- **Upscale (2K / 4K)**: upscale model + exact resize, chunked for long clips.
+- **Workflow Switches**: one switch per group (render groups muted, pass-through groups bypassed,
+  dependent outputs muted with them) and ⌖ to jump to a group.
+- Every template rebuilt in named blocks (Control, Direction, Previz, Models, Render, Restyle,
+  Upscale 2K, Output); H3 templates add a **Live Preview (TAEH3)** block (KJNodes Model Preview
+  Override).
 - **Camera Export** to After Effects (.jsx), Blender (.py) and JSON; **Camera Import**
   from them, with helper exporters in `tools/`.
 - 7 new moves: tilt up/down, crane up, handheld, drift, breathe, vortex.
 - Feedback Sampler outputs the tracked depth per frame and a run report; its fine-tuning
   moved to a separate **Render Options** node, so the sampler stays small.
-- 12 templates in ComfyUI's template browser, generated from the node definitions.
+- 13 templates in ComfyUI's template browser, generated from the node definitions.
 
 ### Improved
 - One shared feedback engine behind the Feedback Sampler, Live Sampler and Storyboard.
@@ -45,6 +53,9 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - Deterministic 3D z-buffer on CUDA / MPS / CPU.
 
 ### Fixed
+- Widgets named `mode` collided with the node's own mode in the ComfyUI frontend (mute / bypass
+  stopped working on those nodes). Renamed: Camera (keys) `camera_mode`, Look Mix `blend`,
+  Symmetry `symmetry`, Audio Curve `combine`. Saved workflows keep their values.
 - The pack no longer imports a top-level `core` module (it collided with other packs).
 - The 0.x templates `audio_reactive_video`, `deluxe` and `mesmerize` had camera values
   in the wrong fields. The v1 templates are generated, so this cannot recur.

@@ -67,7 +67,7 @@ class DifforumLookMix:
     * crossfade - plain mix
 
     `step_fps` then holds frames to 8-12 fps for a stop-motion / AnimateDiff
-    stutter, independently of the mode (works without a look pass too).
+    stutter, independently of the blend (works without a look pass too).
     """
 
     DESCRIPTION = __doc__
@@ -76,7 +76,7 @@ class DifforumLookMix:
     def INPUT_TYPES(cls):
         return {"required": {
             "video": ("IMAGE", {"tooltip": "The video-model render (H3, LTX...)."}),
-            "mode": (["detail transfer", "colour + detail", "flicker cuts", "crossfade", "none"],
+            "blend": (["detail transfer", "colour + detail", "flicker cuts", "crossfade", "none"],
                      {"default": "detail transfer"}),
             "amount": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 2.0, "step": 0.05}),
             "detail_radius": ("INT", {"default": 3, "min": 1, "max": 16,
@@ -95,7 +95,7 @@ class DifforumLookMix:
     FUNCTION = "run"
     CATEGORY = CAT_POST
 
-    def run(self, video, mode, amount, detail_radius, flicker_every, step_fps, fps, seed,
+    def run(self, video, blend, amount, detail_radius, flicker_every, step_fps, fps, seed,
             look_pass=None):
         import random
 
@@ -106,17 +106,17 @@ class DifforumLookMix:
 
         n, h, w = int(video.shape[0]), int(video.shape[1]), int(video.shape[2])
         out = video[..., :3].clone()
-        if look_pass is not None and mode != "none":
+        if look_pass is not None and blend != "none":
             m = int(look_pass.shape[0])
             idx = [min(m - 1, round(i * (m - 1) / max(1, n - 1))) for i in range(n)]
             lp = resize_bhwc(look_pass[idx][..., :3], w, h).to(out.dtype)
             a = float(amount)
-            if mode in ("detail transfer", "colour + detail"):
-                if mode == "colour + detail":
+            if blend in ("detail transfer", "colour + detail"):
+                if blend == "colour + detail":
                     out = match_color(out, lp, strength=min(1.0, a), mode="lab")
                 blur = _gaussian_blur(lp.permute(0, 3, 1, 2), int(detail_radius)).permute(0, 2, 3, 1)
                 out = out + a * (lp - blur)
-            elif mode == "flicker cuts":
+            elif blend == "flicker cuts":
                 rng = random.Random(int(seed))
                 every = max(1, int(flicker_every))
                 for i in range(n):
@@ -140,7 +140,7 @@ class DifforumSymmetry:
     def INPUT_TYPES(cls):
         return {"required": {
             "image": ("IMAGE",),
-            "mode": (list(SYMMETRY_MODES), {"default": "kaleidoscope"}),
+            "symmetry": (list(SYMMETRY_MODES), {"default": "kaleidoscope"}),
             "segments": ("INT", {"default": 6, "min": 2, "max": 64}),
             "mix": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
         }, "optional": {
@@ -155,8 +155,8 @@ class DifforumSymmetry:
     FUNCTION = "run"
     CATEGORY = CAT_POST
 
-    def run(self, image, mode, segments, mix, flip=False, center_x=0.5, center_y=0.5, angle=0.0):
-        return (apply_symmetry(image, mode=mode, segments=int(segments), flip=bool(flip),
+    def run(self, image, symmetry, segments, mix, flip=False, center_x=0.5, center_y=0.5, angle=0.0):
+        return (apply_symmetry(image, mode=symmetry, segments=int(segments), flip=bool(flip),
                                mix=float(mix), center_x=float(center_x),
                                center_y=float(center_y), angle=float(angle)),)
 

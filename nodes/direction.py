@@ -160,7 +160,7 @@ class DifforumCamera:
             "required": {
                 "params": (PARAMS,),
                 "keys": ("STRING", {"multiline": True, "default": _DEFAULT_KEYS}),
-                "mode": (list(CAMERA_MODES), {"default": "2d"}),
+                "camera_mode": (list(CAMERA_MODES), {"default": "2d"}),
                 "transition": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "speed": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 5.0, "step": 0.05}),
                 "loop_mode": (list(LOOP_MODES), {"default": "off"}),
@@ -176,7 +176,7 @@ class DifforumCamera:
     FUNCTION = "run"
     CATEGORY = CAT_DIRECT
 
-    def run(self, params, keys, mode, transition, speed, loop_mode, cycle_frames,
+    def run(self, params, keys, camera_mode, transition, speed, loop_mode, cycle_frames,
             harmonics, audio=None):
         total = int(params["max_frames"])
         fps = float(params["fps"])
@@ -208,15 +208,15 @@ class DifforumCamera:
 
         values = {ax: _fit(s, total, 1.0 if ax == "zoom" else 0.0) for ax, s in values.items()}
         moves = [k["move"] for k in parse_camera_keys(keys)]
-        cam = _track(values, _fit(lens, total, 40.0), total, mode, moves)
+        cam = _track(values, _fit(lens, total, 40.0), total, camera_mode, moves)
 
         depth_moves = sorted({m for m in moves if needs_depth(m)})
         if depth_moves:
-            notes.append(f"  {', '.join(depth_moves)}: real parallax needs mode=3d + a depth map; "
+            notes.append(f"  {', '.join(depth_moves)}: real parallax needs camera_mode=3d + a depth map; "
                          "otherwise they run as pseudo-3D (dolly->zoom, orbit->pan).")
             notes.append(f"  flat moves: {', '.join(flat_presets()[:10])}...")
         lo, hi = min(cam.fov), max(cam.fov)
-        info = "\n".join([f"camera ({mode}, transition {transition:g})",
+        info = "\n".join([f"camera ({camera_mode}, transition {transition:g})",
                           f"  lens {lo:.0f}-{hi:.0f} deg ({lens_note(lo)})", summary, *notes])
         return (cam, cyc if looping else total, info)
 
@@ -536,6 +536,10 @@ def _burn_overlay(video, d, strength, fps, key_frames):
         move = MOVE_INFO[cam["move"]][0] if cam else "Still"
         dr.rectangle([0, 0, w, size * 2 + 8], fill=(0, 0, 0, 150))
         dr.text((6, 3), f"{head}   CAM {move}", fill=(255, 255, 255, 255), font=font)
+        tag = "PREVIZ"
+        tw = dr.textlength(tag, font=font)
+        dr.rectangle([w - tw - 14, 3, w - 4, size + 7], fill=(220, 60, 60, 220))
+        dr.text((w - tw - 9, 4), tag, fill=(255, 255, 255, 255), font=font)
         if scene:
             text = f"[{scene['mood']}] {scene['prompt']}"
             while len(text) > 8 and dr.textlength(text, font=font) > w - 12:

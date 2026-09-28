@@ -31,6 +31,17 @@ reads these params, so the whole graph agrees on one timeline.
 
 **Outputs:** `params` (DIFFORUM_PARAMS), `width` (INT), `height` (INT), `frames` (INT), `fps` (FLOAT), `info` (STRING)
 
+### Difforum · Workflow Switches
+
+`Difforum_Switches`
+
+Control panel for the workflow: one switch per group.
+
+Turning a group off mutes it when it holds an output (Previz, Render) and
+bypasses it when it sits in the middle of the chain (Live Preview, Fill
+Reveal, Restyle, Look Mix, Upscale), so the rest of the graph still runs.
+⌖ jumps the canvas to the group. The node runs nothing itself.
+
 ## 2 · Direction
 
 ### Difforum · Director (timeline)
@@ -81,7 +92,7 @@ same thing visually - use this node when you prefer typing.
 |---|---|---|---|
 | `params` | DIFFORUM_PARAMS |  |  |
 | `keys` | STRING | 0: zoom_in 0.6 0.5 40 ease_in_out 30:... |  |
-| `mode` | choice (2d, 3d) | 2d |  |
+| `camera_mode` | choice (2d, 3d) | 2d |  |
 | `transition` | FLOAT | 1.0 |  |
 | `speed` | FLOAT | 1.0 |  |
 | `loop_mode` | choice (harmonic, zero_mean, off) | off |  |
@@ -260,7 +271,7 @@ One audio band -> a ready curve: e.g. bass-pumped energy
 | `params` | DIFFORUM_PARAMS |  |  |
 | `audio_curves` | DIFFORUM_AUDIO |  |  |
 | `source` | choice (amp, low, mid, high, onset, beat) | low |  |
-| `mode` | choice (add, subtract, multiply) | add |  |
+| `combine` | choice (add, subtract, multiply) | add |  |
 | `base` | FLOAT | 0.45 |  |
 | `amount` | FLOAT | 0.2 |  |
 | `smoothing` | FLOAT | 0.2 |  |
@@ -411,6 +422,49 @@ calibration, noise seeding and chunked rendering.
 | `end_frame` | INT | 0 | 0 = to the end. |
 
 **Outputs:** `options` (DIFFORUM_OPTIONS)
+
+### Difforum · Restyle (Deforum / AnimateDiff look)
+
+`Difforum_Restyle`
+
+Give a video-model render the Deforum / AnimateDiff / Disco look.
+
+MiniMax H3 or LTX supplies the motion; an image model (SDXL, SD1.5, Flux,
+turbo distills) re-paints every frame in your look, with the previous
+stylized frame carried along the video's optical flow and mixed in. That
+feedback is what made Deforum morph and AnimateDiff boil - here it rides on
+the video model's motion instead of a synthetic camera.
+
+Styles: clean restyle (steady), animatediff boil (texture re-rolls each
+frame), deforum morph (strong feedback smear), disco flicker (high denoise,
+per-frame seed, loose colour). `custom` uses feedback / seed_mode /
+color_hold as set. Connect a Director to use its scene prompts and energy.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `video` | IMAGE |  | Frames from H3 / LTX / any video (Get Video Components). |
+| `model` | MODEL |  |  |
+| `positive` | CONDITIONING |  | The look, e.g. 'oil painting, thick brush strokes'. |
+| `negative` | CONDITIONING |  |  |
+| `vae` | VAE |  |  |
+| `style` | choice (clean restyle, animatediff boil, deforum morph, disco flicker, custom) | deforum morph |  |
+| `denoise` | FLOAT | 0.45 | How much each frame is re-painted. 0.3 keeps the render, 0.6+ re-imagines it. |
+| `steps` | INT | 12 | Full-denoise steps; each frame runs steps x denoise. |
+| `cfg` | FLOAT | 5.0 |  |
+| `sampler_name` | choice (euler, lcm) | euler |  |
+| `scheduler` | choice (normal, sgm_uniform) | normal |  |
+| `cadence` | INT | 1 | Re-paint every Nth frame; the rest follow the flow. 2 = twice as fast. |
+| `long_edge` | INT | 1024 | Working size. 0 = the video's size. Upscale afterwards for 2K. |
+| `seed` | INT | 0 |  |
+| `direction` *(optional)* | DIFFORUM_DIRECTION |  | Director: scene prompts (with CLIP) and the energy curve. |
+| `prompts` *(optional)* | DIFFORUM_PROMPT |  |  |
+| `feedback` *(optional)* | FLOAT | 0.35 | custom: share of the previous stylized frame in the next one. |
+| `seed_mode` *(optional)* | choice (fixed, per frame) | fixed | custom: per frame = texture re-rolls every frame (boil / flicker). |
+| `color_hold` *(optional)* | FLOAT | 0.5 | custom: how much each frame keeps the source colours. |
+| `follow_energy` *(optional)* | BOOLEAN | True | With a Director: denoise follows its energy curve (0.5 = as set). |
+| `flow_scale` *(optional)* | FLOAT | 0.5 |  |
+
+**Outputs:** `frames` (IMAGE), `report` (STRING)
 
 ## 5 · Video model bridges
 
@@ -685,12 +739,12 @@ Sampler look pass (same length or not; it is resampled in time):
 * crossfade - plain mix
 
 `step_fps` then holds frames to 8-12 fps for a stop-motion / AnimateDiff
-stutter, independently of the mode (works without a look pass too).
+stutter, independently of the blend (works without a look pass too).
 
 | input | type | default | notes |
 |---|---|---|---|
 | `video` | IMAGE |  | The video-model render (H3, LTX...). |
-| `mode` | choice (detail transfer, colour + detail, flicker cuts, crossfade, none) | detail transfer |  |
+| `blend` | choice (detail transfer, colour + detail, flicker cuts, crossfade, none) | detail transfer |  |
 | `amount` | FLOAT | 0.6 |  |
 | `detail_radius` | INT | 3 | Texture scale taken from the look pass. |
 | `flicker_every` | INT | 3 |  |
@@ -711,7 +765,7 @@ do it inside the loop, where it compounds into a living pattern).
 | input | type | default | notes |
 |---|---|---|---|
 | `image` | IMAGE |  |  |
-| `mode` | choice (none, mirror_h, mirror_v, mirror_quad, kaleidoscope) | kaleidoscope |  |
+| `symmetry` | choice (none, mirror_h, mirror_v, mirror_quad, kaleidoscope) | kaleidoscope |  |
 | `segments` | INT | 6 |  |
 | `mix` | FLOAT | 1.0 |  |
 | `flip` *(optional)* | BOOLEAN | False |  |
@@ -766,3 +820,26 @@ Unsharp + contrast + grain, for frames that went soft.
 | `grain_mode` | choice (gaussian, plasma) | gaussian |  |
 
 **Outputs:** `image` (IMAGE)
+
+### Difforum · Upscale (2K / 4K)
+
+`Difforum_Upscale`
+
+Finish at 2K (or 1080p / 1440p / 4K / xN) for delivery.
+
+With an upscale model (Load Upscale Model: 4x-UltraSharp, RealESRGAN,
+4x_foolhardy_Remacri...) each frame is upscaled by the model in chunks,
+then resized to the exact target; without one it is a clean Lanczos
+resize. Aspect is kept and sizes stay even for video codecs. Bypass the
+node (or its group) to deliver at render size.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `frames` | IMAGE |  |  |
+| `target` | choice (2K (2048 long edge), 1080p (1920 long edge), 1440p (2560 long edge), 4K (3840 long edge), x1.5, x2, ...) | 2K (2048 long edge) |  |
+| `method` | choice (lanczos, bicubic, bilinear, area) | lanczos |  |
+| `sharpen` | FLOAT | 0.15 |  |
+| `chunk` | INT | 16 | Frames per model pass; lower it if VRAM runs out. |
+| `upscale_model` *(optional)* | UPSCALE_MODEL |  |  |
+
+**Outputs:** `frames` (IMAGE), `info` (STRING)

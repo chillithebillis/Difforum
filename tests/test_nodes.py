@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 30
+    assert len(v1) == 33
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:
@@ -261,3 +261,21 @@ def test_keyframes_animatic_look_mix():
         assert res.shape == video.shape
     (stepped,) = DifforumLookMix().run(video, "none", 0.6, 2, 3, 12.0, 24.0, 0)
     assert torch.equal(stepped[0], stepped[1]) and not torch.equal(stepped[1], stepped[2])
+
+
+def test_restyle_and_upscale():
+    from difforum.nodes.finish import DifforumRestyle, DifforumUpscale, target_size
+    params = setup(seconds=0.5)[0]
+    bundle = director(params)[0]
+    video = torch.rand(10, 40, 72, 3)
+    for style in ("clean restyle", "animatediff boil", "deforum morph", "disco flicker", "custom"):
+        model = StubModel()
+        frames, report = DifforumRestyle().run(video, model, _c(), _c(), StubVAE(), style, 0.45, 8, 5.0,
+                                               "euler", "normal", 2, 64, 3, direction=bundle)
+        assert frames.shape == (10, 32, 64, 3) and style in report
+        assert 5 <= len(model.calls) <= 6           # cadence 2: painted every other frame
+        assert all(c["steps"] <= 8 for c in model.calls)
+    assert target_size(1080, 1920, "2K (2048 long edge)") == (2048, 1152)
+    assert target_size(480, 832, "x2") == (1664, 960)
+    up, info = DifforumUpscale().run(video, "x1.5", "bicubic", 0.2, 4)
+    assert up.shape == (10, 60, 108, 3) and "72x40 -> 108x60" in info

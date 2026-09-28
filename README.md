@@ -49,8 +49,14 @@ deforum_morph, animatediff_dream, disco_diffusion, vqgan_clip,
 flicker_experimental, psychedelic, music_video, stop_motion, hand_drawn) sets
 the Feedback Sampler's colour, detail and energy, and adds the matching style
 sentence to the H3 / LTX prompt, so the same aesthetic carries across
-renderers. **Look Mix** then puts the feedback pass's texture or flicker back on
-top of an H3 / LTX render: the experimental look with the video model's motion.
+renderers.
+
+**The Deforum / AnimateDiff look on MiniMax H3.** **Restyle** re-paints every
+frame of an H3 / LTX render with an image model in your look, carrying the
+previous painted frame along the clip's own motion: that feedback is what made
+Deforum morph and AnimateDiff boil, now riding on H3's motion (`deforum morph`,
+`animatediff boil`, `disco flicker`, `clean restyle`). **Look Mix** adds grain or
+flicker cuts on top. Template 13 restyles any clip you already rendered.
 
 **Multikeyframing.** Mark moments on the **Keys** track and feed one picture per
 key to **Keyframe Images**. The Feedback Sampler travels *through* them, H3 /
@@ -86,7 +92,17 @@ No camera expressions to write. They are still there if you want them.
 | 11 | `h3_deforum_look` | **Deforum / AnimateDiff look with H3 motion**: a turbo feedback pass sets the look, H3 animates between its frames, Look Mix brings the texture back | turbo SDXL + H3 ref2va |
 | 12 | `long_shot_keys` | **A 30 s long shot** with five scenes, three image keys and a previz, for installations | a turbo model + 3 images |
 
-Every template starts with an **Animatic** on the left: previz first, render second.
+| 13 | `restyle_any_video` | **Restyle a clip you already have** (H3, LTX, live action) into the Deforum / AnimateDiff / Disco look, then 2K | a turbo model + a video |
+
+Every template is laid out in the same blocks: **Control** (switches and notes),
+**Direction**, **Previz** on the top row; **Models → Render → Restyle → Upscale 2K
+→ Output** on the bottom row. The **Workflow Switches** panel turns each block on
+or off (a render block is muted, a pass-through block such as Upscale is
+bypassed) and ⌖ jumps to it. H3 templates have a **Live Preview (TAEH3)** block
+that shows the video forming at every step with [KJNodes](https://github.com/kijai/ComfyUI-KJNodes)'
+Model Preview Override and `taeh3.safetensors` in `models/vae_approx`. The
+Upscale block uses `RealESRGAN_x4plus` (any model in `models/upscale_models`
+works) and lands on 2K.
 
 ### MiniMax H3 in one picture
 
@@ -106,13 +122,13 @@ Both use ComfyUI's core MiniMax H3 nodes.
 
 | Group | Nodes |
 |---|---|
-| **Setup** | Setup: duration in seconds, aspect, and snapping to each model's grid (H3 17k+5 @ 24 fps, LTX 8k+1, Wan 4k+1) |
+| **Setup** | Setup: duration in seconds, aspect, and snapping to each model's grid (H3 17k+5 @ 24 fps, LTX 8k+1, Wan 4k+1); Workflow Switches |
 | **Direction** | Director (timeline), Camera (keys), Camera (expressions), Storyboard, Keyframe Images, Animatic (previz) |
 | **Curves & prompts** | Schedule, Schedule Plot, Audio Analyzer, Audio Curve, Prompt Travel |
-| **Render** | Feedback Sampler, Live Sampler, Render Options |
+| **Render** | Feedback Sampler, Live Sampler, Restyle, Render Options |
 | **Video model bridges** | Guide Frames, Keyframes, Fill Reveal (AI), Camera → Prompt, H3 Guides, H3 Shot, LTX Guides |
 | **Export** | Camera Export (AE / Blender / JSON), Camera Import |
-| **Post** | Look Mix, Loop, Symmetry, Echo Trails, Flow Stabilize, Detail Guard |
+| **Post** | Upscale (2K / 4K), Look Mix, Loop, Symmetry, Echo Trails, Flow Stabilize, Detail Guard |
 
 The full reference is in **[docs/NODES.md](docs/NODES.md)**. Every node also shows its description inside ComfyUI.
 
