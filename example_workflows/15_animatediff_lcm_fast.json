@@ -1,6 +1,6 @@
 {
- "last_node_id": 25,
- "last_link_id": 32,
+ "last_node_id": 28,
+ "last_link_id": 38,
  "nodes": [
   {
    "id": 1,
@@ -11,7 +11,7 @@
    ],
    "size": [
     340,
-    296
+    364
    ],
    "flags": {},
    "order": 0,
@@ -23,12 +23,14 @@
     "locked": [
      "0 · Control",
      "1 · Source",
-     "Models"
+     "Models",
+     "Decode"
     ],
     "modes": {
      "Structure (ControlNet)": "bypass",
      "AnimateDiff (motion module)": "bypass",
-     "3 · Render · AnimateDiff": "mute",
+     "3 · Render · AnimateDiff LCM": "mute",
+     "Hi-res pass (quality)": "bypass",
      "Upscale 2K": "bypass",
      "Output": "mute"
     }
@@ -41,11 +43,11 @@
    "type": "MarkdownNote",
    "pos": [
     24,
-    418
+    486
    ],
    "size": [
-    500,
-    420
+    520,
+    480
    ],
    "flags": {},
    "order": 1,
@@ -56,14 +58,14 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## AnimateDiff on any video\n\nThe real AnimateDiff look over a clip you already have (MiniMax H3, LTX, live action): an SD1.5 model with an AnimateDiff motion module re-draws the clip 16 frames at a time, while depth and edge ControlNets taken from the clip keep its motion and composition.\n\n- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an SD1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`; template 15 is the fast AnimateLCM version) and SD1.5 depth / canny ControlNets.\n- `denoise` 0.55 keeps the clip, 0.75 is the classic AnimateDiff re-draw.\n- Switch **AnimateDiff** off for per-frame img2img: the flickering Deforum / Disco look.\n- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to delivery size."
+    "## AnimateDiff LCM on any video\n\nThe AnimateDiff look in a fraction of the time: the **AnimateLCM** motion module and its LoRA render in 8 steps at cfg ~1.8, and the time saved pays for a second **Hi-res pass** (x1.5, 6 steps, denoise 0.45) that adds the detail SD1.5 lacks at its native size. Depth and edge ControlNets from the clip keep its motion.\n\n- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an SD1.5 checkpoint, `AnimateLCM_sd15_t2v.ckpt` (models/animatediff_models) and `AnimateLCM_sd15_t2v_lora.safetensors` (models/loras) from wangfuyun/AnimateLCM, SD1.5 depth / canny ControlNets.\n- Keep sampler `lcm` + scheduler `sgm_uniform`; cfg 1.5-2 (higher burns), steps 6-10. LoRA 0.8-1.0.\n- `denoise` 0.65 keeps the clip, 0.8 re-draws it.\n- Switch **Hi-res pass** off for the fastest preview; switch **AnimateDiff** off for per-frame flicker."
    ]
   },
   {
    "id": 3,
    "type": "LoadVideo",
    "pos": [
-    642,
+    662,
     66
    ],
    "size": [
@@ -96,7 +98,7 @@
    "id": 4,
    "type": "GetVideoComponents",
    "pos": [
-    1042,
+    1062,
     66
    ],
    "size": [
@@ -126,7 +128,7 @@
      "name": "audio",
      "type": "AUDIO",
      "links": [
-      30
+      36
      ],
      "slot_index": 1
     },
@@ -134,7 +136,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      31
+      37
      ],
      "slot_index": 2
     },
@@ -160,7 +162,7 @@
    "id": 5,
    "type": "ImageScaleToTotalPixels",
    "pos": [
-    1342,
+    1362,
     66
    ],
    "size": [
@@ -182,9 +184,9 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      6,
-      8,
-      19
+      7,
+      9,
+      20
      ],
      "slot_index": 0
     }
@@ -204,7 +206,7 @@
    "type": "CheckpointLoaderSimple",
    "pos": [
     24,
-    1018
+    1146
    ],
    "size": [
     320,
@@ -219,7 +221,7 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      17
+      5
      ],
      "slot_index": 0
     },
@@ -236,8 +238,8 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      20,
-      26
+      21,
+      32
      ],
      "slot_index": 2
     }
@@ -255,7 +257,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     384,
-    1018
+    1146
    ],
    "size": [
     380,
@@ -276,7 +278,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      9
+      10
      ],
      "slot_index": 0
     }
@@ -294,7 +296,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     384,
-    1214
+    1342
    ],
    "size": [
     380,
@@ -315,7 +317,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      10
+      11
      ],
      "slot_index": 0
     }
@@ -330,17 +332,57 @@
   },
   {
    "id": 9,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    384,
+    1508
+   ],
+   "size": [
+    360,
+    90
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "AnimateLCM_sd15_t2v_lora.safetensors",
+    1.0
+   ],
+   "title": "AnimateLCM LoRA"
+  },
+  {
+   "id": 10,
    "type": "LoadDA3Model",
    "pos": [
     882,
-    1018
+    1146
    ],
    "size": [
     340,
     90
    ],
    "flags": {},
-   "order": 8,
+   "order": 9,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -348,7 +390,7 @@
      "name": "DA3_MODEL",
      "type": "DA3_MODEL",
      "links": [
-      5
+      6
      ],
      "slot_index": 0
     }
@@ -362,29 +404,29 @@
    ]
   },
   {
-   "id": 10,
+   "id": 11,
    "type": "DA3Inference",
    "pos": [
     1262,
-    1018
+    1146
    ],
    "size": [
     320,
     130
    ],
    "flags": {},
-   "order": 9,
+   "order": 10,
    "mode": "mono",
    "inputs": [
     {
      "name": "da3_model",
      "type": "DA3_MODEL",
-     "link": 5
+     "link": 6
     },
     {
      "name": "image",
      "type": "IMAGE",
-     "link": 6
+     "link": 7
     }
    ],
    "outputs": [
@@ -392,7 +434,7 @@
      "name": "da3_geometry",
      "type": "DA3_GEOMETRY",
      "links": [
-      7
+      8
      ],
      "slot_index": 0
     }
@@ -407,24 +449,24 @@
    ]
   },
   {
-   "id": 11,
+   "id": 12,
    "type": "DA3Render",
    "pos": [
     1622,
-    1018
+    1146
    ],
    "size": [
     300,
     110
    ],
    "flags": {},
-   "order": 10,
+   "order": 11,
    "mode": 0,
    "inputs": [
     {
      "name": "da3_geometry",
      "type": "DA3_GEOMETRY",
-     "link": 7
+     "link": 8
     }
    ],
    "outputs": [
@@ -432,7 +474,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      12
+      13
      ],
      "slot_index": 0
     }
@@ -445,24 +487,24 @@
    ]
   },
   {
-   "id": 12,
+   "id": 13,
    "type": "Canny",
    "pos": [
     1262,
-    1204
+    1332
    ],
    "size": [
     300,
     100
    ],
    "flags": {},
-   "order": 11,
+   "order": 12,
    "mode": 0,
    "inputs": [
     {
      "name": "image",
      "type": "IMAGE",
-     "link": 8
+     "link": 9
     }
    ],
    "outputs": [
@@ -470,7 +512,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      16
+      17
      ],
      "slot_index": 0
     }
@@ -484,44 +526,11 @@
    ]
   },
   {
-   "id": 13,
-   "type": "ControlNetLoader",
-   "pos": [
-    882,
-    1164
-   ],
-   "size": [
-    340,
-    80
-   ],
-   "flags": {},
-   "order": 12,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "CONTROL_NET",
-     "type": "CONTROL_NET",
-     "links": [
-      11
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "ControlNetLoader"
-   },
-   "widgets_values": [
-    "control_v11f1p_sd15_depth.pth"
-   ],
-   "title": "Depth ControlNet"
-  },
-  {
    "id": 14,
    "type": "ControlNetLoader",
    "pos": [
     882,
-    1300
+    1292
    ],
    "size": [
     340,
@@ -536,7 +545,40 @@
      "name": "CONTROL_NET",
      "type": "CONTROL_NET",
      "links": [
-      15
+      12
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ControlNetLoader"
+   },
+   "widgets_values": [
+    "control_v11f1p_sd15_depth.pth"
+   ],
+   "title": "Depth ControlNet"
+  },
+  {
+   "id": 15,
+   "type": "ControlNetLoader",
+   "pos": [
+    882,
+    1428
+   ],
+   "size": [
+    340,
+    80
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CONTROL_NET",
+     "type": "CONTROL_NET",
+     "links": [
+      16
      ],
      "slot_index": 0
     }
@@ -550,39 +592,39 @@
    "title": "Edge ControlNet"
   },
   {
-   "id": 15,
+   "id": 16,
    "type": "ControlNetApplyAdvanced",
    "pos": [
     1962,
-    1018
+    1146
    ],
    "size": [
     320,
     189
    ],
    "flags": {},
-   "order": 14,
+   "order": 15,
    "mode": 0,
    "inputs": [
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 9
+     "link": 10
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 10
+     "link": 11
     },
     {
      "name": "control_net",
      "type": "CONTROL_NET",
-     "link": 11
+     "link": 12
     },
     {
      "name": "image",
      "type": "IMAGE",
-     "link": 12
+     "link": 13
     },
     {
      "name": "vae",
@@ -595,7 +637,7 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      13
+      14
      ],
      "slot_index": 0
     },
@@ -603,7 +645,7 @@
      "name": "negative",
      "type": "CONDITIONING",
      "links": [
-      14
+      15
      ],
      "slot_index": 1
     }
@@ -619,39 +661,39 @@
    "title": "Apply depth"
   },
   {
-   "id": 16,
+   "id": 17,
    "type": "ControlNetApplyAdvanced",
    "pos": [
     2322,
-    1018
+    1146
    ],
    "size": [
     320,
     189
    ],
    "flags": {},
-   "order": 15,
+   "order": 16,
    "mode": 0,
    "inputs": [
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 13
+     "link": 14
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 14
+     "link": 15
     },
     {
      "name": "control_net",
      "type": "CONTROL_NET",
-     "link": 15
+     "link": 16
     },
     {
      "name": "image",
      "type": "IMAGE",
-     "link": 16
+     "link": 17
     },
     {
      "name": "vae",
@@ -664,7 +706,8 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      22
+      23,
+      28
      ],
      "slot_index": 0
     },
@@ -672,7 +715,8 @@
      "name": "negative",
      "type": "CONDITIONING",
      "links": [
-      23
+      24,
+      29
      ],
      "slot_index": 1
     }
@@ -688,18 +732,18 @@
    "title": "Apply edges"
   },
   {
-   "id": 17,
+   "id": 18,
    "type": "ADE_StandardUniformContextOptions",
    "pos": [
     2760,
-    1018
+    1146
    ],
    "size": [
     340,
     222
    ],
    "flags": {},
-   "order": 16,
+   "order": 17,
    "mode": 0,
    "inputs": [
     {
@@ -718,7 +762,7 @@
      "name": "CONTEXT_OPTS",
      "type": "CONTEXT_OPTIONS",
      "links": [
-      18
+      19
      ],
      "slot_index": 0
     }
@@ -737,29 +781,29 @@
    ]
   },
   {
-   "id": 18,
+   "id": 19,
    "type": "ADE_AnimateDiffLoaderGen1",
    "pos": [
     3140,
-    1018
+    1146
    ],
    "size": [
     340,
     249
    ],
    "flags": {},
-   "order": 17,
+   "order": 18,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 17
+     "link": 18
     },
     {
      "name": "context_options",
      "type": "CONTEXT_OPTIONS",
-     "link": 18
+     "link": 19
     },
     {
      "name": "motion_lora",
@@ -802,7 +846,8 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      21
+      22,
+      27
      ],
      "slot_index": 0
     }
@@ -811,85 +856,35 @@
     "Node name for S&R": "ADE_AnimateDiffLoaderGen1"
    },
    "widgets_values": [
-    "v3_sd15_mm.ckpt",
-    "autoselect"
-   ]
+    "AnimateLCM_sd15_t2v.ckpt",
+    "lcm avg(sqrt_linear,linear)"
+   ],
+   "title": "AnimateLCM motion module"
   },
   {
-   "id": 19,
+   "id": 20,
    "type": "VAEEncode",
    "pos": [
     3598,
-    1018
+    1146
    ],
    "size": [
     200,
     60
    ],
    "flags": {},
-   "order": 18,
+   "order": 19,
    "mode": 0,
    "inputs": [
     {
      "name": "pixels",
      "type": "IMAGE",
-     "link": 19
+     "link": 20
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 20
-    }
-   ],
-   "outputs": [
-    {
-     "name": "LATENT",
-     "type": "LATENT",
-     "links": [
-      24
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "VAEEncode"
-   },
-   "widgets_values": []
-  },
-  {
-   "id": 20,
-   "type": "KSampler",
-   "pos": [
-    3838,
-    1018
-   ],
-   "size": [
-    300,
-    264
-   ],
-   "flags": {},
-   "order": 19,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "model",
-     "type": "MODEL",
      "link": 21
-    },
-    {
-     "name": "positive",
-     "type": "CONDITIONING",
-     "link": 22
-    },
-    {
-     "name": "negative",
-     "type": "CONDITIONING",
-     "link": 23
-    },
-    {
-     "name": "latent_image",
-     "type": "LATENT",
-     "link": 24
     }
    ],
    "outputs": [
@@ -903,42 +898,193 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "KSampler"
+    "Node name for S&R": "VAEEncode"
    },
-   "widgets_values": [
-    7,
-    "fixed",
-    20,
-    7.0,
-    "euler_ancestral",
-    "normal",
-    0.7
-   ]
+   "widgets_values": []
   },
   {
    "id": 21,
-   "type": "VAEDecode",
+   "type": "KSampler",
    "pos": [
-    4178,
-    1018
+    3838,
+    1146
    ],
    "size": [
-    200,
-    60
+    300,
+    264
    ],
    "flags": {},
    "order": 20,
    "mode": 0,
    "inputs": [
     {
-     "name": "samples",
+     "name": "model",
+     "type": "MODEL",
+     "link": 22
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 23
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 24
+    },
+    {
+     "name": "latent_image",
      "type": "LATENT",
      "link": 25
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      26
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    7,
+    "fixed",
+    8,
+    1.8,
+    "lcm",
+    "sgm_uniform",
+    0.75
+   ],
+   "title": "Base pass (8 steps)"
+  },
+  {
+   "id": 22,
+   "type": "LatentUpscaleBy",
+   "pos": [
+    4256,
+    1146
+   ],
+   "size": [
+    280,
+    90
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 26
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      30
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LatentUpscaleBy"
+   },
+   "widgets_values": [
+    "bislerp",
+    1.5
+   ]
+  },
+  {
+   "id": 23,
+   "type": "KSampler",
+   "pos": [
+    4576,
+    1146
+   ],
+   "size": [
+    300,
+    264
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 27
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 28
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 29
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 30
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      31
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    7,
+    "fixed",
+    6,
+    1.5,
+    "lcm",
+    "sgm_uniform",
+    0.45
+   ],
+   "title": "Hi-res pass (6 steps)"
+  },
+  {
+   "id": 24,
+   "type": "VAEDecode",
+   "pos": [
+    4994,
+    1146
+   ],
+   "size": [
+    200,
+    60
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 31
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 26
+     "link": 32
     }
    ],
    "outputs": [
@@ -946,7 +1092,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      27
+      33
      ],
      "slot_index": 0
     }
@@ -957,18 +1103,18 @@
    "widgets_values": []
   },
   {
-   "id": 22,
+   "id": 25,
    "type": "UpscaleModelLoader",
    "pos": [
-    4496,
-    1018
+    5312,
+    1146
    ],
    "size": [
     320,
     80
    ],
    "flags": {},
-   "order": 21,
+   "order": 24,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -976,7 +1122,7 @@
      "name": "UPSCALE_MODEL",
      "type": "UPSCALE_MODEL",
      "links": [
-      28
+      34
      ],
      "slot_index": 0
     }
@@ -990,29 +1136,29 @@
    "title": "Upscale model"
   },
   {
-   "id": 23,
+   "id": 26,
    "type": "Difforum_Upscale",
    "pos": [
-    4856,
-    1018
+    5672,
+    1146
    ],
    "size": [
     320,
     200
    ],
    "flags": {},
-   "order": 22,
+   "order": 25,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 27
+     "link": 33
     },
     {
      "name": "upscale_model",
      "type": "UPSCALE_MODEL",
-     "link": 28
+     "link": 34
     }
    ],
    "outputs": [
@@ -1020,7 +1166,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      29
+      35
      ],
      "slot_index": 0
     },
@@ -1042,34 +1188,34 @@
    ]
   },
   {
-   "id": 24,
+   "id": 27,
    "type": "CreateVideo",
    "pos": [
-    5294,
-    1018
+    6110,
+    1146
    ],
    "size": [
     260,
     100
    ],
    "flags": {},
-   "order": 23,
+   "order": 26,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 29
+     "link": 35
     },
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 30
+     "link": 36
     },
     {
      "name": "fps",
      "type": "FLOAT",
-     "link": 31,
+     "link": 37,
      "widget": {
       "name": "fps"
      }
@@ -1080,7 +1226,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      32
+      38
      ],
      "slot_index": 0
     }
@@ -1093,24 +1239,24 @@
    ]
   },
   {
-   "id": 25,
+   "id": 28,
    "type": "SaveVideo",
    "pos": [
-    5594,
-    1018
+    6410,
+    1146
    ],
    "size": [
     480,
     420
    ],
    "flags": {},
-   "order": 24,
+   "order": 27,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 32
+     "link": 38
     }
    ],
    "outputs": [],
@@ -1118,7 +1264,7 @@
     "Node name for S&R": "SaveVideo"
    },
    "widgets_values": [
-    "video/difforum_animatediff",
+    "video/difforum_animatediff_lcm",
     "auto",
     "auto"
    ]
@@ -1159,86 +1305,62 @@
   ],
   [
    5,
+   6,
+   0,
    9,
    0,
+   "MODEL"
+  ],
+  [
+   6,
    10,
+   0,
+   11,
    0,
    "DA3_MODEL"
   ],
   [
-   6,
+   7,
    5,
    0,
-   10,
+   11,
    1,
    "IMAGE"
   ],
   [
-   7,
-   10,
-   0,
+   8,
    11,
+   0,
+   12,
    0,
    "DA3_GEOMETRY"
   ],
   [
-   8,
+   9,
    5,
    0,
-   12,
+   13,
    0,
    "IMAGE"
-  ],
-  [
-   9,
-   7,
-   0,
-   15,
-   0,
-   "CONDITIONING"
   ],
   [
    10,
+   7,
+   0,
+   16,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   11,
    8,
    0,
-   15,
+   16,
    1,
    "CONDITIONING"
-  ],
-  [
-   11,
-   13,
-   0,
-   15,
-   2,
-   "CONTROL_NET"
   ],
   [
    12,
-   11,
-   0,
-   15,
-   3,
-   "IMAGE"
-  ],
-  [
-   13,
-   15,
-   0,
-   16,
-   0,
-   "CONDITIONING"
-  ],
-  [
-   14,
-   15,
-   1,
-   16,
-   1,
-   "CONDITIONING"
-  ],
-  [
-   15,
    14,
    0,
    16,
@@ -1246,138 +1368,210 @@
    "CONTROL_NET"
   ],
   [
-   16,
+   13,
    12,
    0,
    16,
    3,
    "IMAGE"
+  ],
+  [
+   14,
+   16,
+   0,
+   17,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   15,
+   16,
+   1,
+   17,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   16,
+   15,
+   0,
+   17,
+   2,
+   "CONTROL_NET"
   ],
   [
    17,
-   6,
+   13,
    0,
+   17,
+   3,
+   "IMAGE"
+  ],
+  [
    18,
+   9,
+   0,
+   19,
    0,
    "MODEL"
   ],
   [
+   19,
    18,
-   17,
    0,
-   18,
+   19,
    1,
    "CONTEXT_OPTIONS"
   ],
   [
-   19,
+   20,
    5,
    0,
-   19,
+   20,
    0,
    "IMAGE"
   ],
   [
-   20,
+   21,
    6,
    2,
-   19,
+   20,
    1,
    "VAE"
   ],
   [
-   21,
-   18,
+   22,
+   19,
    0,
-   20,
+   21,
    0,
    "MODEL"
   ],
   [
-   22,
-   16,
-   0,
-   20,
-   1,
-   "CONDITIONING"
-  ],
-  [
    23,
-   16,
+   17,
+   0,
+   21,
    1,
-   20,
-   2,
    "CONDITIONING"
   ],
   [
    24,
-   19,
-   0,
+   17,
+   1,
+   21,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   25,
    20,
+   0,
+   21,
    3,
    "LATENT"
   ],
   [
-   25,
-   20,
-   0,
+   26,
    21,
+   0,
+   22,
    0,
    "LATENT"
   ],
   [
-   26,
+   27,
+   19,
+   0,
+   23,
+   0,
+   "MODEL"
+  ],
+  [
+   28,
+   17,
+   0,
+   23,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   29,
+   17,
+   1,
+   23,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   30,
+   22,
+   0,
+   23,
+   3,
+   "LATENT"
+  ],
+  [
+   31,
+   23,
+   0,
+   24,
+   0,
+   "LATENT"
+  ],
+  [
+   32,
    6,
    2,
-   21,
+   24,
    1,
    "VAE"
   ],
   [
-   27,
-   21,
+   33,
+   24,
    0,
-   23,
+   26,
    0,
    "IMAGE"
   ],
   [
-   28,
-   22,
+   34,
+   25,
    0,
-   23,
+   26,
    1,
    "UPSCALE_MODEL"
   ],
   [
-   29,
-   23,
+   35,
+   26,
    0,
-   24,
+   27,
    0,
    "IMAGE"
   ],
   [
-   30,
+   36,
    4,
    1,
-   24,
+   27,
    1,
    "AUDIO"
   ],
   [
-   31,
+   37,
    4,
    2,
-   24,
+   27,
    2,
    "FLOAT"
   ],
   [
-   32,
-   24,
+   38,
+   27,
    0,
-   25,
+   28,
    0,
    "VIDEO"
   ]
@@ -1389,8 +1583,8 @@
    "bounding": [
     0,
     0,
-    548,
-    882
+    568,
+    1010
    ],
    "color": "#444",
    "font_size": 22,
@@ -1400,7 +1594,7 @@
    "id": 2,
    "title": "1 · Source",
    "bounding": [
-    618,
+    638,
     0,
     1068,
     530
@@ -1414,9 +1608,9 @@
    "title": "Models",
    "bounding": [
     0,
-    952,
+    1080,
     788,
-    416
+    562
    ],
    "color": "#88A",
    "font_size": 22,
@@ -1427,7 +1621,7 @@
    "title": "Structure (ControlNet)",
    "bounding": [
     858,
-    952,
+    1080,
     1808,
     472
    ],
@@ -1440,7 +1634,7 @@
    "title": "AnimateDiff (motion module)",
    "bounding": [
     2736,
-    952,
+    1080,
     768,
     359
    ],
@@ -1450,11 +1644,11 @@
   },
   {
    "id": 6,
-   "title": "3 · Render · AnimateDiff",
+   "title": "3 · Render · AnimateDiff LCM",
    "bounding": [
     3574,
-    952,
-    828,
+    1080,
+    588,
     374
    ],
    "color": "#8A8",
@@ -1463,10 +1657,36 @@
   },
   {
    "id": 7,
+   "title": "Hi-res pass (quality)",
+   "bounding": [
+    4232,
+    1080,
+    668,
+    374
+   ],
+   "color": "#b58b2a",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 8,
+   "title": "Decode",
+   "bounding": [
+    4970,
+    1080,
+    248,
+    170
+   ],
+   "color": "#8A8",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 9,
    "title": "Upscale 2K",
    "bounding": [
-    4472,
-    952,
+    5288,
+    1080,
     728,
     310
    ],
@@ -1475,11 +1695,11 @@
    "flags": {}
   },
   {
-   "id": 8,
+   "id": 10,
    "title": "Output",
    "bounding": [
-    5270,
-    952,
+    6086,
+    1080,
     828,
     530
    ],
@@ -1498,7 +1718,7 @@
    ]
   },
   "difforum": "1.0",
-  "title": "14 · AnimateDiff look on any video"
+  "title": "15 · AnimateDiff LCM on any video (fast, hi-res)"
  },
  "version": 0.4
 }

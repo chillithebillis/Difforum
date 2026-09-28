@@ -171,6 +171,27 @@ Keep it at about 0.3 MP (SD 1.5 native size) and let Upscale 2K do the rest.
 Template 13 needs an SDXL union ControlNet (`xinsir-controlnet-union-sdxl-1.0-promax`)
 matching the SDXL / turbo image model.
 
+### AnimateLCM: speed and quality (template 15)
+
+AnimateLCM is a consistency-distilled AnimateDiff: its motion module plus its
+LoRA render in 4-10 steps instead of 20-30. Template 15 spends the time saved on
+a second pass at 1.5x, which is where SD 1.5 gets its detail back.
+
+| setting | base pass | hi-res pass |
+|---|---|---|
+| motion module | `AnimateLCM_sd15_t2v.ckpt`, beta_schedule `lcm avg(sqrt_linear,linear)` | same model |
+| LoRA | `AnimateLCM_sd15_t2v_lora.safetensors` at 0.8-1.0 | same |
+| size | ~0.3 MP | latent x1.5 (`bislerp`) |
+| sampler / scheduler | `lcm` / `sgm_uniform` | `lcm` / `sgm_uniform` |
+| steps / cfg | 8 / 1.8 | 6 / 1.5 |
+| denoise | 0.65-0.8 | 0.4-0.5 |
+
+- cfg above ~2 burns the image with LCM; below 1.3 the negative prompt stops working.
+- More steps do not add much past 10; raise the hi-res pass instead.
+- Switch **Hi-res pass** off to preview a clip quickly, on for the final render.
+- Both files are in the `wangfuyun/AnimateLCM` repository on Hugging Face: the
+  `.ckpt` goes in `models/animatediff_models`, the LoRA in `models/loras`.
+
 ## Multikeyframing and previz
 
 Put markers on the Director's **Keys** track (click the lane, drag to move,

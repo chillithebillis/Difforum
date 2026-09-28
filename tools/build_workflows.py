@@ -83,6 +83,7 @@ EXTERNAL = {
     # MiniMax H3 (ComfyUI core) - names match the official templates
     "UNETLoader": ([], ["unet_name", "weight_dtype"], [("MODEL", "MODEL")]),
     "LoraLoaderModelOnly": ([("model", "MODEL")], ["lora_name", "strength_model"], [("MODEL", "MODEL")]),
+    "LatentUpscaleBy": ([("samples", "LATENT")], ["upscale_method", "scale_by"], [("LATENT", "LATENT")]),
     "CLIPLoader": ([], ["clip_name", "type", "device"], [("CLIP", "CLIP")]),
     "VAELoader": ([], ["vae_name"], [("VAE", "VAE")]),
     "MiniMaxH3ImageToVideo": ([("clip", "CLIP"), ("vae", "VAE"), ("first_frame", "IMAGE"), ("last_frame", "IMAGE")],
@@ -361,10 +362,12 @@ B_POLISH = "Keyframe Polish"
 B_DEPTH = "Depth (Depth Anything 3)"
 B_STRUCT = "Structure (ControlNet)"
 B_AD = "AnimateDiff (motion module)"
+B_HIRES = "Hi-res pass (quality)"
 B_OUTPUT = "Output"
 B_LOOKPASS = "3 · Look pass (Feedback)"
-BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLISH, B_DEPTH, B_STRUCT, B_AD, "Audio"}
-LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot"}
+BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLISH, B_DEPTH, B_STRUCT, B_AD, B_HIRES,
+                 "Audio"}
+LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot", "Decode"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
 ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
                "3 · Storyboard", "3 · Export", "Audio", B_FILL, B_POLISH, B_DEPTH)
@@ -1104,16 +1107,31 @@ def wf_restyle_video():
     return g
 
 
-def wf_animatediff_video():
-    g = Graph("14 · AnimateDiff look on any video")
-    control(g, "## AnimateDiff on any video\n\nThe real AnimateDiff look over a clip you already have (MiniMax "
-            "H3, LTX, live action): an SD1.5 model with an AnimateDiff motion module re-draws the clip 16 frames "
-            "at a time, while depth and edge ControlNets taken from the clip keep its motion and composition.\n\n"
-            "- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an SD1.5 "
-            "checkpoint, a motion module (`v3_sd15_mm.ckpt`, or AnimateLCM for speed) and SD1.5 depth / canny "
-            "ControlNets.\n- `denoise` 0.55 keeps the clip, 0.75 is the classic AnimateDiff re-draw.\n"
-            "- Switch **AnimateDiff** off for per-frame img2img: the flickering Deforum / Disco look.\n"
-            "- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to delivery size.", size=(500, 420))
+def wf_animatediff_video(lcm=False):
+    if lcm:
+        g = Graph("15 · AnimateDiff LCM on any video (fast, hi-res)")
+        control(g, "## AnimateDiff LCM on any video\n\nThe AnimateDiff look in a fraction of the time: the "
+                "**AnimateLCM** motion module and its LoRA render in 8 steps at cfg ~1.8, and the time saved "
+                "pays for a second **Hi-res pass** (x1.5, 6 steps, denoise 0.45) that adds the detail SD1.5 lacks "
+                "at its native size. Depth and edge ControlNets from the clip keep its motion.\n\n"
+                "- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an "
+                "SD1.5 checkpoint, `AnimateLCM_sd15_t2v.ckpt` (models/animatediff_models) and "
+                "`AnimateLCM_sd15_t2v_lora.safetensors` (models/loras) from wangfuyun/AnimateLCM, SD1.5 depth / "
+                "canny ControlNets.\n- Keep sampler `lcm` + scheduler `sgm_uniform`; cfg 1.5-2 (higher burns), "
+                "steps 6-10. LoRA 0.8-1.0.\n- `denoise` 0.65 keeps the clip, 0.8 re-draws it.\n"
+                "- Switch **Hi-res pass** off for the fastest preview; switch **AnimateDiff** off for per-frame "
+                "flicker.", size=(520, 480))
+    else:
+        g = Graph("14 · AnimateDiff look on any video")
+        control(g, "## AnimateDiff on any video\n\nThe real AnimateDiff look over a clip you already have "
+                "(MiniMax H3, LTX, live action): an SD1.5 model with an AnimateDiff motion module re-draws the clip "
+                "16 frames at a time, while depth and edge ControlNets taken from the clip keep its motion and "
+                "composition.\n\n- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-"
+                "Evolved), an SD1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`; template 15 is the fast "
+                "AnimateLCM version) and SD1.5 depth / canny ControlNets.\n- `denoise` 0.55 keeps the clip, 0.75 "
+                "is the classic AnimateDiff re-draw.\n- Switch **AnimateDiff** off for per-frame img2img: the "
+                "flickering Deforum / Disco look.\n- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to "
+                "delivery size.", size=(500, 420))
     with g.block("1 · Source", C_DIRECT, col=1):
         lv = g.add("LoadVideo", size=(360, 420), file="input.mp4", upload="image")
         gc = g.add("GetVideoComponents", size=(260, 120))
@@ -1126,6 +1144,12 @@ def wf_animatediff_video():
                                  pos_text="masterpiece, painterly animation, thick brush strokes, glowing colours, "
                                           "dreamlike, intricate detail",
                                  neg_text="photo, blurry, low quality, watermark, text, deformed")
+        model = (ck, "MODEL")
+        if lcm:
+            lo = g.add("LoraLoaderModelOnly", size=(360, 90), title="AnimateLCM LoRA",
+                       lora_name="AnimateLCM_sd15_t2v_lora.safetensors", strength_model=1.0)
+            g.link(ck, "MODEL", lo, "model")
+            model = (lo, "MODEL")
     with g.block(B_STRUCT, C_FILL, col=2):
         dm = g.add("LoadDA3Model", size=(340, 90), model_name="depth_anything_3_mono_large.safetensors",
                    weight_dtype="default")
@@ -1156,25 +1180,51 @@ def wf_animatediff_video():
         cx = g.add("ADE_StandardUniformContextOptions", size=(340, 220), context_length=16, context_stride=1,
                    context_overlap=4, fuse_method="pyramid", use_on_equal_length=False, start_percent=0.0,
                    guarantee_steps=1)
-        ad = g.add("ADE_AnimateDiffLoaderGen1", size=(340, 170), model_name="v3_sd15_mm.ckpt",
-                   beta_schedule="autoselect")
-        g.link(ck, "MODEL", ad, "model")
+        if lcm:
+            ad = g.add("ADE_AnimateDiffLoaderGen1", size=(340, 170), title="AnimateLCM motion module",
+                       model_name="AnimateLCM_sd15_t2v.ckpt", beta_schedule="lcm avg(sqrt_linear,linear)")
+        else:
+            ad = g.add("ADE_AnimateDiffLoaderGen1", size=(340, 170), model_name="v3_sd15_mm.ckpt",
+                       beta_schedule="autoselect")
+        g.link(model[0], model[1], ad, "model")
         g.link(cx, "CONTEXT_OPTS", ad, "context_options")
-    with g.block("3 · Render · AnimateDiff", C_RENDER, col=4):
+    with g.block("3 · Render · AnimateDiff" + (" LCM" if lcm else ""), C_RENDER, col=4):
         en = g.add("VAEEncode", size=(200, 60))
         g.link(sc, "IMAGE", en, "pixels")
         g.link(ck, "VAE", en, "vae")
-        ks = g.add("KSampler", size=(300, 260), seed=7, steps=20, cfg=7.0, sampler_name="euler_ancestral",
-                   scheduler="normal", denoise=0.7)
+        if lcm:
+            ks = g.add("KSampler", size=(300, 260), title="Base pass (8 steps)", seed=7, steps=8, cfg=1.8,
+                       sampler_name="lcm", scheduler="sgm_uniform", denoise=0.75)
+        else:
+            ks = g.add("KSampler", size=(300, 260), seed=7, steps=20, cfg=7.0, sampler_name="euler_ancestral",
+                       scheduler="normal", denoise=0.7)
         g.link(ad, "MODEL", ks, "model")
         g.link(a2, "positive", ks, "positive")
         g.link(a2, "negative", ks, "negative")
         g.link(en, "LATENT", ks, "latent_image")
-        dv = g.add("VAEDecode", size=(200, 60))
-        g.link(ks, "LATENT", dv, "samples")
-        g.link(ck, "VAE", dv, "vae")
-    up = upscale(g, (dv, "IMAGE"), col=5)
-    output(g, up, col=6, prefix="video/difforum_animatediff", audio=(gc, "audio"), fps_src=(gc, "fps"))
+        if not lcm:
+            dv = g.add("VAEDecode", size=(200, 60))
+            g.link(ks, "LATENT", dv, "samples")
+            g.link(ck, "VAE", dv, "vae")
+    col = 5
+    if lcm:
+        with g.block(B_HIRES, C_UP, col=5):
+            lu = g.add("LatentUpscaleBy", size=(280, 90), upscale_method="bislerp", scale_by=1.5)
+            g.link(ks, "LATENT", lu, "samples")
+            k2 = g.add("KSampler", size=(300, 260), title="Hi-res pass (6 steps)", seed=7, steps=6, cfg=1.5,
+                       sampler_name="lcm", scheduler="sgm_uniform", denoise=0.45)
+            g.link(ad, "MODEL", k2, "model")
+            g.link(a2, "positive", k2, "positive")
+            g.link(a2, "negative", k2, "negative")
+            g.link(lu, "LATENT", k2, "latent_image")
+        col = 6
+        with g.block("Decode", C_RENDER, col=col):
+            dv = g.add("VAEDecode", size=(200, 60))
+            g.link(k2, "LATENT", dv, "samples")
+            g.link(ck, "VAE", dv, "vae")
+    up = upscale(g, (dv, "IMAGE"), col=col + 1)
+    output(g, up, col=col + 2, prefix="video/difforum_animatediff" + ("_lcm" if lcm else ""),
+           audio=(gc, "audio"), fps_src=(gc, "fps"))
     return g
 
 
@@ -1293,6 +1343,7 @@ WORKFLOWS = {
     "12_long_shot_keys.json": wf_long_shot,
     "13_restyle_any_video.json": wf_restyle_video,
     "14_animatediff_on_video.json": wf_animatediff_video,
+    "15_animatediff_lcm_fast.json": lambda: wf_animatediff_video(lcm=True),
 }
 
 

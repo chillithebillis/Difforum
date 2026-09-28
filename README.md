@@ -58,7 +58,8 @@ Deforum morph and AnimateDiff boil, now riding on H3's motion (`deforum morph`,
 `animatediff boil`, `disco flicker`, `clean restyle`). **Look Mix** adds grain or
 flicker cuts on top. Template 13 restyles any clip you already rendered, with a
 depth ControlNet holding the structure so `denoise` can go up to 0.6-0.8.
-Template 14 is the real AnimateDiff motion module on any video (vid2vid).
+Template 14 is the real AnimateDiff motion module on any video (vid2vid);
+template 15 is its fast AnimateLCM version with a hi-res pass.
 
 **Multikeyframing.** Mark moments on the **Keys** track and feed one picture per
 key to **Keyframe Images**. The Feedback Sampler travels *through* them, H3 /
@@ -96,6 +97,7 @@ No camera expressions to write. They are still there if you want them.
 
 | 13 | `restyle_any_video` | **Restyle a clip you already have** (H3, LTX, live action) into the Deforum / AnimateDiff / Disco look, then 2K | a turbo model + a video |
 | 14 | `animatediff_on_video` | **AnimateDiff vid2vid**: SD 1.5 + AnimateDiff-Evolved + depth / canny ControlNets on any clip, then 2K | AnimateDiff-Evolved, an SD 1.5 checkpoint, a motion module, SD 1.5 ControlNets |
+| 15 | `animatediff_lcm_fast` | **AnimateDiff LCM**: template 14 in 8 steps with AnimateLCM, plus a x1.5 hi-res pass | as 14, with the AnimateLCM motion module + LoRA |
 
 Every template is laid out in the same blocks: **Control** (switches and notes),
 **Direction**, **Previz** on the top row; **Models → Render → Restyle → Upscale 2K
