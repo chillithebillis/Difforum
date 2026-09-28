@@ -12,6 +12,8 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
   sliding 16-frame context, depth + canny ControlNets, 2K upscale and source audio.
 - **Template 15 · AnimateDiff LCM (fast, hi-res)**: AnimateLCM motion module + LoRA
   in 8 steps, then a switchable x1.5 hi-res pass in 6 steps.
+- Templates 14 and 15 use Advanced-ControlNet nodes, which work inside AnimateDiff's
+  sliding context window (the core ControlNet nodes raise an error there).
 - **Director (timeline)**: a multi-track editor with Scenes (prompt + mood), Camera
   (visual move picker, speed, amount, lens, easing, per-block audio reaction) and
   Energy (a drawable denoise curve), plus an animated camera preview computed by the

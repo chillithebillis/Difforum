@@ -56,7 +56,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## AnimateDiff on any video\n\nThe real AnimateDiff look over a clip you already have (MiniMax H3, LTX, live action): an SD1.5 model with an AnimateDiff motion module re-draws the clip 16 frames at a time, while depth and edge ControlNets taken from the clip keep its motion and composition.\n\n- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an SD1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`; template 15 is the fast AnimateLCM version) and SD1.5 depth / canny ControlNets.\n- `denoise` 0.55 keeps the clip, 0.75 is the classic AnimateDiff re-draw.\n- Switch **AnimateDiff** off for per-frame img2img: the flickering Deforum / Disco look.\n- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to delivery size."
+    "## AnimateDiff on any video\n\nThe real AnimateDiff look over a clip you already have (MiniMax H3, LTX, live action): an SD1.5 model with an AnimateDiff motion module re-draws the clip 16 frames at a time, while depth and edge ControlNets taken from the clip keep its motion and composition.\n\n- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an SD1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`; template 15 is the fast AnimateLCM version) and SD1.5 depth / canny ControlNets.\n- Also needs [Advanced-ControlNet](https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet): the core ControlNet nodes fail inside AnimateDiff's sliding context window.\n- `denoise` 0.55 keeps the clip, 0.75 is the classic AnimateDiff re-draw.\n- Switch **AnimateDiff** off for per-frame img2img: the flickering Deforum / Disco look.\n- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to delivery size."
    ]
   },
   {
@@ -485,7 +485,7 @@
   },
   {
    "id": 13,
-   "type": "ControlNetLoader",
+   "type": "ControlNetLoaderAdvanced",
    "pos": [
     882,
     1164
@@ -497,7 +497,13 @@
    "flags": {},
    "order": 12,
    "mode": 0,
-   "inputs": [],
+   "inputs": [
+    {
+     "name": "tk_optional",
+     "type": "TIMESTEP_KEYFRAME",
+     "link": null
+    }
+   ],
    "outputs": [
     {
      "name": "CONTROL_NET",
@@ -509,7 +515,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "ControlNetLoader"
+    "Node name for S&R": "ControlNetLoaderAdvanced"
    },
    "widgets_values": [
     "control_v11f1p_sd15_depth.pth"
@@ -518,7 +524,7 @@
   },
   {
    "id": 14,
-   "type": "ControlNetLoader",
+   "type": "ControlNetLoaderAdvanced",
    "pos": [
     882,
     1300
@@ -530,7 +536,13 @@
    "flags": {},
    "order": 13,
    "mode": 0,
-   "inputs": [],
+   "inputs": [
+    {
+     "name": "tk_optional",
+     "type": "TIMESTEP_KEYFRAME",
+     "link": null
+    }
+   ],
    "outputs": [
     {
      "name": "CONTROL_NET",
@@ -542,7 +554,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "ControlNetLoader"
+    "Node name for S&R": "ControlNetLoaderAdvanced"
    },
    "widgets_values": [
     "control_v11p_sd15_canny.pth"
@@ -551,14 +563,14 @@
   },
   {
    "id": 15,
-   "type": "ControlNetApplyAdvanced",
+   "type": "ACN_AdvancedControlNetApply_v2",
    "pos": [
     1962,
     1018
    ],
    "size": [
     320,
-    189
+    294
    ],
    "flags": {},
    "order": 14,
@@ -585,8 +597,33 @@
      "link": 12
     },
     {
-     "name": "vae",
+     "name": "mask_optional",
+     "type": "MASK",
+     "link": null
+    },
+    {
+     "name": "timestep_kf",
+     "type": "TIMESTEP_KEYFRAME",
+     "link": null
+    },
+    {
+     "name": "latent_kf_override",
+     "type": "LATENT_KEYFRAME",
+     "link": null
+    },
+    {
+     "name": "weights_override",
+     "type": "CONTROL_NET_WEIGHTS",
+     "link": null
+    },
+    {
+     "name": "vae_optional",
      "type": "VAE",
+     "link": null
+    },
+    {
+     "name": "inpaint_mask",
+     "type": "MASK",
      "link": null
     }
    ],
@@ -609,7 +646,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "ControlNetApplyAdvanced"
+    "Node name for S&R": "ACN_AdvancedControlNetApply_v2"
    },
    "widgets_values": [
     0.65,
@@ -620,14 +657,14 @@
   },
   {
    "id": 16,
-   "type": "ControlNetApplyAdvanced",
+   "type": "ACN_AdvancedControlNetApply_v2",
    "pos": [
     2322,
     1018
    ],
    "size": [
     320,
-    189
+    294
    ],
    "flags": {},
    "order": 15,
@@ -654,8 +691,33 @@
      "link": 16
     },
     {
-     "name": "vae",
+     "name": "mask_optional",
+     "type": "MASK",
+     "link": null
+    },
+    {
+     "name": "timestep_kf",
+     "type": "TIMESTEP_KEYFRAME",
+     "link": null
+    },
+    {
+     "name": "latent_kf_override",
+     "type": "LATENT_KEYFRAME",
+     "link": null
+    },
+    {
+     "name": "weights_override",
+     "type": "CONTROL_NET_WEIGHTS",
+     "link": null
+    },
+    {
+     "name": "vae_optional",
      "type": "VAE",
+     "link": null
+    },
+    {
+     "name": "inpaint_mask",
+     "type": "MASK",
      "link": null
     }
    ],
@@ -678,7 +740,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "ControlNetApplyAdvanced"
+    "Node name for S&R": "ACN_AdvancedControlNetApply_v2"
    },
    "widgets_values": [
     0.35,

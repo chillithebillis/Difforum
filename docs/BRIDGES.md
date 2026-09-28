@@ -167,6 +167,10 @@ came from two things Restyle alone does not have:
 Template 14 needs [ComfyUI-AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved),
 an SD 1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`, or AnimateLCM for fewer
 steps) and SD 1.5 ControlNets (`control_v11f1p_sd15_depth`, `control_v11p_sd15_canny`).
+The ControlNets go through [ComfyUI-Advanced-ControlNet](https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet)
+(`Load Advanced ControlNet Model` + `Apply Advanced ControlNet`): the core ControlNet
+nodes fail inside AnimateDiff's sliding context window with *"Control type ControlNet
+may not support required features for sliding context window"*.
 Keep it at about 0.3 MP (SD 1.5 native size) and let Upscale 2K do the rest.
 Template 13 needs an SDXL union ControlNet (`xinsir-controlnet-union-sdxl-1.0-promax`)
 matching the SDXL / turbo image model.

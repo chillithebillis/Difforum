@@ -96,7 +96,7 @@ No camera expressions to write. They are still there if you want them.
 | 12 | `long_shot_keys` | **A 30 s long shot** with five scenes, three image keys and a previz, for installations | a turbo model + 3 images |
 
 | 13 | `restyle_any_video` | **Restyle a clip you already have** (H3, LTX, live action) into the Deforum / AnimateDiff / Disco look, then 2K | a turbo model + a video |
-| 14 | `animatediff_on_video` | **AnimateDiff vid2vid**: SD 1.5 + AnimateDiff-Evolved + depth / canny ControlNets on any clip, then 2K | AnimateDiff-Evolved, an SD 1.5 checkpoint, a motion module, SD 1.5 ControlNets |
+| 14 | `animatediff_on_video` | **AnimateDiff vid2vid**: SD 1.5 + AnimateDiff-Evolved + depth / canny ControlNets on any clip, then 2K | AnimateDiff-Evolved, Advanced-ControlNet, an SD 1.5 checkpoint, a motion module, SD 1.5 ControlNets |
 | 15 | `animatediff_lcm_fast` | **AnimateDiff LCM**: template 14 in 8 steps with AnimateLCM, plus a x1.5 hi-res pass | as 14, with the AnimateLCM motion module + LoRA |
 
 Every template is laid out in the same blocks: **Control** (switches and notes),

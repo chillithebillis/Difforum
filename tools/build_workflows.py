@@ -83,6 +83,17 @@ EXTERNAL = {
     # MiniMax H3 (ComfyUI core) - names match the official templates
     "UNETLoader": ([], ["unet_name", "weight_dtype"], [("MODEL", "MODEL")]),
     "LoraLoaderModelOnly": ([("model", "MODEL")], ["lora_name", "strength_model"], [("MODEL", "MODEL")]),
+    # ComfyUI-Advanced-ControlNet: ControlNets that work with AnimateDiff's sliding context
+    "ControlNetLoaderAdvanced": ([("tk_optional", "TIMESTEP_KEYFRAME")], ["control_net_name"],
+                                 [("CONTROL_NET", "CONTROL_NET")]),
+    "ACN_AdvancedControlNetApply_v2": ([("positive", "CONDITIONING"), ("negative", "CONDITIONING"),
+                                        ("control_net", "CONTROL_NET"), ("image", "IMAGE"),
+                                        ("mask_optional", "MASK"), ("timestep_kf", "TIMESTEP_KEYFRAME"),
+                                        ("latent_kf_override", "LATENT_KEYFRAME"),
+                                        ("weights_override", "CONTROL_NET_WEIGHTS"), ("vae_optional", "VAE"),
+                                        ("inpaint_mask", "MASK")],
+                                       ["strength", "start_percent", "end_percent"],
+                                       [("positive", "CONDITIONING"), ("negative", "CONDITIONING")]),
     "LatentUpscaleBy": ([("samples", "LATENT")], ["upscale_method", "scale_by"], [("LATENT", "LATENT")]),
     "CLIPLoader": ([], ["clip_name", "type", "device"], [("CLIP", "CLIP")]),
     "VAELoader": ([], ["vae_name"], [("VAE", "VAE")]),
@@ -1117,7 +1128,10 @@ def wf_animatediff_video(lcm=False):
                 "- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an "
                 "SD1.5 checkpoint, `AnimateLCM_sd15_t2v.ckpt` (models/animatediff_models) and "
                 "`AnimateLCM_sd15_t2v_lora.safetensors` (models/loras) from wangfuyun/AnimateLCM, SD1.5 depth / "
-                "canny ControlNets.\n- Keep sampler `lcm` + scheduler `sgm_uniform`; cfg 1.5-2 (higher burns), "
+                "canny ControlNets.\n"
+                "- Also needs [Advanced-ControlNet](https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet): the "
+                "core ControlNet nodes fail inside AnimateDiff's sliding context window.\n"
+                "- Keep sampler `lcm` + scheduler `sgm_uniform`; cfg 1.5-2 (higher burns), "
                 "steps 6-10. LoRA 0.8-1.0.\n- `denoise` 0.65 keeps the clip, 0.8 re-draws it.\n"
                 "- Switch **Hi-res pass** off for the fastest preview; switch **AnimateDiff** off for per-frame "
                 "flicker.", size=(520, 480))
@@ -1128,8 +1142,10 @@ def wf_animatediff_video(lcm=False):
                 "16 frames at a time, while depth and edge ControlNets taken from the clip keep its motion and "
                 "composition.\n\n- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-"
                 "Evolved), an SD1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`; template 15 is the fast "
-                "AnimateLCM version) and SD1.5 depth / canny ControlNets.\n- `denoise` 0.55 keeps the clip, 0.75 "
-                "is the classic AnimateDiff re-draw.\n- Switch **AnimateDiff** off for per-frame img2img: the "
+                "AnimateLCM version) and SD1.5 depth / canny ControlNets.\n"
+                "- Also needs [Advanced-ControlNet](https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet): the "
+                "core ControlNet nodes fail inside AnimateDiff's sliding context window.\n"
+                "- `denoise` 0.55 keeps the clip, 0.75 is the classic AnimateDiff re-draw.\n- Switch **AnimateDiff** off for per-frame img2img: the "
                 "flickering Deforum / Disco look.\n- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to "
                 "delivery size.", size=(500, 420))
     with g.block("1 · Source", C_DIRECT, col=1):
@@ -1151,6 +1167,7 @@ def wf_animatediff_video(lcm=False):
             g.link(ck, "MODEL", lo, "model")
             model = (lo, "MODEL")
     with g.block(B_STRUCT, C_FILL, col=2):
+        # Advanced-ControlNet nodes: the core ControlNet cannot follow AnimateDiff's sliding context window
         dm = g.add("LoadDA3Model", size=(340, 90), model_name="depth_anything_3_mono_large.safetensors",
                    weight_dtype="default")
         di = g.add("DA3Inference", size=(320, 130), resolution=504, resize_method="upper_bound_resize", mode="mono")
@@ -1160,17 +1177,17 @@ def wf_animatediff_video(lcm=False):
         g.link(di, "da3_geometry", dr, "da3_geometry")
         ed = g.add("Canny", size=(300, 100), low_threshold=0.2, high_threshold=0.5)
         g.link(sc, "IMAGE", ed, "image")
-        cd = g.add("ControlNetLoader", size=(340, 80), title="Depth ControlNet",
+        cd = g.add("ControlNetLoaderAdvanced", size=(340, 80), title="Depth ControlNet",
                    control_net_name="control_v11f1p_sd15_depth.pth")
-        ce = g.add("ControlNetLoader", size=(340, 80), title="Edge ControlNet",
+        ce = g.add("ControlNetLoaderAdvanced", size=(340, 80), title="Edge ControlNet",
                    control_net_name="control_v11p_sd15_canny.pth")
-        a1 = g.add("ControlNetApplyAdvanced", size=(320, 170), title="Apply depth", strength=0.65,
+        a1 = g.add("ACN_AdvancedControlNetApply_v2", size=(320, 170), title="Apply depth", strength=0.65,
                    start_percent=0.0, end_percent=1.0)
         g.link(pos, "CONDITIONING", a1, "positive")
         g.link(neg, "CONDITIONING", a1, "negative")
         g.link(cd, "CONTROL_NET", a1, "control_net")
         g.link(dr, "IMAGE", a1, "image")
-        a2 = g.add("ControlNetApplyAdvanced", size=(320, 170), title="Apply edges", strength=0.35,
+        a2 = g.add("ACN_AdvancedControlNetApply_v2", size=(320, 170), title="Apply edges", strength=0.35,
                    start_percent=0.0, end_percent=0.7)
         g.link(a1, "positive", a2, "positive")
         g.link(a1, "negative", a2, "negative")
