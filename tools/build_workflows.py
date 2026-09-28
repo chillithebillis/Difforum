@@ -80,6 +80,15 @@ EXTERNAL = {
                                ["max_resolution", "jpeg_quality", "suppress_default_preview", "preview_frames",
                                 "preview_fps", "tiny_vae"], [("MODEL", "MODEL")]),
     "UpscaleModelLoader": ([], ["model_name"], [("UPSCALE_MODEL", "UPSCALE_MODEL")]),
+    # MiniMax H3 latent upscale (two-stage): core AV split/concat + LBH-123-AI upscaler.
+    # Its `mode` is a DynamicCombo: the frontend restores the sub-value (scale 2.0) from its
+    # default, so it is left out of widgets_values or every later widget shifts by one.
+    "LTXVSeparateAVLatent": ([("av_latent", "LATENT")], [], [("video_latent", "LATENT"), ("audio_latent", "LATENT")]),
+    "LTXVConcatAVLatent": ([("video_latent", "LATENT"), ("audio_latent", "LATENT")], [], [("latent", "LATENT")]),
+    "ManualSigmas": ([], ["sigmas"], [("SIGMAS", "SIGMAS")]),
+    "MinimaxH3LatentUpscaler3D": ([("latent", "*")], ["model_name", "mode", "align",
+                                                     "enable_temporal_chunking", "force_unload", "device",
+                                                     "precision"], [("latent", "*")]),
     "LoadVideo": ([], ["file", "upload"], [("VIDEO", "VIDEO")]),
     "GetVideoComponents": ([("video", "VIDEO")], [], [("images", "IMAGE"), ("audio", "AUDIO"), ("fps", "FLOAT"),
                                                      ("bit_depth", "COMBO"), ("color_space", "COMBO")]),
@@ -322,9 +331,10 @@ B_FILL = "Fill Reveal (AI)"
 B_RESTYLE = "Restyle (look pass)"
 B_LOOKMIX = "Look Mix"
 B_UPSCALE = "Upscale 2K"
+B_H3UP = "H3 Latent Upscale (x2)"
 B_OUTPUT = "Output"
 B_LOOKPASS = "3 · Look pass (Feedback)"
-BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, "Audio"}
+BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, "Audio"}
 LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
 ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
@@ -717,11 +727,45 @@ def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=20):
         g.link(ks, "SAMPLER", sa, "sampler")
         g.link(sc, "SIGMAS", sa, "sigmas")
         g.link(latent[0], latent[1], sa, "latent_image")
+    # two-stage: H3 renders small and fast, a learned latent upscaler lifts it to ~1 MP and H3
+    # re-samples a few steps at full size - real, temporally coherent detail, no VAE round trip
+    with g.block(B_H3UP, C_UP, col=col):
+        g.note("## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the "
+               "**Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few "
+               "steps at full size: new detail that holds over time, no decode / re-encode.\n\n"
+               "- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) "
+               "and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n"
+               "- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use "
+               "`0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep "
+               "the motion exactly.\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode "
+               "the small render directly.", size=(380, 360))
+        sep = g.add("LTXVSeparateAVLatent", size=(240, 70))
+        g.link(sa, "output", sep, "av_latent")
+        up3 = g.add("MinimaxH3LatentUpscaler3D", size=(340, 260), title="Minimax H3 Latent Upscaler (3D)",
+                    model_name="minimax_h3_latent_upscaler_3d_fp16.safetensors", mode="scale by multiplier",
+                    align=32, enable_temporal_chunking=False, force_unload=True,
+                    device="cuda", precision="fp16")
+        g.link(sep, "video_latent", up3, "latent")
+        cat = g.add("LTXVConcatAVLatent", size=(240, 70))
+        g.link(up3, "latent", cat, "video_latent")
+        g.link(sep, "audio_latent", cat, "audio_latent")
+        gd2 = g.add("BasicGuider", size=(220, 50), title="Refine guider")
+        g.link(lo, "MODEL", gd2, "model")
+        g.link(conditioning[0], conditioning[1], gd2, "conditioning")
+        ks2 = g.add("KSamplerSelect", size=(260, 60), sampler_name="euler")
+        sg2 = g.add("ManualSigmas", size=(300, 60), title="Refine sigmas", sigmas="0.6316, 0.4737, 0.3158, 0.1579, 0.0000")
+        sa2 = g.add("SamplerCustomAdvanced", size=(260, 120), title="Refine at 2x")
+        g.link(nz, "NOISE", sa2, "noise")
+        g.link(gd2, "GUIDER", sa2, "guider")
+        g.link(ks2, "SAMPLER", sa2, "sampler")
+        g.link(sg2, "SIGMAS", sa2, "sigmas")
+        g.link(cat, "latent", sa2, "latent_image")
+    with g.block("3 · Render · MiniMax H3", C_RENDER, col=col):
         dv = g.add("VAEDecode", size=(200, 60))
-        g.link(sa, "output", dv, "samples")
+        g.link(sa2, "output", dv, "samples")
         g.link(vv, "VAE", dv, "vae")
         da = g.add("VAEDecodeAudio", size=(200, 60))
-        g.link(sa, "output", da, "samples")
+        g.link(sa2, "output", da, "samples")
         g.link(va, "VAE", da, "vae")
     return (dv, "IMAGE"), (da, "AUDIO")
 
@@ -790,7 +834,7 @@ def wf_h3():
             "size and a prompt with the camera move and the Director's **look**.\n\n- **Switches**: Previz, "
             "Fill Reveal, Live Preview (TAEH3), Render, Upscale 2K.\n- Fill model: an inpaint checkpoint "
             "gives the cleanest seams.\n- Turbo LoRA: Ctrl+B, steps 6-8. Live preview needs KJNodes.")
-    s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=832, camera_mode="3d",
+    s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="3d",
                                 timeline=tl_json(124, **H3_TIMELINE))
     previz(g, d, init=(img, "IMAGE"))
     with g.block(B_MODELS, C_MODELS, col=0, row=1):
@@ -872,7 +916,7 @@ def wf_h3_guides():
             "`MiniMaxH3AddGuide`).\n\n- The anchor is also `<Picture 1>`; **Camera → Prompt** adds the move "
             "and the **look**.\n- **Switches**: Previz, Fill Reveal, Live Preview (TAEH3), Render, Upscale "
             "2K.\n- Turbo LoRA: Ctrl+B, steps 4. Live preview needs KJNodes.")
-    s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=832, camera_mode="3d",
+    s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="3d",
                                 timeline=tl_json(124, **H3_TIMELINE),
                                 image_title="Anchor image (also the H3 reference)")
     previz(g, d, init=(img, "IMAGE"))
@@ -910,7 +954,7 @@ def wf_h3_deforum():
         {"start": 0, "move": "zoom_in", "speed": 1.0, "intensity": 1.0, "ease": "ease_in_out"},
         {"start": 62, "move": "spiral", "speed": 1.2, "intensity": 1.0, "ease": "ease_in"},
     ])
-    s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=832, camera_mode="2d",
+    s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="2d",
                                 look="deforum_morph", timeline=tl)
     previz(g, d, init=(img, "IMAGE"))
     with g.block(B_MODELS, C_MODELS, col=0, row=1):

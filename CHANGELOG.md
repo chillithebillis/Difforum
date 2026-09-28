@@ -30,6 +30,8 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - **Restyle**: gives any H3 / LTX / live-action clip the Deforum / AnimateDiff / Disco look with
   an image model, feedback carried along the clip's optical flow. Template **13 · restyle any video**.
 - **Upscale (2K / 4K)**: upscale model + exact resize, chunked for long clips.
+- MiniMax H3 templates render in two stages: a switchable **H3 Latent Upscale (x2)** block
+  (Minimax H3 Latent Upscaler 3D + a short H3 refine at full size), then Upscale 2K in pixels.
 - **Workflow Switches**: one switch per group (render groups muted, pass-through groups bypassed,
   dependent outputs muted with them) and ⌖ to jump to a group.
 - Every template rebuilt in named blocks (Control, Direction, Previz, Models, Render, Restyle,

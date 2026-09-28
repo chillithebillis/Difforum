@@ -1,6 +1,6 @@
 {
- "last_node_id": 40,
- "last_link_id": 60,
+ "last_node_id": 48,
+ "last_link_id": 71,
  "nodes": [
   {
    "id": 1,
@@ -11,7 +11,7 @@
    ],
    "size": [
     340,
-    432
+    466
    ],
    "flags": {},
    "order": 0,
@@ -31,6 +31,7 @@
      "2 · Previz": "mute",
      "3 · Render · MiniMax H3": "mute",
      "Live Preview (TAEH3)": "bypass",
+     "H3 Latent Upscale (x2)": "bypass",
      "Restyle (look pass)": "bypass",
      "Look Mix": "bypass",
      "Upscale 2K": "bypass",
@@ -45,7 +46,7 @@
    "type": "MarkdownNote",
    "pos": [
     24,
-    554
+    588
    ],
    "size": [
     480,
@@ -133,7 +134,7 @@
     5.0,
     24.0,
     "16:9 landscape",
-    832,
+    640,
     0,
     "fixed",
     16.0,
@@ -222,7 +223,7 @@
       2,
       15,
       18,
-      52
+      63
      ],
      "slot_index": 0
     },
@@ -457,7 +458,7 @@
    "type": "CheckpointLoaderSimple",
    "pos": [
     24,
-    1134
+    1168
    ],
    "size": [
     320,
@@ -473,7 +474,7 @@
      "type": "MODEL",
      "links": [
       10,
-      48
+      59
      ],
      "slot_index": 0
     },
@@ -492,7 +493,7 @@
      "type": "VAE",
      "links": [
       11,
-      49
+      60
      ],
      "slot_index": 2
     }
@@ -510,7 +511,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     484,
-    1134
+    1168
    ],
    "size": [
     380,
@@ -532,7 +533,7 @@
      "type": "CONDITIONING",
      "links": [
       12,
-      50
+      61
      ],
      "slot_index": 0
     }
@@ -550,7 +551,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     484,
-    1330
+    1364
    ],
    "size": [
     380,
@@ -572,7 +573,7 @@
      "type": "CONDITIONING",
      "links": [
       13,
-      51
+      62
      ],
      "slot_index": 0
     }
@@ -590,7 +591,7 @@
    "type": "UNETLoader",
    "pos": [
     24,
-    1290
+    1324
    ],
    "size": [
     420,
@@ -623,7 +624,7 @@
    "type": "CLIPLoader",
    "pos": [
     24,
-    1436
+    1470
    ],
    "size": [
     420,
@@ -657,7 +658,7 @@
    "type": "VAELoader",
    "pos": [
     24,
-    1602
+    1636
    ],
    "size": [
     420,
@@ -674,7 +675,7 @@
      "links": [
       20,
       29,
-      44
+      55
      ],
      "slot_index": 0
     }
@@ -692,7 +693,7 @@
    "type": "VAELoader",
    "pos": [
     24,
-    1718
+    1752
    ],
    "size": [
     420,
@@ -708,7 +709,7 @@
      "type": "VAE",
      "links": [
       21,
-      46
+      57
      ],
      "slot_index": 0
     }
@@ -828,7 +829,7 @@
      "type": "IMAGE",
      "links": [
       16,
-      55
+      66
      ],
      "slot_index": 0
     },
@@ -1166,7 +1167,8 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      36
+      36,
+      48
      ],
      "slot_index": 0
     },
@@ -1218,7 +1220,7 @@
    "type": "LoraLoaderModelOnly",
    "pos": [
     1282,
-    1134
+    1168
    ],
    "size": [
     360,
@@ -1239,7 +1241,8 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      34
+      34,
+      47
      ],
      "slot_index": 0
     }
@@ -1258,7 +1261,7 @@
    "type": "MarkdownNote",
    "pos": [
     982,
-    1520
+    1554
    ],
    "size": [
     360,
@@ -1281,7 +1284,7 @@
    "type": "ModelPreviewOverrideKJ",
    "pos": [
     1382,
-    1520
+    1554
    ],
    "size": [
     380,
@@ -1335,7 +1338,7 @@
    "type": "BasicGuider",
    "pos": [
     1982,
-    1134
+    1168
    ],
    "size": [
     220,
@@ -1376,7 +1379,7 @@
    "type": "RandomNoise",
    "pos": [
     982,
-    1134
+    1168
    ],
    "size": [
     260,
@@ -1391,7 +1394,8 @@
      "name": "NOISE",
      "type": "NOISE",
      "links": [
-      38
+      38,
+      49
      ],
      "slot_index": 0
     }
@@ -1409,7 +1413,7 @@
    "type": "KSamplerSelect",
    "pos": [
     982,
-    1280
+    1314
    ],
    "size": [
     260,
@@ -1441,7 +1445,7 @@
    "type": "BasicScheduler",
    "pos": [
     1682,
-    1134
+    1168
    ],
    "size": [
     260,
@@ -1481,7 +1485,7 @@
    "type": "SamplerCustomAdvanced",
    "pos": [
     2242,
-    1134
+    1168
    ],
    "size": [
     260,
@@ -1522,8 +1526,7 @@
      "name": "output",
      "type": "LATENT",
      "links": [
-      43,
-      45
+      43
      ],
      "slot_index": 0
     },
@@ -1541,28 +1544,352 @@
   },
   {
    "id": 31,
+   "type": "MarkdownNote",
+   "pos": [
+    2860,
+    1168
+   ],
+   "size": [
+    380,
+    360
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use `0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
+   ]
+  },
+  {
+   "id": 32,
+   "type": "LTXVSeparateAVLatent",
+   "pos": [
+    3540,
+    1168
+   ],
+   "size": [
+    240,
+    70
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "link": 43
+    }
+   ],
+   "outputs": [
+    {
+     "name": "video_latent",
+     "type": "LATENT",
+     "links": [
+      44
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "audio_latent",
+     "type": "LATENT",
+     "links": [
+      46
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LTXVSeparateAVLatent"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 33,
+   "type": "MinimaxH3LatentUpscaler3D",
+   "pos": [
+    3820,
+    1168
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 32,
+   "mode": "scale by multiplier",
+   "inputs": [
+    {
+     "name": "latent",
+     "type": "*",
+     "link": 44
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "*",
+     "links": [
+      45
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MinimaxH3LatentUpscaler3D"
+   },
+   "widgets_values": [
+    "minimax_h3_latent_upscaler_3d_fp16.safetensors",
+    null,
+    32,
+    false,
+    true,
+    "cuda",
+    "fp16"
+   ],
+   "title": "Minimax H3 Latent Upscaler (3D)"
+  },
+  {
+   "id": 34,
+   "type": "LTXVConcatAVLatent",
+   "pos": [
+    4200,
+    1168
+   ],
+   "size": [
+    240,
+    70
+   ],
+   "flags": {},
+   "order": 33,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video_latent",
+     "type": "LATENT",
+     "link": 45
+    },
+    {
+     "name": "audio_latent",
+     "type": "LATENT",
+     "link": 46
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      53
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LTXVConcatAVLatent"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 35,
+   "type": "BasicGuider",
+   "pos": [
+    3280,
+    1168
+   ],
+   "size": [
+    220,
+    54
+   ],
+   "flags": {},
+   "order": 34,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 47
+    },
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 48
+    }
+   ],
+   "outputs": [
+    {
+     "name": "GUIDER",
+     "type": "GUIDER",
+     "links": [
+      50
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "BasicGuider"
+   },
+   "widgets_values": [],
+   "title": "Refine guider"
+  },
+  {
+   "id": 36,
+   "type": "KSamplerSelect",
+   "pos": [
+    2860,
+    1584
+   ],
+   "size": [
+    260,
+    60
+   ],
+   "flags": {},
+   "order": 35,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "SAMPLER",
+     "type": "SAMPLER",
+     "links": [
+      51
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSamplerSelect"
+   },
+   "widgets_values": [
+    "euler"
+   ]
+  },
+  {
+   "id": 37,
+   "type": "ManualSigmas",
+   "pos": [
+    2860,
+    1700
+   ],
+   "size": [
+    300,
+    60
+   ],
+   "flags": {},
+   "order": 36,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "SIGMAS",
+     "type": "SIGMAS",
+     "links": [
+      52
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ManualSigmas"
+   },
+   "widgets_values": [
+    "0.6316, 0.4737, 0.3158, 0.1579, 0.0000"
+   ],
+   "title": "Refine sigmas"
+  },
+  {
+   "id": 38,
+   "type": "SamplerCustomAdvanced",
+   "pos": [
+    4480,
+    1168
+   ],
+   "size": [
+    260,
+    120
+   ],
+   "flags": {},
+   "order": 37,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise",
+     "type": "NOISE",
+     "link": 49
+    },
+    {
+     "name": "guider",
+     "type": "GUIDER",
+     "link": 50
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 51
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 52
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 53
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      54,
+      56
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerCustomAdvanced"
+   },
+   "widgets_values": [],
+   "title": "Refine at 2x"
+  },
+  {
+   "id": 39,
    "type": "VAEDecode",
    "pos": [
     2542,
-    1134
+    1168
    ],
    "size": [
     200,
     60
    ],
    "flags": {},
-   "order": 30,
+   "order": 38,
    "mode": 0,
    "inputs": [
     {
      "name": "samples",
      "type": "LATENT",
-     "link": 43
+     "link": 54
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 44
+     "link": 55
     }
    ],
    "outputs": [
@@ -1570,7 +1897,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      47
+      58
      ],
      "slot_index": 0
     }
@@ -1581,29 +1908,29 @@
    "widgets_values": []
   },
   {
-   "id": 32,
+   "id": 40,
    "type": "VAEDecodeAudio",
    "pos": [
     2542,
-    1250
+    1284
    ],
    "size": [
     200,
     60
    ],
    "flags": {},
-   "order": 31,
+   "order": 39,
    "mode": 0,
    "inputs": [
     {
      "name": "samples",
      "type": "LATENT",
-     "link": 45
+     "link": 56
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 46
+     "link": 57
     }
    ],
    "outputs": [
@@ -1611,7 +1938,7 @@
      "name": "AUDIO",
      "type": "AUDIO",
      "links": [
-      59
+      70
      ],
      "slot_index": 0
     }
@@ -1622,18 +1949,18 @@
    "widgets_values": []
   },
   {
-   "id": 33,
+   "id": 41,
    "type": "MarkdownNote",
    "pos": [
-    2860,
-    1134
+    4858,
+    1168
    ],
    "size": [
     380,
     300
    ],
    "flags": {},
-   "order": 32,
+   "order": 40,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -1645,49 +1972,49 @@
    ]
   },
   {
-   "id": 34,
+   "id": 42,
    "type": "Difforum_Restyle",
    "pos": [
-    3280,
-    1134
+    5278,
+    1168
    ],
    "size": [
     360,
     520
    ],
    "flags": {},
-   "order": 33,
+   "order": 41,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "IMAGE",
-     "link": 47
+     "link": 58
     },
     {
      "name": "model",
      "type": "MODEL",
-     "link": 48
+     "link": 59
     },
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 50
+     "link": 61
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 51
+     "link": 62
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 49
+     "link": 60
     },
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 52
+     "link": 63
     },
     {
      "name": "prompts",
@@ -1700,7 +2027,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      54
+      65
      ],
      "slot_index": 0
     },
@@ -1708,7 +2035,7 @@
      "name": "report",
      "type": "STRING",
      "links": [
-      53
+      64
      ],
      "slot_index": 1
     }
@@ -1735,24 +2062,24 @@
    ]
   },
   {
-   "id": 35,
+   "id": 43,
    "type": "PreviewAny",
    "pos": [
-    3680,
-    1134
+    5678,
+    1168
    ],
    "size": [
     300,
     160
    ],
    "flags": {},
-   "order": 34,
+   "order": 42,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "*",
-     "link": 53
+     "link": 64
     }
    ],
    "outputs": [
@@ -1770,29 +2097,29 @@
    "title": "Restyle report"
   },
   {
-   "id": 36,
+   "id": 44,
    "type": "Difforum_LookMix",
    "pos": [
-    2860,
-    1834
+    4858,
+    1868
    ],
    "size": [
     300,
     300
    ],
    "flags": {},
-   "order": 35,
+   "order": 43,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "IMAGE",
-     "link": 54
+     "link": 65
     },
     {
      "name": "look_pass",
      "type": "IMAGE",
-     "link": 55
+     "link": 66
     }
    ],
    "outputs": [
@@ -1800,7 +2127,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      56
+      67
      ],
      "slot_index": 0
     }
@@ -1820,18 +2147,18 @@
    ]
   },
   {
-   "id": 37,
+   "id": 45,
    "type": "UpscaleModelLoader",
    "pos": [
-    4098,
-    1134
+    6096,
+    1168
    ],
    "size": [
     320,
     80
    ],
    "flags": {},
-   "order": 36,
+   "order": 44,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1839,7 +2166,7 @@
      "name": "UPSCALE_MODEL",
      "type": "UPSCALE_MODEL",
      "links": [
-      57
+      68
      ],
      "slot_index": 0
     }
@@ -1853,29 +2180,29 @@
    "title": "Upscale model"
   },
   {
-   "id": 38,
+   "id": 46,
    "type": "Difforum_Upscale",
    "pos": [
-    4458,
-    1134
+    6456,
+    1168
    ],
    "size": [
     320,
     200
    ],
    "flags": {},
-   "order": 37,
+   "order": 45,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 56
+     "link": 67
     },
     {
      "name": "upscale_model",
      "type": "UPSCALE_MODEL",
-     "link": 57
+     "link": 68
     }
    ],
    "outputs": [
@@ -1883,7 +2210,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      58
+      69
      ],
      "slot_index": 0
     },
@@ -1905,29 +2232,29 @@
    ]
   },
   {
-   "id": 39,
+   "id": 47,
    "type": "CreateVideo",
    "pos": [
-    4896,
-    1134
+    6894,
+    1168
    ],
    "size": [
     260,
     100
    ],
    "flags": {},
-   "order": 38,
+   "order": 46,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 58
+     "link": 69
     },
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 59
+     "link": 70
     }
    ],
    "outputs": [
@@ -1935,7 +2262,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      60
+      71
      ],
      "slot_index": 0
     }
@@ -1948,24 +2275,24 @@
    ]
   },
   {
-   "id": 40,
+   "id": 48,
    "type": "SaveVideo",
    "pos": [
-    5196,
-    1134
+    7194,
+    1168
    ],
    "size": [
     480,
     420
    ],
    "flags": {},
-   "order": 39,
+   "order": 47,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 60
+     "link": 71
     }
    ],
    "outputs": [],
@@ -2320,143 +2647,231 @@
    43,
    30,
    0,
-   31,
+   32,
    0,
    "LATENT"
   ],
   [
    44,
-   15,
-   0,
-   31,
-   1,
-   "VAE"
-  ],
-  [
-   45,
-   30,
-   0,
    32,
+   0,
+   33,
    0,
    "LATENT"
   ],
   [
-   46,
-   16,
+   45,
+   33,
    0,
+   34,
+   0,
+   "*"
+  ],
+  [
+   46,
    32,
    1,
-   "VAE"
+   34,
+   1,
+   "LATENT"
   ],
   [
    47,
-   31,
+   23,
    0,
-   34,
+   35,
    0,
-   "IMAGE"
-  ],
-  [
-   48,
-   10,
-   0,
-   34,
-   1,
    "MODEL"
   ],
   [
+   48,
+   21,
+   0,
+   35,
+   1,
+   "CONDITIONING"
+  ],
+  [
    49,
-   10,
-   2,
-   34,
-   4,
-   "VAE"
+   27,
+   0,
+   38,
+   0,
+   "NOISE"
   ],
   [
    50,
-   11,
+   35,
    0,
-   34,
-   2,
-   "CONDITIONING"
+   38,
+   1,
+   "GUIDER"
   ],
   [
    51,
-   12,
+   36,
    0,
-   34,
-   3,
-   "CONDITIONING"
+   38,
+   2,
+   "SAMPLER"
   ],
   [
    52,
-   5,
+   37,
    0,
-   34,
-   5,
-   "DIFFORUM_DIRECTION"
+   38,
+   3,
+   "SIGMAS"
   ],
   [
    53,
    34,
-   1,
-   35,
    0,
-   "STRING"
+   38,
+   4,
+   "LATENT"
   ],
   [
    54,
-   34,
-   0,
-   36,
-   0,
-   "IMAGE"
-  ],
-  [
-   55,
-   17,
-   0,
-   36,
-   1,
-   "IMAGE"
-  ],
-  [
-   56,
-   36,
-   0,
-   38,
-   0,
-   "IMAGE"
-  ],
-  [
-   57,
-   37,
-   0,
-   38,
-   1,
-   "UPSCALE_MODEL"
-  ],
-  [
-   58,
    38,
    0,
    39,
+   0,
+   "LATENT"
+  ],
+  [
+   55,
+   15,
+   0,
+   39,
+   1,
+   "VAE"
+  ],
+  [
+   56,
+   38,
+   0,
+   40,
+   0,
+   "LATENT"
+  ],
+  [
+   57,
+   16,
+   0,
+   40,
+   1,
+   "VAE"
+  ],
+  [
+   58,
+   39,
+   0,
+   42,
    0,
    "IMAGE"
   ],
   [
    59,
-   32,
+   10,
    0,
-   39,
+   42,
+   1,
+   "MODEL"
+  ],
+  [
+   60,
+   10,
+   2,
+   42,
+   4,
+   "VAE"
+  ],
+  [
+   61,
+   11,
+   0,
+   42,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   62,
+   12,
+   0,
+   42,
+   3,
+   "CONDITIONING"
+  ],
+  [
+   63,
+   5,
+   0,
+   42,
+   5,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   64,
+   42,
+   1,
+   43,
+   0,
+   "STRING"
+  ],
+  [
+   65,
+   42,
+   0,
+   44,
+   0,
+   "IMAGE"
+  ],
+  [
+   66,
+   17,
+   0,
+   44,
+   1,
+   "IMAGE"
+  ],
+  [
+   67,
+   44,
+   0,
+   46,
+   0,
+   "IMAGE"
+  ],
+  [
+   68,
+   45,
+   0,
+   46,
+   1,
+   "UPSCALE_MODEL"
+  ],
+  [
+   69,
+   46,
+   0,
+   47,
+   0,
+   "IMAGE"
+  ],
+  [
+   70,
+   40,
+   0,
+   47,
    1,
    "AUDIO"
   ],
   [
-   60,
-   39,
+   71,
+   47,
    0,
-   40,
+   48,
    0,
    "VIDEO"
   ]
@@ -2469,7 +2884,7 @@
     0,
     0,
     528,
-    998
+    1032
    ],
    "color": "#444",
    "font_size": 22,
@@ -2506,7 +2921,7 @@
    "title": "Models",
    "bounding": [
     0,
-    1068,
+    1102,
     888,
     754
    ],
@@ -2545,7 +2960,7 @@
    "title": "3 · Render · MiniMax H3",
    "bounding": [
     958,
-    1068,
+    1102,
     1808,
     316
    ],
@@ -2558,7 +2973,7 @@
    "title": "Live Preview (TAEH3)",
    "bounding": [
     958,
-    1454,
+    1488,
     828,
     750
    ],
@@ -2568,10 +2983,23 @@
   },
   {
    "id": 9,
-   "title": "Restyle (look pass)",
+   "title": "H3 Latent Upscale (x2)",
    "bounding": [
     2836,
-    1068,
+    1102,
+    1928,
+    702
+   ],
+   "color": "#b58b2a",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 10,
+   "title": "Restyle (look pass)",
+   "bounding": [
+    4834,
+    1102,
     1168,
     630
    ],
@@ -2580,11 +3008,11 @@
    "flags": {}
   },
   {
-   "id": 10,
+   "id": 11,
    "title": "Look Mix",
    "bounding": [
-    2836,
-    1768,
+    4834,
+    1802,
     348,
     410
    ],
@@ -2593,11 +3021,11 @@
    "flags": {}
   },
   {
-   "id": 11,
+   "id": 12,
    "title": "Upscale 2K",
    "bounding": [
-    4074,
-    1068,
+    6072,
+    1102,
     728,
     310
    ],
@@ -2606,11 +3034,11 @@
    "flags": {}
   },
   {
-   "id": 12,
+   "id": 13,
    "title": "Output",
    "bounding": [
-    4872,
-    1068,
+    6870,
+    1102,
     828,
     530
    ],
