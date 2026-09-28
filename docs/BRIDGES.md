@@ -171,6 +171,9 @@ The ControlNets go through [ComfyUI-Advanced-ControlNet](https://github.com/Kosi
 (`Load Advanced ControlNet Model` + `Apply Advanced ControlNet`): the core ControlNet
 nodes fail inside AnimateDiff's sliding context window with *"Control type ControlNet
 may not support required features for sliding context window"*.
+If the Apply node's title reads *DUMMY* (or KSampler fails with *'NoneType' object is
+not iterable*), a placeholder pack such as ComfyUI-Dummy_Node_Pack is overriding the
+Advanced-ControlNet nodes with stubs that return nothing: remove it and restart.
 Keep it at about 0.3 MP (SD 1.5 native size) and let Upscale 2K do the rest.
 Template 13 needs an SDXL union ControlNet (`xinsir-controlnet-union-sdxl-1.0-promax`)
 matching the SDXL / turbo image model.
