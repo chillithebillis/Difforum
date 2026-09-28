@@ -972,7 +972,7 @@
    ],
    "size": [
     340,
-    240
+    320
    ],
    "flags": {},
    "order": 18,
@@ -1008,9 +1008,13 @@
     "Node name for S&R": "Difforum_CameraPrompt"
    },
    "widgets_values": [
-    "sentence",
-    "<Picture 1> is the opening image.",
-    true
+    "H3 structured",
+    "the opening image of the piece",
+    true,
+    "reference (ref2va / guides)",
+    "A low airy hum with faint crackles of static.",
+    "",
+    false
    ]
   },
   {

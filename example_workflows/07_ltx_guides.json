@@ -765,7 +765,7 @@
    ],
    "size": [
     340,
-    160
+    243
    ],
    "flags": {},
    "order": 13,
@@ -801,7 +801,11 @@
    "widgets_values": [
     "prompt suffix",
     "",
-    true
+    true,
+    "reference (ref2va / guides)",
+    "",
+    "",
+    false
    ]
   },
   {
@@ -1026,7 +1030,7 @@
     3434,
     0,
     1528,
-    586
+    609
    ],
    "color": "#8A8",
    "font_size": 22,

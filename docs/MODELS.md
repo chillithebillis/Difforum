@@ -14,9 +14,11 @@ Check each model's page for current versions and licences.
 | Stylised / light | SD1.5 finetunes (DreamShaper, etc.) | 20 steps, cfg 7. On some builds, launch with `--force-fp32` if frames come out black |
 | Live | SDXL-Turbo, SD-Turbo, LCM LoRA | 1-2 steps, cfg ~1, 512 px |
 
-A depth model for 3D parallax: **Depth Anything V2** via
-[ComfyUI-DepthAnythingV2](https://github.com/kijai/ComfyUI-DepthAnythingV2)
-(vitl for quality, vits for speed).
+A depth model for 3D parallax: **Depth Anything 3**, built into ComfyUI (Load Depth
+Anything 3 → Run → Render, `depth_anything_3_mono_large.safetensors` in
+`models/geometry_estimation`). Its `v2_style` render is near = white, Difforum's
+convention. Depth Anything V2 ([Kijai's pack](https://github.com/kijai/ComfyUI-DepthAnythingV2))
+still works on any `depth` input.
 
 ## Video models (via the bridges)
 

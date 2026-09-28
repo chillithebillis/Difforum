@@ -121,7 +121,17 @@ def test_bridges():
     first, last, length, w, h, prompt, segments, last_mask, info = DifforumH3Shot().run(
         guides, "124 (~5s)", 0, direction=bundle, shot_description="A forest.")
     assert (length - 5) % 17 == 0 and w % 32 == 0 and h % 32 == 0
-    assert segments >= 2 and prompt.startswith("A forest. The camera")
+    assert segments >= 2 and prompt.startswith("How the reference pictures align")
+    assert "integrated_multimodal_description: [Shot 1]" in prompt and "A forest." in prompt
+    assert "non_diegetic_music: N/A" in prompt
+    plain = DifforumH3Shot().run(guides, "124 (~5s)", 1, direction=bundle, shot_description="A forest.",
+                                 prompt_style="sentence")[5]
+    assert plain.startswith("A forest. The camera")
+    ref = DifforumCameraPrompt().run("H3 structured", direction=bundle, prefix="a forest",
+                                     h3_mode="reference (ref2va / guides)", cuts=True)[0]
+    for section in ("subject_definitions:", "summary:\n[keyframe completion]", "retention_analysis:",
+                    "detailed_description:", "[Shot 1] The shot begins from <Picture 1>."):
+        assert section in ref
 
     text = DifforumCameraPrompt().run("prompt suffix", direction=bundle)[0]
     assert text.startswith("Camera:") and "live-action" in text

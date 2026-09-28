@@ -27,6 +27,12 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - **Look Mix**: detail transfer, colour, flicker cuts or crossfade from a feedback pass onto
   an H3 / LTX render. New looks: disco_diffusion, vqgan_clip, flicker_experimental.
 - Template **12 · long shot with key moments** (30 s, installations).
+- **Hover help on every input** (one registry, `nodes/tooltips.py`) and a quality guide (`docs/GUIDE.md`).
+- **H3 structured prompts**: Camera → Prompt and H3 Shot write the whole Director timeline (look,
+  scenes, camera in H3 vocabulary, key events, soundscape, music) in MiniMax H3's native format,
+  with the I2VA / FL2VA alignment lines or the full-reference sections.
+- H3 templates: **Keyframe Polish** (low-denoise re-paint of the warped keyframes) and **Depth**
+  (core Depth Anything 3) blocks. Template 03 uses core Depth Anything 3 too.
 - **Restyle**: gives any H3 / LTX / live-action clip the Deforum / AnimateDiff / Disco look with
   an image model, feedback carried along the clip's optical flow. Template **13 · restyle any video**.
 - **Upscale (2K / 4K)**: upscale model + exact resize, chunked for long clips.

@@ -81,7 +81,7 @@ No camera expressions to write. They are still there if you want them.
 |---|---|---|---|
 | 01 | `storyboard_no_model` | Direct a shot and preview the whole move in about a second | an image |
 | 02 | `feedback_sdxl` | The Deforum look on a modern model | SDXL / SD1.5 / Flux |
-| 03 | `parallax_3d_depth` | Real 3D parallax from a depth map | + [DepthAnythingV2](https://github.com/kijai/ComfyUI-DepthAnythingV2) |
+| 03 | `parallax_3d_depth` | Real 3D parallax from a depth map | + Depth Anything 3 model (core) |
 | 04 | `audio_reactive` | Camera moves that react to music, with no expressions | + an audio file |
 | 05 | `live_turbo` | Realtime feedback, webcam mirror, VJ output | a turbo model |
 | 06 | `seamless_loop` | A loop without a crossfade, for installations | a checkpoint |
@@ -155,6 +155,7 @@ Deforum hard to use:
 
 | | |
 |---|---|
+| [Quality guide](docs/GUIDE.md) | The dials that matter, keyframe quality, depth, AE cameras, H3 prompts |
 | [Bridges](docs/BRIDGES.md) | MiniMax H3, LTX-2, After Effects, Blender |
 | [Node reference](docs/NODES.md) | Every input and output |
 | [Performance](docs/PERFORMANCE.md) | Speed vs. quality, Apple Silicon |

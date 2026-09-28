@@ -1,6 +1,6 @@
 {
- "last_node_id": 23,
- "last_link_id": 34,
+ "last_node_id": 25,
+ "last_link_id": 36,
  "nodes": [
   {
    "id": 1,
@@ -11,7 +11,7 @@
    ],
    "size": [
     340,
-    296
+    330
    ],
    "flags": {},
    "order": 0,
@@ -27,6 +27,7 @@
      "First frame"
     ],
     "modes": {
+     "Depth (Depth Anything 3)": "bypass",
      "2 · Previz": "mute",
      "3 · Render · Feedback Sampler": "mute",
      "Upscale 2K": "bypass",
@@ -41,7 +42,7 @@
    "type": "MarkdownNote",
    "pos": [
     24,
-    418
+    452
    ],
    "size": [
     460,
@@ -56,7 +57,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## Real parallax\n\nDepth Anything V2 reads the first frame, the Director is in **3d**, and the sampler re-projects the depth with the image every frame - near things move faster than far ones for the whole clip.\n\nNeeds **ComfyUI-DepthAnythingV2** (Kijai). Too strong? Lower `translation_scale` on Render Options. The sampler's `depth` output is the tracked depth per frame."
+    "## Real parallax\n\nDepth Anything 3 (core) reads the first frame, the Director is in **3d**, and the sampler re-projects the depth with the image every frame - near things move faster than far ones for the whole clip.\n\nUses the core **Depth Anything 3** nodes. Too strong? Lower `translation_scale` on Render Options. The sampler's `depth` output is the tracked depth per frame."
    ]
   },
   {
@@ -109,7 +110,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      33
+      35
      ],
      "slot_index": 4
     },
@@ -173,8 +174,8 @@
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
      "links": [
-      15,
-      26
+      17,
+      28
      ],
      "slot_index": 0
     },
@@ -245,7 +246,7 @@
      "type": "MODEL",
      "links": [
       7,
-      21
+      23
      ],
      "slot_index": 0
     },
@@ -264,7 +265,7 @@
      "type": "VAE",
      "links": [
       12,
-      22
+      24
      ],
      "slot_index": 2
     }
@@ -304,7 +305,7 @@
      "type": "CONDITIONING",
      "links": [
       8,
-      23
+      25
      ],
      "slot_index": 0
     }
@@ -344,7 +345,7 @@
      "type": "CONDITIONING",
      "links": [
       9,
-      24
+      26
      ],
      "slot_index": 0
     }
@@ -361,7 +362,7 @@
    "id": 8,
    "type": "EmptyLatentImage",
    "pos": [
-    1282,
+    882,
     1126
    ],
    "size": [
@@ -412,7 +413,7 @@
    "id": 9,
    "type": "KSampler",
    "pos": [
-    1582,
+    1182,
     1126
    ],
    "size": [
@@ -472,7 +473,7 @@
    "id": 10,
    "type": "VAEDecode",
    "pos": [
-    1922,
+    1522,
     1126
    ],
    "size": [
@@ -500,8 +501,8 @@
      "type": "IMAGE",
      "links": [
       14,
-      16,
-      25
+      18,
+      27
      ],
      "slot_index": 0
     }
@@ -513,14 +514,14 @@
   },
   {
    "id": 11,
-   "type": "DownloadAndLoadDepthAnythingV2Model",
+   "type": "LoadDA3Model",
    "pos": [
-    882,
-    1126
+    1880,
+    66
    ],
    "size": [
-    360,
-    80
+    340,
+    90
    ],
    "flags": {},
    "order": 10,
@@ -528,8 +529,8 @@
    "inputs": [],
    "outputs": [
     {
-     "name": "da_v2_model",
-     "type": "DAMODEL",
+     "name": "DA3_MODEL",
+     "type": "DA3_MODEL",
      "links": [
       13
      ],
@@ -537,59 +538,131 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "DownloadAndLoadDepthAnythingV2Model"
+    "Node name for S&R": "LoadDA3Model"
    },
    "widgets_values": [
-    "depth_anything_v2_vitl_fp32.safetensors"
+    "depth_anything_3_mono_large.safetensors",
+    "default"
    ]
   },
   {
    "id": 12,
-   "type": "DepthAnything_V2",
+   "type": "DA3Inference",
    "pos": [
-    2162,
-    1126
+    2260,
+    66
    ],
    "size": [
-    360,
-    80
+    320,
+    130
    ],
    "flags": {},
    "order": 11,
-   "mode": 0,
+   "mode": "mono",
    "inputs": [
     {
-     "name": "da_model",
-     "type": "DAMODEL",
+     "name": "da3_model",
+     "type": "DA3_MODEL",
      "link": 13
     },
     {
-     "name": "images",
+     "name": "image",
      "type": "IMAGE",
      "link": 14
     }
    ],
    "outputs": [
     {
-     "name": "image",
-     "type": "IMAGE",
+     "name": "da3_geometry",
+     "type": "DA3_GEOMETRY",
      "links": [
-      17,
-      27
+      15
      ],
      "slot_index": 0
     }
    ],
    "properties": {
-    "Node name for S&R": "DepthAnything_V2"
+    "Node name for S&R": "DA3Inference"
    },
-   "widgets_values": []
+   "widgets_values": [
+    1008,
+    "upper_bound_resize",
+    null
+   ]
   },
   {
    "id": 13,
+   "type": "DA3Render",
+   "pos": [
+    2620,
+    66
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "da3_geometry",
+     "type": "DA3_GEOMETRY",
+     "link": 15
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      16,
+      19,
+      29
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DA3Render"
+   },
+   "widgets_values": [
+    "depth"
+   ]
+  },
+  {
+   "id": 14,
+   "type": "PreviewImage",
+   "pos": [
+    2960,
+    66
+   ],
+   "size": [
+    300,
+    220
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 16
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Depth (white = near)"
+  },
+  {
+   "id": 15,
    "type": "MarkdownNote",
    "pos": [
-    1880,
+    3378,
     66
    ],
    "size": [
@@ -597,7 +670,7 @@
     200
    ],
    "flags": {},
-   "order": 12,
+   "order": 14,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -609,10 +682,10 @@
    ]
   },
   {
-   "id": 14,
+   "id": 16,
    "type": "Difforum_Animatic",
    "pos": [
-    2280,
+    3778,
     66
    ],
    "size": [
@@ -620,23 +693,23 @@
     180
    ],
    "flags": {},
-   "order": 13,
+   "order": 15,
    "mode": 0,
    "inputs": [
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 15
+     "link": 17
     },
     {
      "name": "init_image",
      "type": "IMAGE",
-     "link": 16
+     "link": 18
     },
     {
      "name": "depth",
      "type": "IMAGE",
-     "link": 17
+     "link": 19
     },
     {
      "name": "key_images",
@@ -654,7 +727,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      18
+      20
      ],
      "slot_index": 0
     },
@@ -662,7 +735,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      19
+      21
      ],
      "slot_index": 1
     },
@@ -683,10 +756,10 @@
    "title": "Animatic (previz)"
   },
   {
-   "id": 15,
+   "id": 17,
    "type": "CreateVideo",
    "pos": [
-    2680,
+    4178,
     66
    ],
    "size": [
@@ -694,13 +767,13 @@
     100
    ],
    "flags": {},
-   "order": 14,
+   "order": 16,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 18
+     "link": 20
     },
     {
      "name": "audio",
@@ -710,7 +783,7 @@
     {
      "name": "fps",
      "type": "FLOAT",
-     "link": 19,
+     "link": 21,
      "widget": {
       "name": "fps"
      }
@@ -721,7 +794,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      20
+      22
      ],
      "slot_index": 0
     }
@@ -734,10 +807,10 @@
    ]
   },
   {
-   "id": 16,
+   "id": 18,
    "type": "SaveVideo",
    "pos": [
-    2980,
+    4478,
     66
    ],
    "size": [
@@ -745,13 +818,13 @@
     320
    ],
    "flags": {},
-   "order": 15,
+   "order": 17,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 20
+     "link": 22
     }
    ],
    "outputs": [],
@@ -766,10 +839,10 @@
    "title": "Previz video"
   },
   {
-   "id": 17,
+   "id": 19,
    "type": "Difforum_FeedbackSampler",
    "pos": [
-    2640,
+    1840,
     1126
    ],
    "size": [
@@ -777,38 +850,38 @@
     585
    ],
    "flags": {},
-   "order": 16,
+   "order": 18,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 21
+     "link": 23
     },
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 23
+     "link": 25
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 24
+     "link": 26
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 22
+     "link": 24
     },
     {
      "name": "init_image",
      "type": "IMAGE",
-     "link": 25
+     "link": 27
     },
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 26
+     "link": 28
     },
     {
      "name": "options",
@@ -843,7 +916,7 @@
     {
      "name": "depth",
      "type": "IMAGE",
-     "link": 27
+     "link": 29
     },
     {
      "name": "control_net",
@@ -871,7 +944,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      28
+      30
      ],
      "slot_index": 0
     },
@@ -885,7 +958,7 @@
      "name": "report",
      "type": "STRING",
      "links": [
-      29
+      31
      ],
      "slot_index": 2
     }
@@ -906,10 +979,10 @@
    ]
   },
   {
-   "id": 18,
+   "id": 20,
    "type": "Difforum_FlowStabilize",
    "pos": [
-    3040,
+    2240,
     1126
    ],
    "size": [
@@ -917,13 +990,13 @@
     130
    ],
    "flags": {},
-   "order": 17,
+   "order": 19,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 28
+     "link": 30
     }
    ],
    "outputs": [
@@ -931,7 +1004,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      30
+      32
      ],
      "slot_index": 0
     }
@@ -946,10 +1019,10 @@
    ]
   },
   {
-   "id": 19,
+   "id": 21,
    "type": "PreviewAny",
    "pos": [
-    3040,
+    2240,
     1312
    ],
    "size": [
@@ -957,13 +1030,13 @@
     200
    ],
    "flags": {},
-   "order": 18,
+   "order": 20,
    "mode": 0,
    "inputs": [
     {
      "name": "source",
      "type": "*",
-     "link": 29
+     "link": 31
     }
    ],
    "outputs": [
@@ -981,10 +1054,10 @@
    "title": "Run report"
   },
   {
-   "id": 20,
+   "id": 22,
    "type": "UpscaleModelLoader",
    "pos": [
-    3458,
+    2658,
     1126
    ],
    "size": [
@@ -992,7 +1065,7 @@
     80
    ],
    "flags": {},
-   "order": 19,
+   "order": 21,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1000,7 +1073,7 @@
      "name": "UPSCALE_MODEL",
      "type": "UPSCALE_MODEL",
      "links": [
-      31
+      33
      ],
      "slot_index": 0
     }
@@ -1014,10 +1087,10 @@
    "title": "Upscale model"
   },
   {
-   "id": 21,
+   "id": 23,
    "type": "Difforum_Upscale",
    "pos": [
-    3818,
+    3018,
     1126
    ],
    "size": [
@@ -1025,18 +1098,18 @@
     200
    ],
    "flags": {},
-   "order": 20,
+   "order": 22,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 30
+     "link": 32
     },
     {
      "name": "upscale_model",
      "type": "UPSCALE_MODEL",
-     "link": 31
+     "link": 33
     }
    ],
    "outputs": [
@@ -1044,7 +1117,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      32
+      34
      ],
      "slot_index": 0
     },
@@ -1066,10 +1139,10 @@
    ]
   },
   {
-   "id": 22,
+   "id": 24,
    "type": "CreateVideo",
    "pos": [
-    4256,
+    3456,
     1126
    ],
    "size": [
@@ -1077,13 +1150,13 @@
     100
    ],
    "flags": {},
-   "order": 21,
+   "order": 23,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 32
+     "link": 34
     },
     {
      "name": "audio",
@@ -1093,7 +1166,7 @@
     {
      "name": "fps",
      "type": "FLOAT",
-     "link": 33,
+     "link": 35,
      "widget": {
       "name": "fps"
      }
@@ -1104,7 +1177,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      34
+      36
      ],
      "slot_index": 0
     }
@@ -1117,10 +1190,10 @@
    ]
   },
   {
-   "id": 23,
+   "id": 25,
    "type": "SaveVideo",
    "pos": [
-    4556,
+    3756,
     1126
    ],
    "size": [
@@ -1128,13 +1201,13 @@
     420
    ],
    "flags": {},
-   "order": 22,
+   "order": 24,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 34
+     "link": 36
     }
    ],
    "outputs": [],
@@ -1251,7 +1324,7 @@
    0,
    12,
    0,
-   "DAMODEL"
+   "DA3_MODEL"
   ],
   [
    14,
@@ -1263,161 +1336,177 @@
   ],
   [
    15,
-   4,
+   12,
    0,
-   14,
+   13,
    0,
-   "DIFFORUM_DIRECTION"
+   "DA3_GEOMETRY"
   ],
   [
    16,
-   10,
+   13,
    0,
    14,
-   1,
+   0,
    "IMAGE"
   ],
   [
    17,
-   12,
+   4,
    0,
-   14,
-   2,
-   "IMAGE"
+   16,
+   0,
+   "DIFFORUM_DIRECTION"
   ],
   [
    18,
-   14,
+   10,
    0,
-   15,
-   0,
+   16,
+   1,
    "IMAGE"
   ],
   [
    19,
-   14,
+   13,
+   0,
+   16,
+   2,
+   "IMAGE"
+  ],
+  [
+   20,
+   16,
+   0,
+   17,
+   0,
+   "IMAGE"
+  ],
+  [
+   21,
+   16,
    1,
-   15,
+   17,
    2,
    "FLOAT"
   ],
   [
-   20,
-   15,
+   22,
+   17,
    0,
-   16,
+   18,
    0,
    "VIDEO"
   ],
   [
-   21,
+   23,
    5,
    0,
-   17,
+   19,
    0,
    "MODEL"
   ],
   [
-   22,
+   24,
    5,
    2,
-   17,
+   19,
    3,
    "VAE"
   ],
   [
-   23,
+   25,
    6,
    0,
-   17,
+   19,
    1,
    "CONDITIONING"
   ],
   [
-   24,
+   26,
    7,
    0,
-   17,
+   19,
    2,
    "CONDITIONING"
   ],
   [
-   25,
+   27,
    10,
    0,
-   17,
+   19,
    4,
-   "IMAGE"
-  ],
-  [
-   26,
-   4,
-   0,
-   17,
-   5,
-   "DIFFORUM_DIRECTION"
-  ],
-  [
-   27,
-   12,
-   0,
-   17,
-   12,
    "IMAGE"
   ],
   [
    28,
-   17,
+   4,
    0,
-   18,
-   0,
-   "IMAGE"
+   19,
+   5,
+   "DIFFORUM_DIRECTION"
   ],
   [
    29,
-   17,
-   2,
-   19,
+   13,
    0,
-   "STRING"
+   19,
+   12,
+   "IMAGE"
   ],
   [
    30,
-   18,
+   19,
    0,
-   21,
+   20,
    0,
    "IMAGE"
   ],
   [
    31,
-   20,
-   0,
+   19,
+   2,
    21,
-   1,
-   "UPSCALE_MODEL"
+   0,
+   "STRING"
   ],
   [
    32,
-   21,
+   20,
    0,
-   22,
+   23,
    0,
    "IMAGE"
   ],
   [
    33,
+   22,
+   0,
+   23,
+   1,
+   "UPSCALE_MODEL"
+  ],
+  [
+   34,
+   23,
+   0,
+   24,
+   0,
+   "IMAGE"
+  ],
+  [
+   35,
    3,
    4,
-   22,
+   24,
    2,
    "FLOAT"
   ],
   [
-   34,
-   22,
+   36,
+   24,
    0,
-   23,
+   25,
    0,
    "VIDEO"
   ]
@@ -1430,7 +1519,7 @@
     0,
     0,
     508,
-    762
+    796
    ],
    "color": "#444",
    "font_size": 22,
@@ -1468,7 +1557,7 @@
    "bounding": [
     858,
     1060,
-    1688,
+    888,
     374
    ],
    "color": "#88A",
@@ -1477,9 +1566,22 @@
   },
   {
    "id": 5,
-   "title": "2 · Previz",
+   "title": "Depth (Depth Anything 3)",
    "bounding": [
     1856,
+    0,
+    1428,
+    330
+   ],
+   "color": "#8AA",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 6,
+   "title": "2 · Previz",
+   "bounding": [
+    3354,
     0,
     1508,
     430
@@ -1489,10 +1591,10 @@
    "flags": {}
   },
   {
-   "id": 6,
+   "id": 7,
    "title": "3 · Render · Feedback Sampler",
    "bounding": [
-    2616,
+    1816,
     1060,
     748,
     695
@@ -1502,10 +1604,10 @@
    "flags": {}
   },
   {
-   "id": 7,
+   "id": 8,
    "title": "Upscale 2K",
    "bounding": [
-    3434,
+    2634,
     1060,
     728,
     310
@@ -1515,10 +1617,10 @@
    "flags": {}
   },
   {
-   "id": 8,
+   "id": 9,
    "title": "Output",
    "bounding": [
-    4232,
+    3432,
     1060,
     828,
     530

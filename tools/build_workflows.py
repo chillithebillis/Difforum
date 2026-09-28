@@ -49,8 +49,12 @@ EXTERNAL = {
     "PreviewAny": ([("source", "*")], [], [("STRING", "STRING")]),
     "CreateVideo": ([("images", "IMAGE"), ("audio", "AUDIO")], ["fps"], [("VIDEO", "VIDEO")]),
     "SaveVideo": ([("video", "VIDEO")], ["filename_prefix", "format", "codec"], []),
-    "DownloadAndLoadDepthAnythingV2Model": ([], ["model"], [("da_v2_model", "DAMODEL")]),
-    "DepthAnything_V2": ([("da_model", "DAMODEL"), ("images", "IMAGE")], [], [("image", "IMAGE")]),
+    # core Depth Anything 3 (models/geometry_estimation). DynamicCombo sub-values are left to
+    # their defaults (mono, v2_style = near white, no sky clip).
+    "LoadDA3Model": ([], ["model_name", "weight_dtype"], [("DA3_MODEL", "DA3_MODEL")]),
+    "DA3Inference": ([("da3_model", "DA3_MODEL"), ("image", "IMAGE")], ["resolution", "resize_method", "mode"],
+                     [("da3_geometry", "DA3_GEOMETRY")]),
+    "DA3Render": ([("da3_geometry", "DA3_GEOMETRY")], ["output"], [("IMAGE", "IMAGE")]),
     "EmptyLTXVLatentVideo": ([], ["width", "height", "length", "batch_size"], [("LATENT", "LATENT")]),
     "MarkdownNote": ([], ["text"], []),
     "BatchImagesNode": ([("images.image0", "IMAGE"), ("images.image1", "IMAGE"), ("images.image2", "IMAGE")],
@@ -332,13 +336,15 @@ B_RESTYLE = "Restyle (look pass)"
 B_LOOKMIX = "Look Mix"
 B_UPSCALE = "Upscale 2K"
 B_H3UP = "H3 Latent Upscale (x2)"
+B_POLISH = "Keyframe Polish"
+B_DEPTH = "Depth (Depth Anything 3)"
 B_OUTPUT = "Output"
 B_LOOKPASS = "3 · Look pass (Feedback)"
-BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, "Audio"}
+BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLISH, B_DEPTH, "Audio"}
 LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
 ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
-               "3 · Storyboard", "3 · Export", "Audio", B_FILL)
+               "3 · Storyboard", "3 · Export", "Audio", B_FILL, B_POLISH, B_DEPTH)
 
 
 def _place(title):
@@ -488,14 +494,8 @@ def wf_feedback(depth=False, title="02 · Feedback render (SDXL)", camera_mode="
         g.link(ck, "CLIP", d, "clip")
     with g.block(B_FIRST, C_MODELS, col=1, row=1):
         dec = first_frame(g, ck, pos, neg, s)
-        da = None
-        if depth:
-            dm = g.add("DownloadAndLoadDepthAnythingV2Model", size=(360, 80),
-                       model="depth_anything_v2_vitl_fp32.safetensors")
-            da = g.add("DepthAnything_V2", size=(360, 80))
-            g.link(dm, "da_v2_model", da, "da_model")
-            g.link(dec, "IMAGE", da, "images")
-    previz(g, d, init=(dec, "IMAGE"), depth=(da, "image") if depth else None)
+    dp = depth_block(g, (dec, "IMAGE")) if depth else None
+    previz(g, d, init=(dec, "IMAGE"), depth=dp)
     with g.block("3 · Render · Feedback Sampler", C_RENDER, col=3):
         fb = g.add("Difforum_FeedbackSampler", size=(360, 460), steps=20, cfg=6.0,
                    sampler_name="dpmpp_2m", scheduler="karras", cadence=2)
@@ -506,7 +506,7 @@ def wf_feedback(depth=False, title="02 · Feedback render (SDXL)", camera_mode="
         g.link(dec, "IMAGE", fb, "init_image")
         g.link(d, "direction", fb, "direction")
         if depth:
-            g.link(da, "image", fb, "depth")
+            g.link(dp[0], dp[1], fb, "depth")
         st = g.add("Difforum_FlowStabilize", size=(300, 130), strength=0.45)
         g.link(fb, "frames", st, "frames")
         rp = g.add("PreviewAny", size=(300, 200), title="Run report")
@@ -536,10 +536,9 @@ def wf_parallax():
         {"start": 80, "move": "crane_up", "speed": 0.8, "intensity": 0.8, "ease": "ease_out"},
     ])
     g, *_ = wf_feedback(depth=True, title="03 · Real parallax (3D + depth)", camera_mode="3d", tl=tl,
-                        readme="## Real parallax\n\nDepth Anything V2 reads the first frame, the Director "
+                        readme="## Real parallax\n\nDepth Anything 3 (core) reads the first frame, the Director "
                         "is in **3d**, and the sampler re-projects the depth with the image every frame - "
-                        "near things move faster than far ones for the whole clip.\n\nNeeds "
-                        "**ComfyUI-DepthAnythingV2** (Kijai). Too strong? Lower `translation_scale` on "
+                        "near things move faster than far ones for the whole clip.\n\nUses the core **Depth Anything 3** nodes. Too strong? Lower `translation_scale` on "
                         "Render Options. The sampler's `depth` output is the tracked depth per frame.")
     return g
 
@@ -805,6 +804,42 @@ def fill_node(g, fm, frames, images_src, masks_src):
     return fr
 
 
+def depth_block(g, image):
+    """Core Depth Anything 3 on the first frame: real parallax for 3d camera moves."""
+    with g.block(B_DEPTH, C_PREVIZ, col=0):
+        dm = g.add("LoadDA3Model", size=(340, 90), model_name="depth_anything_3_mono_large.safetensors",
+                   weight_dtype="default")
+        di = g.add("DA3Inference", size=(320, 130), resolution=1008, resize_method="upper_bound_resize",
+                   mode="mono")
+        g.link(dm, "DA3_MODEL", di, "da3_model")
+        g.link(image[0], image[1], di, "image")
+        dr = g.add("DA3Render", size=(300, 110), output="depth")
+        g.link(di, "da3_geometry", dr, "da3_geometry")
+        pv = g.add("PreviewImage", size=(300, 220), title="Depth (white = near)")
+        g.link(dr, "IMAGE", pv, "images")
+    return dr, "IMAGE"
+
+
+def polish_block(g, src, fm):
+    """Re-paint keyframes at low denoise: they are warped (soft) and they set H3's look."""
+    ck, pos, neg = fm
+    with g.block(B_POLISH, C_FILL, col=0):
+        g.note("## Keyframe Polish\n\nThe keyframes H3 follows come from warping one image along the camera, "
+               "so they get softer the further the camera travels, and H3 copies that softness. This pass "
+               "re-paints each keyframe with the image model at low denoise (`clean restyle`, 0.35): sharp "
+               "detail back, same composition.\n\n- 0.25 = just sharpen, 0.45 = re-imagine textures.\n"
+               "- The prompt is the Fill prompt: describe the scene and the look.", size=(360, 260))
+        rs = g.add("Difforum_Restyle", size=(360, 520), title="Restyle (keyframe polish)", style="clean restyle",
+                   denoise=0.35, steps=24, cfg=5.0, sampler_name="dpmpp_2m", scheduler="karras", cadence=1,
+                   long_edge=0)
+        g.link(src[0], src[1], rs, "video")
+        g.link(ck, "MODEL", rs, "model")
+        g.link(ck, "VAE", rs, "vae")
+        g.link(pos, "CONDITIONING", rs, "positive")
+        g.link(neg, "CONDITIONING", rs, "negative")
+    return rs, "frames"
+
+
 def restyle_block(g, video, ck, pos, neg, d, col, style="deforum morph"):
     with g.block(B_RESTYLE, C_STYLE, col=col, row=0):
         g.note("## Restyle: the look, on H3's motion\n\nAn image model re-paints every H3 frame in the "
@@ -836,7 +871,8 @@ def wf_h3():
             "gives the cleanest seams.\n- Turbo LoRA: Ctrl+B, steps 6-8. Live preview needs KJNodes.")
     s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="3d",
                                 timeline=tl_json(124, **H3_TIMELINE))
-    previz(g, d, init=(img, "IMAGE"))
+    dp = depth_block(g, (img, "IMAGE"))
+    previz(g, d, init=(img, "IMAGE"), depth=dp)
     with g.block(B_MODELS, C_MODELS, col=0, row=1):
         un, cl, vv, va = h3_loaders(g, "minimax_h3_fl2va_pruned_int8_convrot.safetensors")
         fm = fill_models(g, SCENE)
@@ -844,9 +880,10 @@ def wf_h3():
         gf = g.add("Difforum_GuideFrames", size=(340, 200), hole_fill="gray")
         g.link(img, "IMAGE", gf, "anchor_image")
         g.link(d, "direction", gf, "direction")
+        g.link(dp[0], dp[1], gf, "depth")
         h3 = g.add("Difforum_H3Shot", size=(340, 320), segment_length="124 (~5s)",
-                   shot_description="A misty ancient forest at dawn; light shafts cut through the canopy. "
-                                    "Soft ambient birdsong, a low wind.")
+                   shot_description="A misty ancient forest at dawn, light shafts cutting through the canopy.",
+                   soundscape="Soft birdsong and a low wind moving through the trees.")
         g.link(gf, "guide_frames", h3, "frames")
         g.link(gf, "masks", h3, "masks")
         g.link(d, "direction", h3, "direction")
@@ -854,12 +891,13 @@ def wf_h3():
         fr = fill_node(g, fm, "all", (h3, "last_frame"), (h3, "last_mask"))
         p1 = g.add("PreviewImage", size=(360, 260), title="Last frame, AI-filled")
         g.link(fr, "images", p1, "images")
+    pl = polish_block(g, (fr, "images"), fm)
     with g.block("3 · H3 shot", C_RENDER, col=3):
         i2v = g.add("MiniMaxH3ImageToVideo", size=(420, 260), prompt="", width=832, height=480, length=124)
         g.link(cl, "CLIP", i2v, "clip")
         g.link(vv, "VAE", i2v, "vae")
         g.link(h3, "first_frame", i2v, "first_frame")
-        g.link(fr, "images", i2v, "last_frame")
+        g.link(pl[0], pl[1], i2v, "last_frame")
         for k in ("prompt", "width", "height", "length"):
             g.link(h3, k, i2v, k)
     video, audio = h3_render(g, (i2v, "positive"), (i2v, "LATENT"), un, vv, va,
@@ -870,7 +908,7 @@ def wf_h3():
 
 
 def h3_guides(g, s, d, kf_source, kf_masks, anchor, cl, vv, va, fm=None, max_guides=4, cp_prefix="",
-              col=3):
+              col=3, soundscape=""):
     """Keyframes -> (Fill Reveal) -> H3 Guides on the official ref2va conditioning."""
     with g.block("3 · H3 guides", C_RENDER, col=col):
         kf = g.add("Difforum_Keyframes", size=(340, 240), grid="MiniMax H3 (17k+5)",
@@ -879,13 +917,15 @@ def h3_guides(g, s, d, kf_source, kf_masks, anchor, cl, vv, va, fm=None, max_gui
         if kf_masks:
             g.link(kf_masks[0], kf_masks[1], kf, "masks")
         g.link(s, "fps", kf, "fps")
-        cp = g.add("Difforum_CameraPrompt", size=(340, 240), format="sentence", prefix=cp_prefix)
+        cp = g.add("Difforum_CameraPrompt", size=(340, 320), format="H3 structured", prefix=cp_prefix,
+                   h3_mode="reference (ref2va / guides)", soundscape=soundscape)
         g.link(d, "direction", cp, "direction")
     keys = (kf, "keyframes")
     if fm is not None:
         with g.block(B_FILL, C_FILL, col=col + 1):
             fr = fill_node(g, fm, "all", (kf, "keyframes"), (kf, "key_masks"))
             keys = (fr, "images")
+        keys = polish_block(g, keys, fm)
     with g.block("3 · H3 guides", C_RENDER, col=col):
         r2v = g.add("MiniMaxH3ReferenceToVideo", size=(420, 300), prompt="", width=832, height=480,
                     length=124, ref_image_size="match")
@@ -919,7 +959,8 @@ def wf_h3_guides():
     s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="3d",
                                 timeline=tl_json(124, **H3_TIMELINE),
                                 image_title="Anchor image (also the H3 reference)")
-    previz(g, d, init=(img, "IMAGE"))
+    dp = depth_block(g, (img, "IMAGE"))
+    previz(g, d, init=(img, "IMAGE"), depth=dp)
     with g.block(B_MODELS, C_MODELS, col=0, row=1):
         un, cl, vv, va = h3_loaders(g, "minimax_h3_ref2va_pruned_int8_convrot.safetensors")
         fm = fill_models(g, SCENE)
@@ -927,9 +968,10 @@ def wf_h3_guides():
         gf = g.add("Difforum_GuideFrames", size=(340, 200), hole_fill="gray")
         g.link(img, "IMAGE", gf, "anchor_image")
         g.link(d, "direction", gf, "direction")
+        g.link(dp[0], dp[1], gf, "depth")
     cond, lat = h3_guides(g, s, d, (gf, "guide_frames"), (gf, "masks"), (img, "IMAGE"), cl, vv, va, fm, 4,
-                          "<Picture 1> shows a misty ancient forest at dawn. Keep its look, light and "
-                          "composition. Soft ambient birdsong, a low wind.")
+                          "a misty ancient forest at dawn, light shafts cutting through the canopy",
+                          soundscape="Soft birdsong and a low wind moving through the trees.")
     video, audio = h3_render(g, cond, lat, un, vv, va,
                              "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", col=5)
     up = upscale(g, video, col=6)
@@ -974,7 +1016,8 @@ def wf_h3_deforum():
         g.link(img, "IMAGE", fb, "init_image")
         g.link(d, "direction", fb, "direction")
     cond, lat = h3_guides(g, s, d, (fb, "frames"), None, (img, "IMAGE"), cl, vv, va, None, 6,
-                          "<Picture 1> is the opening image.", col=4)
+                          "the opening image of the piece", col=4,
+                          soundscape="A low airy hum with faint crackles of static.")
     video, audio = h3_render(g, cond, lat, un, vv, va,
                              "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", col=5)
     rs = restyle_block(g, video, ck, pos, neg, d, col=6)

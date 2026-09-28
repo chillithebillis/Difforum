@@ -582,7 +582,7 @@
    ],
    "size": [
     320,
-    160
+    243
    ],
    "flags": {},
    "order": 12,
@@ -620,7 +620,11 @@
    "widgets_values": [
     "sentence",
     "",
-    true
+    true,
+    "reference (ref2va / guides)",
+    "",
+    "",
+    false
    ]
   },
   {

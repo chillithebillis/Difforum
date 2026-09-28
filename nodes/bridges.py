@@ -12,6 +12,8 @@ import torch
 
 from ..core.direction import blocks_in_range, describe_blocks, describe_timed, describe_track
 from ..core.engine import EngineConfig, FeedbackEngine, resize_bhwc
+from ..core.h3prompt import MODES as H3_MODES
+from ..core.h3prompt import h3_prompt
 from ._common import CAMERA, CAT_BRIDGE, PARAMS, call_comfy_node, progress_bar
 from .direction import DIRECTION
 from .setup import TARGETS, snap, snap_frames
@@ -178,7 +180,11 @@ class DifforumCameraPrompt:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "format": (["sentence", "timed lines", "prompt suffix"], {"default": "sentence"}),
+                "format": (["sentence", "timed lines", "prompt suffix", "H3 structured"], {"default": "sentence",
+                           "tooltip": "sentence: one line of camera direction (+ look) to append to any prompt. "
+                                      "timed lines: [0.0s-2.5s] camera ... per block. prompt suffix: 'Camera: ...'. "
+                                      "H3 structured: the whole Director timeline (scenes, camera, keys, look) "
+                                      "written in MiniMax H3's native prompt format."}),
             },
             "optional": {
                 "direction": (DIRECTION,),
@@ -188,6 +194,19 @@ class DifforumCameraPrompt:
                            "tooltip": "Your shot description; the camera sentence is appended."}),
                 "include_look": ("BOOLEAN", {"default": True,
                                  "tooltip": "Append the Director's look sentence (deforum morph, stop-motion...)."}),
+                "h3_mode": (list(H3_MODES), {"default": H3_MODES[3],
+                            "tooltip": "H3 structured only. Which H3 task the prompt is for: sets the alignment "
+                                       "line (I2VA / FL2VA) or the six full-reference sections (ref2va with "
+                                       "H3 Guides, <Picture 1> as the first frame)."}),
+                "soundscape": ("STRING", {"default": "", "multiline": True,
+                               "tooltip": "H3 structured: overall_soundscape - ambience and physical sounds only "
+                                          "(wind, footsteps, rain). Empty = soft natural ambience."}),
+                "music": ("STRING", {"default": "", "multiline": True,
+                          "tooltip": "H3 structured: non_diegetic_music - instruments, tempo, dynamics, no mood "
+                                     "words. Empty = N/A (no score)."}),
+                "cuts": ("BOOLEAN", {"default": False,
+                         "tooltip": "H3 structured: off = one continuous take (scene changes become "
+                                    "transformations). On = every scene starts a new [Shot N] at its cut time."}),
             },
         }
 
@@ -196,7 +215,13 @@ class DifforumCameraPrompt:
     FUNCTION = "run"
     CATEGORY = CAT_BRIDGE
 
-    def run(self, format, direction=None, params=None, camera=None, prefix="", include_look=True):
+    def run(self, format, direction=None, params=None, camera=None, prefix="", include_look=True,
+            h3_mode=H3_MODES[3], soundscape="", music="", cuts=False):
+        if format == "H3 structured":
+            if direction is None:
+                raise ValueError("H3 structured needs the Director's direction wire.")
+            return (h3_prompt(direction.direction, direction.look_prompt if include_look else "", h3_mode,
+                              prefix, soundscape, music, cuts=bool(cuts)),)
         if direction is not None and camera is None:
             d = direction.direction
             sentence = d.camera_text
@@ -467,6 +492,14 @@ class DifforumH3Shot:
                 "masks": ("MASK", {"tooltip": "Guide Frames masks: returns the last frame's revealed area "
                                               "for Fill Reveal."}),
                 "include_look": ("BOOLEAN", {"default": True}),
+                "prompt_style": (["H3 structured", "sentence"], {"default": "H3 structured",
+                                 "tooltip": "H3 structured: this segment's scenes, camera, keys and look in "
+                                            "MiniMax H3's native FL2VA format (alignment line + fields). "
+                                            "sentence: description + camera sentence + look, as plain text."}),
+                "soundscape": ("STRING", {"default": "", "multiline": True,
+                               "tooltip": "overall_soundscape: ambience and physical sounds only."}),
+                "music": ("STRING", {"default": "", "multiline": True,
+                          "tooltip": "non_diegetic_music: instruments, tempo, dynamics. Empty = N/A."}),
             },
         }
 
@@ -477,7 +510,8 @@ class DifforumH3Shot:
     CATEGORY = CAT_BRIDGE
 
     def run(self, frames, segment_length, segment, direction=None, params=None, camera=None,
-            shot_description="", masks=None, include_look=True):
+            shot_description="", masks=None, include_look=True, prompt_style="H3 structured",
+            soundscape="", music=""):
         total = int(frames.shape[0])
         rule = TARGETS["MiniMax H3"][0]
         seg_len = H3_LENGTHS.get(segment_length, 0) or min(481, snap_frames(total, rule))
@@ -506,7 +540,11 @@ class DifforumH3Shot:
                               mode=camera.mode)
             cam_text = describe_track(sub, float(params["fps"]))[0]
         look = direction.look_prompt if (include_look and direction is not None) else ""
-        prompt = " ".join(x for x in (shot_description.strip(), cam_text, look) if x)
+        if prompt_style == "H3 structured" and direction is not None:
+            prompt = h3_prompt(direction.direction, look, H3_MODES[2], shot_description, soundscape, music,
+                               start=start, end=end + 1)
+        else:
+            prompt = " ".join(x for x in (shot_description.strip(), cam_text, look) if x)
         if masks is not None:
             m = masks[min(end, masks.shape[0] - 1)].unsqueeze(0).unsqueeze(-1)
             last_mask = resize_bhwc(m, w32, h32)[..., 0]
