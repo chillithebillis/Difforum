@@ -56,7 +56,9 @@ frame of an H3 / LTX render with an image model in your look, carrying the
 previous painted frame along the clip's own motion: that feedback is what made
 Deforum morph and AnimateDiff boil, now riding on H3's motion (`deforum morph`,
 `animatediff boil`, `disco flicker`, `clean restyle`). **Look Mix** adds grain or
-flicker cuts on top. Template 13 restyles any clip you already rendered.
+flicker cuts on top. Template 13 restyles any clip you already rendered, with a
+depth ControlNet holding the structure so `denoise` can go up to 0.6-0.8.
+Template 14 is the real AnimateDiff motion module on any video (vid2vid).
 
 **Multikeyframing.** Mark moments on the **Keys** track and feed one picture per
 key to **Keyframe Images**. The Feedback Sampler travels *through* them, H3 /
@@ -93,6 +95,7 @@ No camera expressions to write. They are still there if you want them.
 | 12 | `long_shot_keys` | **A 30 s long shot** with five scenes, three image keys and a previz, for installations | a turbo model + 3 images |
 
 | 13 | `restyle_any_video` | **Restyle a clip you already have** (H3, LTX, live action) into the Deforum / AnimateDiff / Disco look, then 2K | a turbo model + a video |
+| 14 | `animatediff_on_video` | **AnimateDiff vid2vid**: SD 1.5 + AnimateDiff-Evolved + depth / canny ControlNets on any clip, then 2K | AnimateDiff-Evolved, an SD 1.5 checkpoint, a motion module, SD 1.5 ControlNets |
 
 Every template is laid out in the same blocks: **Control** (switches and notes),
 **Direction**, **Previz** on the top row; **Models → Render → Restyle → Upscale 2K

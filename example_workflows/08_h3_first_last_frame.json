@@ -1194,7 +1194,7 @@
    ],
    "size": [
     360,
-    520
+    561
    ],
    "flags": {},
    "order": 25,
@@ -1234,6 +1234,16 @@
      "name": "prompts",
      "type": "DIFFORUM_PROMPT",
      "link": null
+    },
+    {
+     "name": "control_net",
+     "type": "CONTROL_NET",
+     "link": null
+    },
+    {
+     "name": "control_image",
+     "type": "IMAGE",
+     "link": null
     }
    ],
    "outputs": [
@@ -1270,7 +1280,8 @@
     "fixed",
     0.5,
     true,
-    0.5
+    0.5,
+    0.6
    ],
    "title": "Restyle (keyframe polish)"
   },
@@ -2917,7 +2928,7 @@
     7108,
     0,
     808,
-    630
+    671
    ],
    "color": "#b06634",
    "font_size": 22,

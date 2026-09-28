@@ -5,6 +5,11 @@
 Difforum becomes a direction layer: a visual timeline drives any renderer.
 
 ### New
+- **Restyle + ControlNet**: optional `control_net` / `control_image` / `control_strength`
+  hold the source structure so Restyle can run at higher denoise (template 13 uses DA3
+  depth + a union SDXL ControlNet).
+- **Template 14 · AnimateDiff look on any video**: AnimateDiff-Evolved vid2vid with
+  sliding 16-frame context, depth + canny ControlNets, 2K upscale and source audio.
 - **Director (timeline)**: a multi-track editor with Scenes (prompt + mood), Camera
   (visual move picker, speed, amount, lens, easing, per-block audio reaction) and
   Energy (a drawable denoise curve), plus an animated camera preview computed by the

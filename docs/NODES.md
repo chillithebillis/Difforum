@@ -463,6 +463,9 @@ color_hold as set. Connect a Director to use its scene prompts and energy.
 | `color_hold` *(optional)* | FLOAT | 0.5 | custom: how much each frame keeps the source colours. |
 | `follow_energy` *(optional)* | BOOLEAN | True | With a Director: denoise follows its energy curve (0.5 = as set). |
 | `flow_scale` *(optional)* | FLOAT | 0.5 | Resolution of the motion estimate that carries the previous frame. 0.5 = fast. |
+| `control_net` *(optional)* | CONTROL_NET |  | A ControlNet that holds the clip's structure while the look is re-painted, so denoise can go up to 0.6-0.8 (the real Deforum / AnimateDiff range) without losing the shapes. Depth or canny with control_image; tile with the clip itself. |
+| `control_image` *(optional)* | IMAGE |  | Per-frame control maps of the clip (Depth Anything 3, Canny...). Empty = the clip frames themselves (tile / union ControlNets). |
+| `control_strength` *(optional)* | FLOAT | 0.6 | How hard the structure is held. 0.4 loose, 0.6 balanced, 0.9 locked. |
 
 **Outputs:** `frames` (IMAGE), `report` (STRING)
 

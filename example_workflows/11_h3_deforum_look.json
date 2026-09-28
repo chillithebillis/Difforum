@@ -1984,7 +1984,7 @@
    ],
    "size": [
     360,
-    520
+    561
    ],
    "flags": {},
    "order": 41,
@@ -2024,6 +2024,16 @@
      "name": "prompts",
      "type": "DIFFORUM_PROMPT",
      "link": null
+    },
+    {
+     "name": "control_net",
+     "type": "CONTROL_NET",
+     "link": null
+    },
+    {
+     "name": "control_image",
+     "type": "IMAGE",
+     "link": null
     }
    ],
    "outputs": [
@@ -2062,7 +2072,8 @@
     "fixed",
     0.5,
     true,
-    0.5
+    0.5,
+    0.6
    ]
   },
   {
@@ -2105,7 +2116,7 @@
    "type": "Difforum_LookMix",
    "pos": [
     4858,
-    1868
+    1909
    ],
    "size": [
     300,
@@ -3005,7 +3016,7 @@
     4834,
     1102,
     1168,
-    630
+    671
    ],
    "color": "#a1309b",
    "font_size": 22,
@@ -3016,7 +3027,7 @@
    "title": "Look Mix",
    "bounding": [
     4834,
-    1802,
+    1843,
     348,
     410
    ],

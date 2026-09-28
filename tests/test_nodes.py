@@ -289,3 +289,23 @@ def test_restyle_and_upscale():
     assert target_size(480, 832, "x2") == (1664, 960)
     up, info = DifforumUpscale().run(video, "x1.5", "bicubic", 0.2, 4)
     assert up.shape == (10, 60, 108, 3) and "72x40 -> 108x60" in info
+
+
+def test_restyle_with_controlnet(monkeypatch):
+    import sys
+
+    from difforum.nodes.finish import DifforumRestyle
+    seen = []
+
+    class _CN:
+        def apply_controlnet(self, pos, neg, cn, hint, strength, a, b, vae=None):
+            seen.append((tuple(hint.shape), strength))
+            return pos, neg
+    monkeypatch.setattr(sys.modules["nodes"], "ControlNetApplyAdvanced", _CN, raising=False)
+    video = torch.rand(6, 40, 72, 3)
+    depth = torch.rand(3, 20, 36, 3)          # other size and count: resized and resampled
+    frames, _ = DifforumRestyle().run(video, StubModel(), _c(), _c(), StubVAE(), "deforum morph", 0.7, 8, 5.0,
+                                      "euler", "normal", 1, 64, 0, control_net=object(), control_image=depth,
+                                      control_strength=0.8)
+    assert frames.shape[0] == 6 and len(seen) == 6
+    assert all(s == (1, 32, 64, 3) and st == 0.8 for s, st in seen)

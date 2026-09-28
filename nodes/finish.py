@@ -116,6 +116,9 @@ class DifforumRestyle:
                 "follow_energy": ("BOOLEAN", {"default": True,
                                   "tooltip": "With a Director: denoise follows its energy curve (0.5 = as set)."}),
                 "flow_scale": ("FLOAT", {"default": 0.5, "min": 0.25, "max": 1.0, "step": 0.25}),
+                "control_net": ("CONTROL_NET",),
+                "control_image": ("IMAGE",),
+                "control_strength": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 3.0, "step": 0.05}),
             },
         }
 
@@ -126,7 +129,8 @@ class DifforumRestyle:
 
     def run(self, video, model, positive, negative, vae, style, denoise, steps, cfg, sampler_name,
             scheduler, cadence, long_edge, seed, direction=None, prompts=None, feedback=0.35,
-            seed_mode="fixed", color_hold=0.5, follow_energy=True, flow_scale=0.5):
+            seed_mode="fixed", color_hold=0.5, follow_energy=True, flow_scale=0.5, control_net=None,
+            control_image=None, control_strength=0.6):
         from ..core.color import match_color
         from ..core.engine import resize_bhwc
         from .render import launch_warning, make_diffuser
@@ -155,10 +159,18 @@ class DifforumRestyle:
             d = base * (energy[f] / 0.5 if energy is not None else 1.0)
             return max(0.02, min(1.0, d))
 
+        ctrl = None
+        if control_net is not None:
+            # depth / canny / lineart maps of the clip, or the clip itself (tile ControlNet)
+            ctrl = resize_bhwc(control_image[..., :3].float(), w, h) if control_image is not None else src
+            if ctrl.shape[0] != n:
+                idx = [min(ctrl.shape[0] - 1, round(i * (ctrl.shape[0] - 1) / max(1, n - 1))) for i in range(n)]
+                ctrl = ctrl[idx]
         diffuse = make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, scheduler,
                                 denoise_at, lambda _f: float(cfg), prompts, int(seed),
                                 "increment" if preset["per_frame_seed"] else "fixed",
-                                step_scaling="by energy (fast)")
+                                control_net=control_net, control_image=ctrl,
+                                control_strength=float(control_strength), step_scaling="by energy (fast)")
         try:
             import cv2  # noqa: F401
 

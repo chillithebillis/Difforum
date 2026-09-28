@@ -321,6 +321,12 @@ TIPS = {
         "seed": "Noise seed.",
         "prompts": "Prompt travel; otherwise the Director's scene prompts, otherwise positive.",
         "flow_scale": "Resolution of the motion estimate that carries the previous frame. 0.5 = fast.",
+        "control_net": "A ControlNet that holds the clip's structure while the look is re-painted, so "
+                       "denoise can go up to 0.6-0.8 (the real Deforum / AnimateDiff range) without losing "
+                       "the shapes. Depth or canny with control_image; tile with the clip itself.",
+        "control_image": "Per-frame control maps of the clip (Depth Anything 3, Canny...). Empty = the clip "
+                         "frames themselves (tile / union ControlNets).",
+        "control_strength": "How hard the structure is held. 0.4 loose, 0.6 balanced, 0.9 locked.",
     },
     "Difforum_Upscale": {
         "frames": "The clip to deliver.",

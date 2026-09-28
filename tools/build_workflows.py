@@ -55,6 +55,27 @@ EXTERNAL = {
     "DA3Inference": ([("da3_model", "DA3_MODEL"), ("image", "IMAGE")], ["resolution", "resize_method", "mode"],
                      [("da3_geometry", "DA3_GEOMETRY")]),
     "DA3Render": ([("da3_geometry", "DA3_GEOMETRY")], ["output"], [("IMAGE", "IMAGE")]),
+    "ControlNetLoader": ([], ["control_net_name"], [("CONTROL_NET", "CONTROL_NET")]),
+    "SetUnionControlNetType": ([("control_net", "CONTROL_NET")], ["type"], [("CONTROL_NET", "CONTROL_NET")]),
+    "ControlNetApplyAdvanced": ([("positive", "CONDITIONING"), ("negative", "CONDITIONING"),
+                                 ("control_net", "CONTROL_NET"), ("image", "IMAGE"), ("vae", "VAE")],
+                                ["strength", "start_percent", "end_percent"],
+                                [("positive", "CONDITIONING"), ("negative", "CONDITIONING")]),
+    "Canny": ([("image", "IMAGE")], ["low_threshold", "high_threshold"], [("IMAGE", "IMAGE")]),
+    "ImageScaleToTotalPixels": ([("image", "IMAGE")], ["upscale_method", "megapixels", "resolution_steps"],
+                                [("IMAGE", "IMAGE")]),
+    "VAEEncode": ([("pixels", "IMAGE"), ("vae", "VAE")], [], [("LATENT", "LATENT")]),
+    # AnimateDiff-Evolved (Kosinkadink)
+    "ADE_StandardUniformContextOptions": ([("prev_context", "CONTEXT_OPTIONS"), ("view_opts", "VIEW_OPTS")],
+                                          ["context_length", "context_stride", "context_overlap", "fuse_method",
+                                           "use_on_equal_length", "start_percent", "guarantee_steps"],
+                                          [("CONTEXT_OPTS", "CONTEXT_OPTIONS")]),
+    "ADE_AnimateDiffLoaderGen1": ([("model", "MODEL"), ("context_options", "CONTEXT_OPTIONS"),
+                                   ("motion_lora", "MOTION_LORA"), ("ad_settings", "AD_SETTINGS"),
+                                   ("ad_keyframes", "AD_KEYFRAMES"), ("sample_settings", "SAMPLE_SETTINGS"),
+                                   ("scale_multival", "MULTIVAL"), ("effect_multival", "MULTIVAL"),
+                                   ("per_block", "PER_BLOCK")], ["model_name", "beta_schedule"],
+                                  [("MODEL", "MODEL")]),
     "EmptyLTXVLatentVideo": ([], ["width", "height", "length", "batch_size"], [("LATENT", "LATENT")]),
     "MarkdownNote": ([], ["text"], []),
     "BatchImagesNode": ([("images.image0", "IMAGE"), ("images.image1", "IMAGE"), ("images.image2", "IMAGE")],
@@ -338,9 +359,11 @@ B_UPSCALE = "Upscale 2K"
 B_H3UP = "H3 Latent Upscale (x2)"
 B_POLISH = "Keyframe Polish"
 B_DEPTH = "Depth (Depth Anything 3)"
+B_STRUCT = "Structure (ControlNet)"
+B_AD = "AnimateDiff (motion module)"
 B_OUTPUT = "Output"
 B_LOOKPASS = "3 · Look pass (Feedback)"
-BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLISH, B_DEPTH, "Audio"}
+BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLISH, B_DEPTH, B_STRUCT, B_AD, "Audio"}
 LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
 ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
@@ -1034,9 +1057,10 @@ def wf_restyle_video():
     control(g, "## Restyle any video\n\nLoad a clip you already rendered (MiniMax H3, LTX, Seedance, live "
             "action) and give it the Deforum / AnimateDiff / Disco look: an image model re-paints every "
             "frame, with the previous painted frame carried along the clip's own motion.\n\n- `style`: "
-            "deforum morph, animatediff boil, disco flicker, clean restyle, custom.\n- `denoise` 0.3 keeps "
-            "the clip, 0.6 re-imagines it; `cadence 2` halves the time.\n- The audio and fps of the source "
-            "are kept. **Upscale 2K** on a switch.", size=(480, 340))
+            "deforum morph, animatediff boil, disco flicker, clean restyle, custom.\n- With **Structure** on "
+            "(depth ControlNet) `denoise` 0.6-0.8 re-imagines the texture and keeps the shapes; without it stay "
+            "under 0.5.\n- For the real AnimateDiff look (motion module), use template 14.\n- The audio and "
+            "fps of the source are kept. **Upscale 2K** on a switch.", size=(480, 360))
     with g.block("1 · Source", C_DIRECT, col=1):
         lv = g.add("LoadVideo", size=(360, 420), file="input.mp4", upload="image")
         gc = g.add("GetVideoComponents", size=(260, 120))
@@ -1046,10 +1070,29 @@ def wf_restyle_video():
                                  pos_text="oil painting, thick impasto brush strokes, vivid colour, "
                                           "painterly, dreamy",
                                  neg_text="blurry, text, watermark, photo")
+    with g.block(B_STRUCT, C_FILL, col=2):
+        g.note("## Structure\n\nDepth Anything 3 reads every frame of the clip and a ControlNet holds that "
+               "structure while Restyle re-paints, so `denoise` can go to 0.6-0.8 - the range where the "
+               "Deforum / AnimateDiff look actually appears - without losing the shapes.\n\n- SDXL: a union "
+               "ControlNet (e.g. xinsir promax) set to depth; SD1.5: control_v11f1p_sd15_depth.\n"
+               "- Switch off for a pure feedback restyle (keep denoise under 0.5 then).", size=(360, 260))
+        dm = g.add("LoadDA3Model", size=(340, 90), model_name="depth_anything_3_mono_large.safetensors",
+                   weight_dtype="default")
+        di = g.add("DA3Inference", size=(320, 130), resolution=504, resize_method="upper_bound_resize", mode="mono")
+        g.link(dm, "DA3_MODEL", di, "da3_model")
+        g.link(gc, "images", di, "image")
+        dr = g.add("DA3Render", size=(300, 110), output="depth")
+        g.link(di, "da3_geometry", dr, "da3_geometry")
+        cn = g.add("ControlNetLoader", size=(360, 80), control_net_name="xinsir-controlnet-union-sdxl-1.0-promax.safetensors")
+        cu = g.add("SetUnionControlNetType", size=(300, 80), type="depth")
+        g.link(cn, "CONTROL_NET", cu, "control_net")
     with g.block(B_RESTYLE, C_STYLE, col=2):
-        rs = g.add("Difforum_Restyle", size=(360, 520), style="deforum morph", denoise=0.45, steps=6, cfg=1.5,
-                   sampler_name="euler_ancestral", scheduler="sgm_uniform", cadence=1, long_edge=1024)
+        rs = g.add("Difforum_Restyle", size=(360, 600), style="deforum morph", denoise=0.65, steps=6, cfg=1.5,
+                   sampler_name="euler_ancestral", scheduler="sgm_uniform", cadence=1, long_edge=1024,
+                   control_strength=0.6)
         g.link(gc, "images", rs, "video")
+        g.link(cu, "CONTROL_NET", rs, "control_net")
+        g.link(dr, "IMAGE", rs, "control_image")
         g.link(ck, "MODEL", rs, "model")
         g.link(ck, "VAE", rs, "vae")
         g.link(pos, "CONDITIONING", rs, "positive")
@@ -1058,6 +1101,80 @@ def wf_restyle_video():
         g.link(rs, "report", rp, "source")
     up = upscale(g, (rs, "frames"), col=3)
     output(g, up, col=4, prefix="video/difforum_restyle", audio=(gc, "audio"), fps_src=(gc, "fps"))
+    return g
+
+
+def wf_animatediff_video():
+    g = Graph("14 · AnimateDiff look on any video")
+    control(g, "## AnimateDiff on any video\n\nThe real AnimateDiff look over a clip you already have (MiniMax "
+            "H3, LTX, live action): an SD1.5 model with an AnimateDiff motion module re-draws the clip 16 frames "
+            "at a time, while depth and edge ControlNets taken from the clip keep its motion and composition.\n\n"
+            "- Needs [AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved), an SD1.5 "
+            "checkpoint, a motion module (`v3_sd15_mm.ckpt`, or AnimateLCM for speed) and SD1.5 depth / canny "
+            "ControlNets.\n- `denoise` 0.55 keeps the clip, 0.75 is the classic AnimateDiff re-draw.\n"
+            "- Switch **AnimateDiff** off for per-frame img2img: the flickering Deforum / Disco look.\n"
+            "- SD1.5 works at ~0.3 MP; **Upscale 2K** brings it to delivery size.", size=(500, 420))
+    with g.block("1 · Source", C_DIRECT, col=1):
+        lv = g.add("LoadVideo", size=(360, 420), file="input.mp4", upload="image")
+        gc = g.add("GetVideoComponents", size=(260, 120))
+        g.link(lv, "VIDEO", gc, "video")
+        sc = g.add("ImageScaleToTotalPixels", size=(320, 110), title="Working size (SD1.5)",
+                   upscale_method="lanczos", megapixels=0.3, resolution_steps=8)
+        g.link(gc, "images", sc, "image")
+    with g.block(B_MODELS, C_MODELS, col=0, row=1):
+        ck, pos, neg = sd_models(g, ckpt="dreamshaper_8.safetensors", title="SD1.5 checkpoint",
+                                 pos_text="masterpiece, painterly animation, thick brush strokes, glowing colours, "
+                                          "dreamlike, intricate detail",
+                                 neg_text="photo, blurry, low quality, watermark, text, deformed")
+    with g.block(B_STRUCT, C_FILL, col=2):
+        dm = g.add("LoadDA3Model", size=(340, 90), model_name="depth_anything_3_mono_large.safetensors",
+                   weight_dtype="default")
+        di = g.add("DA3Inference", size=(320, 130), resolution=504, resize_method="upper_bound_resize", mode="mono")
+        g.link(dm, "DA3_MODEL", di, "da3_model")
+        g.link(sc, "IMAGE", di, "image")
+        dr = g.add("DA3Render", size=(300, 110), output="depth")
+        g.link(di, "da3_geometry", dr, "da3_geometry")
+        ed = g.add("Canny", size=(300, 100), low_threshold=0.2, high_threshold=0.5)
+        g.link(sc, "IMAGE", ed, "image")
+        cd = g.add("ControlNetLoader", size=(340, 80), title="Depth ControlNet",
+                   control_net_name="control_v11f1p_sd15_depth.pth")
+        ce = g.add("ControlNetLoader", size=(340, 80), title="Edge ControlNet",
+                   control_net_name="control_v11p_sd15_canny.pth")
+        a1 = g.add("ControlNetApplyAdvanced", size=(320, 170), title="Apply depth", strength=0.65,
+                   start_percent=0.0, end_percent=1.0)
+        g.link(pos, "CONDITIONING", a1, "positive")
+        g.link(neg, "CONDITIONING", a1, "negative")
+        g.link(cd, "CONTROL_NET", a1, "control_net")
+        g.link(dr, "IMAGE", a1, "image")
+        a2 = g.add("ControlNetApplyAdvanced", size=(320, 170), title="Apply edges", strength=0.35,
+                   start_percent=0.0, end_percent=0.7)
+        g.link(a1, "positive", a2, "positive")
+        g.link(a1, "negative", a2, "negative")
+        g.link(ce, "CONTROL_NET", a2, "control_net")
+        g.link(ed, "IMAGE", a2, "image")
+    with g.block(B_AD, C_STYLE, col=3):
+        cx = g.add("ADE_StandardUniformContextOptions", size=(340, 220), context_length=16, context_stride=1,
+                   context_overlap=4, fuse_method="pyramid", use_on_equal_length=False, start_percent=0.0,
+                   guarantee_steps=1)
+        ad = g.add("ADE_AnimateDiffLoaderGen1", size=(340, 170), model_name="v3_sd15_mm.ckpt",
+                   beta_schedule="autoselect")
+        g.link(ck, "MODEL", ad, "model")
+        g.link(cx, "CONTEXT_OPTS", ad, "context_options")
+    with g.block("3 · Render · AnimateDiff", C_RENDER, col=4):
+        en = g.add("VAEEncode", size=(200, 60))
+        g.link(sc, "IMAGE", en, "pixels")
+        g.link(ck, "VAE", en, "vae")
+        ks = g.add("KSampler", size=(300, 260), seed=7, steps=20, cfg=7.0, sampler_name="euler_ancestral",
+                   scheduler="normal", denoise=0.7)
+        g.link(ad, "MODEL", ks, "model")
+        g.link(a2, "positive", ks, "positive")
+        g.link(a2, "negative", ks, "negative")
+        g.link(en, "LATENT", ks, "latent_image")
+        dv = g.add("VAEDecode", size=(200, 60))
+        g.link(ks, "LATENT", dv, "samples")
+        g.link(ck, "VAE", dv, "vae")
+    up = upscale(g, (dv, "IMAGE"), col=5)
+    output(g, up, col=6, prefix="video/difforum_animatediff", audio=(gc, "audio"), fps_src=(gc, "fps"))
     return g
 
 
@@ -1175,6 +1292,7 @@ WORKFLOWS = {
     "11_h3_deforum_look.json": wf_h3_deforum,
     "12_long_shot_keys.json": wf_long_shot,
     "13_restyle_any_video.json": wf_restyle_video,
+    "14_animatediff_on_video.json": wf_animatediff_video,
 }
 
 

@@ -153,6 +153,24 @@ Look Mix on its own does **not** re-paint anything: it layers texture from a
 look pass that was rendered separately, so where the two drift apart the texture
 swims. Use it on top of Restyle, or for flicker cuts and stutter.
 
+### Getting closer to the real AnimateDiff / Deforum look
+
+Per-frame img2img only stylises what is already there: at low `denoise` the clip
+barely changes, at high `denoise` the structure falls apart. The classic looks
+came from two things Restyle alone does not have:
+
+| look | what actually produces it | where in Difforum |
+|---|---|---|
+| AnimateDiff | a motion module that denoises 16 frames together (sliding context), plus ControlNet (depth / canny / lineart) from the source | template 14 (AnimateDiff-Evolved). Turn the AnimateDiff block off for per-frame flicker |
+| Deforum hybrid | high denoise with the structure held by ControlNet, plus optical-flow feedback of the previous frame | template 13: Restyle `deforum morph` + Structure (ControlNet) block, denoise 0.6-0.8 |
+
+Template 14 needs [ComfyUI-AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved),
+an SD 1.5 checkpoint, a motion module (`v3_sd15_mm.ckpt`, or AnimateLCM for fewer
+steps) and SD 1.5 ControlNets (`control_v11f1p_sd15_depth`, `control_v11p_sd15_canny`).
+Keep it at about 0.3 MP (SD 1.5 native size) and let Upscale 2K do the rest.
+Template 13 needs an SDXL union ControlNet (`xinsir-controlnet-union-sdxl-1.0-promax`)
+matching the SDXL / turbo image model.
+
 ## Multikeyframing and previz
 
 Put markers on the Director's **Keys** track (click the lane, drag to move,
