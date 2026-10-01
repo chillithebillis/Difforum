@@ -72,6 +72,8 @@ there for custom graphs.
 | `variation_seed` | INT | 0 | Seed for those variations: change it for another take. |
 | `clip` *(optional)* | CLIP |  | Connect the CLIP of your image model to encode the scene prompts: the Feedback Sampler and Restyle then travel through them. |
 | `audio` *(optional)* | DIFFORUM_AUDIO |  | From Audio Analyzer: enables the per-block audio reactions (beat pulse, bass speed...). |
+| `timeline_in` *(optional)* | STRING |  | A timeline from outside: Shot Script, an LLM node, a text loader. Plain shot lines ('0s / calm / dolly_in slow / prompt'), CSV or Director JSON. The editor shows the result after each run; disconnect to edit by hand. |
+| `external` *(optional)* | choice (replace, text only (keep drawn camera), camera only (keep drawn text), add to drawn) | replace | How timeline_in meets the drawn timeline. replace: all from outside. text only: scenes and keys from outside, your drawn camera stays. camera only: the reverse. add to drawn: both, outside wins on the same frame. |
 
 **Outputs:** `direction` (DIFFORUM_DIRECTION), `camera` (DIFFORUM_CAMERA), `strength` (DIFFORUM_SCHEDULE), `prompts` (DIFFORUM_PROMPT), `camera_text` (STRING), `info` (STRING)
 
@@ -205,6 +207,64 @@ render outputs so only this runs.
 | `key_indices` *(optional)* | STRING |  | Their frame numbers. |
 
 **Outputs:** `frames` (IMAGE), `fps` (FLOAT), `info` (STRING)
+
+### Difforum · Shot Script (timeline from text)
+
+`Difforum_ShotScript`
+
+Write the Director timeline from text instead of drawing it.
+
+One beat per line: `TIME | MOOD | CAMERA | PROMPT` (`0s | calm | dolly_in
+slow | misty forest`), `4s | key: the light breaks` for a key marker, or
+just prompts without times (spread evenly). A CSV with a header row
+(`time,mood,camera,prompt,key,energy`) or a Director JSON works too.
+
+The text can come from the box, from a `.txt` / `.csv` / `.json` file in
+ComfyUI's input folder (re-read when it changes), or from any node that
+outputs a STRING - an LLM node, a text loader, a spreadsheet export - into
+`script_in`. Wire `timeline` into the Director's `timeline_in`.
+`llm_instructions` is a ready prompt that asks an LLM for this format.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `script` | STRING | # TIME | MOOD | CAMERA | PROMPT     (... | One beat per line: TIME / MOOD / CAMERA / PROMPT. TIME 0s, 4.5s, 00:09 or f96. CAMERA a move (dolly_in, orbit_left, crane_up...) plus slow / fast, small / large, 35mm, an easing. '4s / key: label' adds a key. Lines without a time are spread evenly. |
+| `file` | STRING |  | A .txt / .csv / .json in ComfyUI/input (e.g. shots/scene01.txt). Re-read whenever it changes. Overrides the box. |
+| `params` *(optional)* | DIFFORUM_PARAMS |  | From Setup: converts seconds to frames and flags beats past the end. |
+| `script_in` *(optional)* | STRING |  | Text from another node (an LLM, a text file loader, a spreadsheet export). Overrides the box and the file. Feed the llm_instructions output to the LLM as its prompt. |
+
+**Outputs:** `timeline` (STRING), `llm_instructions` (STRING), `info` (STRING)
+
+### Difforum · Keyframe Assets (folder)
+
+`Difforum_KeyframeAssets`
+
+Your own styled pictures as the keyframes - no look pass to render.
+
+Point `folder` at a folder inside ComfyUI/input (stills made in any image
+model, Photoshop, a photo shoot...). Each picture lands on a moment:
+
+- **Director keys**: in order, on the Keys track markers.
+- **filename**: the name says when - `0s_wide.png`, `4.5s_close.png`,
+  `f096.png`, or a leading frame number `0096_rise.png`.
+- **spread evenly**: first at frame 0, last at the end.
+
+`fit` matches the canvas: cover crops, contain pads with gray (and the
+`masks` output tells Fill Reveal what to paint), stretch distorts. Wire
+`keyframes` + `indices` into H3 Guides / LTX Guides / Animatic, and
+`first` / `last` into a first-last-frame model. An `images` batch from
+other nodes can replace the folder.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `folder` | STRING | difforum_keys | A folder inside ComfyUI/input holding the stills (png / jpg / webp), sorted by name. |
+| `timing` | choice (Director keys, filename, spread evenly) | filename | Director keys: the pictures land on the Keys markers in order. filename: '0s_x.png', '4.5s_x.png', 'f096.png' or '0096_x.png'. spread evenly: first to last over the clip. |
+| `fit` | choice (cover (crop), contain (pad gray), stretch) | cover (crop) | cover crops to the canvas, contain pads with gray (the masks output lets Fill Reveal paint the bars), stretch distorts. |
+| `direction` *(optional)* | DIFFORUM_DIRECTION |  | Gives the Keys track and the canvas size. |
+| `params` *(optional)* | DIFFORUM_PARAMS |  | Canvas size and fps when no direction is connected. |
+| `images` *(optional)* | IMAGE |  | A batch from other nodes instead of the folder (one per key, in order). |
+| `times` *(optional)* | STRING |  | Override: '0, 4s, 9.5s' or frame numbers. |
+
+**Outputs:** `keyframes` (IMAGE), `indices` (STRING), `first` (IMAGE), `last` (IMAGE), `masks` (MASK), `info` (STRING)
 
 ## 3 · Curves & Prompts
 

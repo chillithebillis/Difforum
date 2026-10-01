@@ -168,6 +168,11 @@
      "name": "audio",
      "type": "DIFFORUM_AUDIO",
      "link": 33
+    },
+    {
+     "name": "timeline_in",
+     "type": "STRING",
+     "link": null
     }
    ],
    "outputs": [
@@ -223,7 +228,8 @@
     0.0,
     0.0,
     0,
-    "fixed"
+    "fixed",
+    "replace"
    ]
   },
   {

@@ -377,8 +377,19 @@ function buildEditor(node, tw) {
             const j = await r.json();
             if (j.error) { previewErr = j.error; } else { preview = j; previewErr = ""; }
         } catch (e) { previewErr = "preview offline (server restart needed?)"; }
-        warn.textContent = previewErr || (preview?.warnings || []).map((x) => "⚠ " + x).join("   ");
+        warn.textContent = [extNote(), previewErr || (preview?.warnings || []).map((x) => "⚠ " + x).join("   ")]
+            .filter(Boolean).join("   ");
         draw();
+    }
+    function extNote() {
+        const inp = node.inputs?.find((i) => i.name === "timeline_in");
+        if (!inp || inp.link == null) return "";
+        const mode = String(node.widgets?.find((x) => x.name === "external")?.value || "replace");
+        const what = mode.startsWith("text") ? "scenes and keys come from it, your camera stays"
+            : mode.startsWith("camera") ? "the camera comes from it, your scenes stay"
+            : mode.startsWith("add") ? "its beats are added; it wins on the same frame"
+            : "it replaces this timeline";
+        return "⇢ timeline_in connected: " + what + ". The editor shows the last run.";
     }
 
     // ---- geometry --------------------------------------------------------
@@ -975,6 +986,17 @@ app.registerExtension({
             const r = onConn?.apply(this, arguments);
             setTimeout(() => this.__dfx?.refresh(), 30);
             return r;
+        };
+        // a timeline from timeline_in comes back after the run: show what was rendered
+        const onExecuted = nodeType.prototype.onExecuted;
+        nodeType.prototype.onExecuted = function (msg) {
+            onExecuted?.apply(this, arguments);
+            const t = msg?.difforum_timeline?.[0];
+            const tw = this.widgets?.find((w) => w.name === "timeline");
+            if (t && tw && t !== tw.value) {
+                tw.value = t;
+                this.__dfx?.reload();
+            }
         };
         const onRemoved = nodeType.prototype.onRemoved;
         nodeType.prototype.onRemoved = function () {

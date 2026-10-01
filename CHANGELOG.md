@@ -5,6 +5,11 @@
 Difforum becomes a direction layer: a visual timeline drives any renderer.
 
 ### New
+- **Shot Script**: the Director timeline from text, CSV, a file in `input/` or an LLM
+  node (`TIME | MOOD | CAMERA | PROMPT`); Director `timeline_in` + `external` merge modes,
+  the editor shows what was rendered.
+- **Keyframe Assets**: a folder of stills named by time as keyframes (cover / contain /
+  stretch); template 16 drives H3 from stills and a script with no look pass.
 - **Restyle + ControlNet**: optional `control_net` / `control_image` / `control_strength`
   hold the source structure so Restyle can run at higher denoise (template 13 uses DA3
   depth + a union SDXL ControlNet).

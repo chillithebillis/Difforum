@@ -255,6 +255,67 @@ structured`) write the Director timeline in MiniMax H3's native prompt format:
 sections for ref2va with H3 Guides. Scene prompts and key labels work best as
 things that can be seen or heard.
 
+## Orchestration: scripts and assets
+
+### Timeline from text
+
+**Shot Script** turns text into the Director timeline; wire its `timeline`
+into the Director's `timeline_in`. One beat per line:
+
+```
+0s   | calm    | dolly_in slow small | misty forest at dawn, light shafts
+2s   | build   | orbit_left 35mm     | glowing moss and roots
+3.5s | key: the light breaks
+4s   | resolve | crane_up slow       | the canopy opens to a pale sky
+```
+
+- **TIME**: `4s`, `4.5s`, `00:09`, `1:02.5`, `f96` or a frame number.
+- Fields are recognised by content: a mood, a camera move (`dolly_in`,
+  `dolly in`, `push in`, `arc left`...) with `slow` / `fast`, `small` /
+  `large`, `x1.3`, `35mm`, an easing or an audio reaction, `energy 0.6`,
+  `key: label`; the rest is the prompt.
+- Lines without a time are spread evenly over the clip (a list of prompts is
+  enough).
+- A CSV with a header (`time,mood,camera,prompt,key,energy`) or a Director
+  JSON is read as is.
+
+The text can come from the box, a file in `ComfyUI/input` (`file`, re-read when
+it changes) or any STRING output in `script_in`: an LLM node, a text loader,
+a spreadsheet export. The `llm_instructions` output is a ready prompt asking
+an LLM for this format with the clip length and the move names.
+
+The Director's `external` setting decides how the text meets what is drawn:
+
+| external | from the input | kept from the editor |
+|---|---|---|
+| replace | everything | nothing |
+| text only | scenes, keys, energy | camera |
+| camera only | camera | scenes, keys, energy |
+| add to drawn | its beats | the rest; the input wins on the same frame |
+
+After each run the editor shows the timeline that was rendered.
+
+### Keyframe assets instead of a look pass
+
+A look pass (template 11) renders the whole shot with the Feedback Sampler only
+to pick a few keyframes from it. When the look can be made as stills, skip it:
+
+| route | cost | when |
+|---|---|---|
+| **Keyframe Assets** (template 16) | none: pictures you already have | stills from any image model, an art department, a shoot |
+| Guide Frames + **Keyframe Polish** (template 10) | one image-model pass per keyframe (4-8 images) | one anchor image, the camera path must be exact |
+| Look pass (template 11) | the whole shot through the Feedback Sampler | the look *is* the feedback (morphs, smears) |
+
+**Keyframe Assets** reads a folder inside `ComfyUI/input`. Name the files by
+time (`0s_wide.png`, `2s_roots.png`, `f096.png`, or a leading frame number), or
+place them on the Director's Keys markers in name order, or spread them evenly.
+`fit` crops (`cover`), pads with gray (`contain`, with `masks` for Fill Reveal)
+or stretches. Outputs `keyframes` + `indices` for H3 / LTX Guides and the
+Animatic, `first` / `last` for first-last-frame models.
+
+For stills from different sources, pass them through Keyframe Polish at denoise
+0.25-0.35 so they share one look; H3 copies whatever differs between guides.
+
 ## Depth
 
 Set the Director to **3d** and connect a depth map (white = near) to Guide Frames

@@ -374,13 +374,15 @@ B_DEPTH = "Depth (Depth Anything 3)"
 B_STRUCT = "Structure (ControlNet)"
 B_AD = "AnimateDiff (motion module)"
 B_HIRES = "Hi-res pass (quality)"
+B_SCRIPT = "1 · Shot script (timeline from text)"
+B_ASSETS = "1 · Keyframe assets"
 B_OUTPUT = "Output"
 B_LOOKPASS = "3 · Look pass (Feedback)"
 BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLISH, B_DEPTH, B_STRUCT, B_AD, B_HIRES,
-                 "Audio"}
+                 B_SCRIPT, "Audio"}
 LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot", "Decode"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
-ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
+ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "1 · Shot script", "1 · Keyframe assets", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
                "3 · Storyboard", "3 · Export", "Audio", B_FILL, B_POLISH, B_DEPTH)
 
 
@@ -1251,6 +1253,64 @@ def wf_animatediff_video(lcm=False):
     return g
 
 
+def wf_h3_assets():
+    g = Graph("16 · H3 from keyframe assets and a shot script (no look pass)")
+    control(g, "## Keyframe assets + shot script → MiniMax H3\n\nThe fast way to a styled H3 shot: no look "
+            "pass to render. Your own stills (any image model, Photoshop, a shoot) are the keyframes, and a "
+            "text script writes the timeline.\n\n1. Put the stills in `ComfyUI/input/difforum_keys/`, named "
+            "by time: `0s_wide.png`, `2s_roots.png`, `4.5s_sky.png` (or `f096.png`). Same look, same "
+            "aspect.\n2. Write the beats in **Shot Script** (`TIME | MOOD | CAMERA | PROMPT`), point `file` "
+            "at a .txt / .csv in input, or wire an LLM node into `script_in` (its prompt: the "
+            "`llm_instructions` output). Switch **Shot script** off to draw the timeline by hand.\n"
+            "3. Previz, then Render: the first still is `<Picture 1>`, every still is an H3 guide.\n\n"
+            "- Director `external`: *text only* keeps your drawn camera and takes the words from the script.\n"
+            "- Mixed sources? Run the stills through **Keyframe Polish** (template 10) at denoise 0.25-0.35 "
+            "so they share one look before H3.", size=(520, 520))
+    s, _img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="2d",
+                                 timeline=tl_json(124, **H3_TIMELINE), image_title=None)
+    with g.block(B_SCRIPT, C_DIRECT, col=1):
+        sc = g.add("Difforum_ShotScript", size=(520, 300), title="Shot Script")
+        g.link(s, "params", sc, "params")
+        g.link(sc, "timeline", d, "timeline_in")
+        ti = g.add("PreviewAny", size=(420, 200), title="Script read as")
+        g.link(sc, "info", ti, "source")
+    with g.block(B_ASSETS, C_DIRECT, col=1):
+        ka = g.add("Difforum_KeyframeAssets", size=(340, 200), folder="difforum_keys", timing="filename",
+                   fit="cover (crop)")
+        g.link(d, "direction", ka, "direction")
+        kp = g.add("PreviewImage", size=(420, 280), title="Keyframe assets")
+        g.link(ka, "keyframes", kp, "images")
+    previz(g, d, init=(ka, "first"), keys=(ka, None))
+    with g.block(B_MODELS, C_MODELS, col=0, row=1):
+        un, cl, vv, va = h3_loaders(g, "minimax_h3_ref2va_pruned_int8_convrot.safetensors")
+    with g.block("3 · H3 guides", C_RENDER, col=3):
+        cp = g.add("Difforum_CameraPrompt", size=(340, 320), format="H3 structured",
+                   h3_mode="reference (ref2va / guides)",
+                   soundscape="Soft birdsong and a low wind moving through the trees.")
+        g.link(d, "direction", cp, "direction")
+        r2v = g.add("MiniMaxH3ReferenceToVideo", size=(420, 300), prompt="", width=832, height=480,
+                    length=124, ref_image_size="match")
+        g.link(cl, "CLIP", r2v, "clip")
+        g.link(vv, "VAE", r2v, "vae")
+        g.link(va, "VAE", r2v, "audio_vae")
+        g.link(ka, "first", r2v, "ref_images.ref_image_0")
+        g.link(cp, "text", r2v, "prompt")
+        g.link(s, "width", r2v, "width")
+        g.link(s, "height", r2v, "height")
+        g.link(s, "frames", r2v, "length")
+        hg = g.add("Difforum_H3Guides", size=(420, 220), max_guides=8)
+        g.link(r2v, "positive", hg, "positive")
+        g.link(r2v, "LATENT", hg, "latent")
+        g.link(vv, "VAE", hg, "vae")
+        g.link(ka, "keyframes", hg, "keyframes")
+        g.link(ka, "indices", hg, "indices")
+    video, audio = h3_render(g, (hg, "positive"), (r2v, "LATENT"), un, vv, va,
+                             "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", col=5)
+    up = upscale(g, video, col=6)
+    output(g, up, col=7, prefix="video/difforum_h3_assets", audio=audio)
+    return g
+
+
 # ---------------------------------------------------------------------------
 # 09, 12
 # ---------------------------------------------------------------------------
@@ -1367,6 +1427,7 @@ WORKFLOWS = {
     "13_restyle_any_video.json": wf_restyle_video,
     "14_animatediff_on_video.json": wf_animatediff_video,
     "15_animatediff_lcm_fast.json": lambda: wf_animatediff_video(lcm=True),
+    "16_h3_keyframe_assets.json": wf_h3_assets,
 }
 
 

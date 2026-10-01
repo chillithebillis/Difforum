@@ -66,6 +66,12 @@ key to **Keyframe Images**. The Feedback Sampler travels *through* them, H3 /
 LTX Guides anchor them, the Animatic flashes them. Built for installations and
 pieces that must hit an image on a beat.
 
+**Orchestration from outside.** **Shot Script** writes the Director timeline
+from text (`0s | calm | dolly_in slow | prompt`), a CSV, a file in `input/` or
+any STRING node such as an LLM. **Keyframe Assets** loads a folder of stills
+named by time (`0s_wide.png`, `4.5s_sky.png`) as keyframes, so styled pictures
+made anywhere drive H3 without rendering a look pass (template 16).
+
 No camera expressions to write. They are still there if you want them.
 
 ## Quick start
@@ -98,6 +104,7 @@ No camera expressions to write. They are still there if you want them.
 | 13 | `restyle_any_video` | **Restyle a clip you already have** (H3, LTX, live action) into the Deforum / AnimateDiff / Disco look, then 2K | a turbo model + a video |
 | 14 | `animatediff_on_video` | **AnimateDiff vid2vid**: SD 1.5 + AnimateDiff-Evolved + depth / canny ControlNets on any clip, then 2K | AnimateDiff-Evolved, Advanced-ControlNet, an SD 1.5 checkpoint, a motion module, SD 1.5 ControlNets |
 | 15 | `animatediff_lcm_fast` | **AnimateDiff LCM**: template 14 in 8 steps with AnimateLCM, plus a x1.5 hi-res pass | as 14, with the AnimateLCM motion module + LoRA |
+| 16 | `h3_keyframe_assets` | **Stills + shot script → H3**: a folder of styled keyframes and a text script drive H3 guides; no look pass | H3 ref2va + your stills |
 
 Every template is laid out in the same blocks: **Control** (switches and notes),
 **Direction**, **Previz** on the top row; **Models → Render → Restyle → Upscale 2K

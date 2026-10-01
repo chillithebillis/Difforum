@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 34
+    assert len(v1) == 36
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:

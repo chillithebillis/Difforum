@@ -9,8 +9,9 @@ from ..core.camera import CAMERA_MODES, build_camera
 from ..core.camera_keys import keys_to_axis_values, lens_note, parse_camera_keys
 from ..core.camera_presets import flat_presets, needs_depth
 from ..core.direction import (
-    LOOKS, DirectionBundle, build_direction, default_timeline, describe_timed,
+    LOOKS, DirectionBundle, build_direction, default_timeline, describe_timed, parse_timeline,
 )
+from ..core.script import EXTERNAL_MODES, merge_timelines, script_to_timeline
 from ..core.loop import LOOP_MODES, close_axis_values, tile_laps
 from ..core.schedule import Schedule, build_schedule
 from ._common import (
@@ -91,6 +92,8 @@ class DifforumDirector:
             "optional": {
                 "clip": ("CLIP", {"tooltip": "Connect to encode the scene prompts (prompt travel)."}),
                 "audio": (AUDIO, {"tooltip": "From Audio Analyzer - enables per-block audio reactions."}),
+                "timeline_in": ("STRING", {"forceInput": True}),
+                "external": (list(EXTERNAL_MODES), {"default": EXTERNAL_MODES[0]}),
             },
         }
 
@@ -100,9 +103,15 @@ class DifforumDirector:
     CATEGORY = CAT_DIRECT
 
     def run(self, params, timeline, camera_mode, look, transition, camera_scale,
-            energy_bias, variation, variation_seed, clip=None, audio=None):
+            energy_bias, variation, variation_seed, clip=None, audio=None, timeline_in=None,
+            external=EXTERNAL_MODES[0]):
         n = int(params["max_frames"])
         fps = float(params["fps"])
+        ext_notes = []
+        if timeline_in is not None and str(timeline_in).strip():
+            ext, notes = script_to_timeline(timeline_in, fps, n)
+            timeline = json.dumps(merge_timelines(parse_timeline(timeline), ext, external))
+            ext_notes = [f"  timeline from timeline_in ({external})", *(f"  ! {x}" for x in notes)]
         d = build_direction(
             timeline, n, fps, mode=camera_mode, camera_scale=camera_scale,
             strength_bias=energy_bias + LOOKS.get(look, LOOKS["cinematic"])["energy"], blend=transition, variation=variation,
@@ -117,13 +126,17 @@ class DifforumDirector:
                                  prompts=prompts, direction=d, look_name=look)
         info = "\n".join([
             f"[Difforum Director]  {n} frames  {n / fps:.2f}s  camera {camera_mode}  look {look}",
+            *ext_notes,
             *d.summary,
             *([""] + [f"  ! {w}" for w in d.warnings] if d.warnings else []),
             "" if clip is not None else "  (connect a CLIP to get prompt travel on the direction wire)",
         ])
         timed = describe_timed(d.camera_blocks, n, fps)
+        ui = {"text": [info]}
+        if ext_notes:                    # the editor shows what was rendered
+            ui["difforum_timeline"] = [timeline]
         return {
-            "ui": {"text": [info]},
+            "ui": ui,
             "result": (bundle, camera, strength, prompts,
                        d.camera_text + " " + bundle.look_prompt + "\n\n" + timed, info),
         }

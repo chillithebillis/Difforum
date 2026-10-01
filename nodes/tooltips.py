@@ -60,6 +60,12 @@ TIPS = {
     "Difforum_Director": {
         "params": "From Setup: the timeline length and fps.",
         "timeline": "Written by the timeline editor below (scenes, camera, keys, energy). Edit it there.",
+        "timeline_in": "A timeline from outside: Shot Script, an LLM node, a text loader. Plain shot lines "
+                       "('0s | calm | dolly_in slow | prompt'), CSV or Director JSON. The editor shows the "
+                       "result after each run; disconnect to edit by hand.",
+        "external": "How timeline_in meets the drawn timeline. replace: all from outside. text only: scenes "
+                    "and keys from outside, your drawn camera stays. camera only: the reverse. add to drawn: "
+                    "both, outside wins on the same frame.",
         "camera_mode": "2d: flat moves (zoom, pan, roll). 3d: real parallax when a depth map reaches the "
                        "renderer; 3D moves without depth become pseudo-3D.",
         "look": "One aesthetic for every renderer. Feedback Sampler: colour lock, detail, grain and extra "
@@ -119,6 +125,27 @@ TIPS = {
                   "content the render passes through, so make them good: same style, same resolution.",
         "times": "Override the Director's Keys: '0, 4s, 9.5s' or frame numbers. Empty = use the Keys "
                  "track; no keys = spread evenly.",
+    },
+    "Difforum_ShotScript": {
+        "script": "One beat per line: TIME | MOOD | CAMERA | PROMPT. TIME 0s, 4.5s, 00:09 or f96. CAMERA a "
+                  "move (dolly_in, orbit_left, crane_up...) plus slow / fast, small / large, 35mm, an easing. "
+                  "'4s | key: label' adds a key. Lines without a time are spread evenly.",
+        "file": "A .txt / .csv / .json in ComfyUI/input (e.g. shots/scene01.txt). Re-read whenever it "
+                "changes. Overrides the box.",
+        "params": "From Setup: converts seconds to frames and flags beats past the end.",
+        "script_in": "Text from another node (an LLM, a text file loader, a spreadsheet export). Overrides "
+                     "the box and the file. Feed the llm_instructions output to the LLM as its prompt.",
+    },
+    "Difforum_KeyframeAssets": {
+        "folder": "A folder inside ComfyUI/input holding the stills (png / jpg / webp), sorted by name.",
+        "timing": "Director keys: the pictures land on the Keys markers in order. filename: '0s_x.png', "
+                  "'4.5s_x.png', 'f096.png' or '0096_x.png'. spread evenly: first to last over the clip.",
+        "fit": "cover crops to the canvas, contain pads with gray (the masks output lets Fill Reveal paint "
+               "the bars), stretch distorts.",
+        "direction": "Gives the Keys track and the canvas size.",
+        "params": "Canvas size and fps when no direction is connected.",
+        "images": "A batch from other nodes instead of the folder (one per key, in order).",
+        "times": "Override: '0, 4s, 9.5s' or frame numbers.",
     },
     "Difforum_Animatic": {
         "direction": "The Director to previz.",
