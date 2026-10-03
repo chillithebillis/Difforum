@@ -71,6 +71,9 @@ from text (`0s | calm | dolly_in slow | prompt`), a CSV, a file in `input/` or
 any STRING node such as an LLM. **Keyframe Assets** loads a folder of stills
 named by time (`0s_wide.png`, `4.5s_sky.png`) as keyframes, so styled pictures
 made anywhere drive H3 without rendering a look pass (template 16).
+**Scene Stills** paints one still per scene from the timeline itself, each over
+the one before; templates 17-19 are three short stories with grounded looks and
+gentle cameras.
 
 No camera expressions to write. They are still there if you want them.
 
@@ -105,6 +108,9 @@ No camera expressions to write. They are still there if you want them.
 | 14 | `animatediff_on_video` | **AnimateDiff vid2vid**: SD 1.5 + AnimateDiff-Evolved + depth / canny ControlNets on any clip, then 2K | AnimateDiff-Evolved, Advanced-ControlNet, an SD 1.5 checkpoint, a motion module, SD 1.5 ControlNets |
 | 15 | `animatediff_lcm_fast` | **AnimateDiff LCM**: template 14 in 8 steps with AnimateLCM, plus a x1.5 hi-res pass | as 14, with the AnimateLCM motion module + LoRA |
 | 16 | `h3_keyframe_assets` | **Stills + shot script → H3**: a folder of styled keyframes and a text script drive H3 guides; no look pass | H3 ref2va + your stills |
+| 17 | `story_three_shots_h3` | **A story in three shots**: Scene Stills paints one picture per scene, H3 plays them as shots with cuts | an image model + H3 ref2va |
+| 18 | `story_living_photograph` | **Living photograph**: one place with real depth, a slow camera, low energy; only the light changes | an image model + Depth Anything 3 |
+| 19 | `story_painted` | **Painted story**: one subject that grows, 12 fps gouache look, pans and zooms only | a turbo image model |
 
 Every template is laid out in the same blocks: **Control** (switches and notes),
 **Direction**, **Previz** on the top row; **Models → Render → Restyle → Upscale 2K

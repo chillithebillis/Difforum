@@ -19,6 +19,31 @@ beats by hand. Every script is plain text: copy one, change the words, queue.
 | 9 | One-minute installation shot | 12 | `09_installation_long_shot` | a long take with key moments that must land |
 | 10 | Previz and camera hand-off | 01, 09 | `10_previz_camera_export` | block, show and export to After Effects / Blender with no model |
 
+## Three stories
+
+Templates 17-19 are finished short pieces to open, queue and then rewrite.
+They avoid the things that make AI video feel off: no faces, no spirals, one
+look held from the first frame to the last.
+
+| template | engine | why it holds together |
+|---|---|---|
+| 17 · Story in three shots | Scene Stills → MiniMax H3 | the image model paints three related pictures, H3 only moves them, scenes are cuts instead of morphs |
+| 18 · Living photograph | Feedback Sampler + depth | energy 0.2-0.34: geometry stays, the light changes; a 3D camera on a depth map |
+| 19 · Painted story | Feedback Sampler, turbo | one subject that grows, so each change reads as story; 12 fps, the look repeated in every scene |
+
+What to keep when you write your own:
+
+- **One look, written once and repeated.** Scene Stills has a `style` box; in
+  feedback templates the look words open every scene prompt.
+- **Energy is the realism dial.** Under 0.3 the picture moves, around 0.4 it is
+  re-painted, over 0.5 it morphs. Raise it only on the beat that changes.
+- **Slow, simple cameras**: push in, pan, rise, at speed and amount 0.4-0.7.
+  Rolls, spirals and vortexes are what reads as psychedelic.
+- **Change one thing per scene** - the light, the weather, the size of the
+  subject - and keep the subject words identical.
+- **Objects, places, hands and silhouettes** survive small render sizes; faces
+  do not.
+
 ## Writing the script with an LLM
 
 Shot Script's `llm_instructions` output is a prompt that asks for this format

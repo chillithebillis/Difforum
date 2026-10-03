@@ -280,11 +280,114 @@ class DifforumKeyframeAssets:
                 "result": (keys, ",".join(map(str, frames)), keys[:1], keys[-1:], masks, info)}
 
 
+# ---------------------------------------------------------------------------
+# Scene Stills
+# ---------------------------------------------------------------------------
+
+class DifforumSceneStills:
+    """One still per scene of the timeline: the storyboard, painted by the image model.
+
+    Each scene prompt (with your `style` in front) becomes a picture at the
+    frame where the scene starts. `continuity` paints every still over the one
+    before it, so palette, light and layout carry from beat to beat instead of
+    jumping; 0 makes each one from scratch. Feed `keyframes` + `indices` to H3
+    Guides / LTX Guides and a video model animates between pictures that
+    already tell the story: a handful of images instead of a look pass.
+
+    Stills are made at `long_edge` (the image model's own size) in the canvas
+    aspect, so they stay sharp when the video model renders smaller.
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        from .render import _samplers
+        samplers, schedulers = _samplers()
+        return {
+            "required": {
+                "direction": (DIRECTION,),
+                "model": ("MODEL",),
+                "clip": ("CLIP",),
+                "vae": ("VAE",),
+                "style": ("STRING", {"multiline": True, "default": ""}),
+                "negative": ("STRING", {"multiline": True,
+                             "default": "blurry, low quality, watermark, text, deformed"}),
+                "steps": ("INT", {"default": 24, "min": 1, "max": 150}),
+                "cfg": ("FLOAT", {"default": 5.5, "min": 0.0, "max": 30.0, "step": 0.1}),
+                "sampler_name": (samplers, {"default": "dpmpp_2m" if "dpmpp_2m" in samplers else samplers[0]}),
+                "scheduler": (schedulers, {"default": "karras" if "karras" in schedulers else schedulers[0]}),
+                "seed": ("INT", {"default": 7, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
+                "continuity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "long_edge": ("INT", {"default": 1024, "min": 256, "max": 4096, "step": 64}),
+            },
+            "optional": {"first_image": ("IMAGE",)},
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING", "IMAGE", "IMAGE", "STRING")
+    RETURN_NAMES = ("keyframes", "indices", "first", "last", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_DIRECT
+
+    def run(self, direction, model, clip, vae, style, negative, steps, cfg, sampler_name, scheduler,
+            seed, continuity, long_edge, first_image=None):
+        from nodes import common_ksampler
+
+        from ._common import check_interrupt, progress_bar
+        from .render import resident_models
+        params = direction.params
+        n, fps = int(params["max_frames"]), float(params["fps"])
+        cw, ch = int(params["width"]), int(params["height"])
+        k = float(long_edge) / max(cw, ch)
+        w, h = max(64, round(cw * k / 64) * 64), max(64, round(ch * k / 64) * 64)
+        scenes = [s for s in direction.direction.scenes if s["start"] < n and s["prompt"].strip()]
+        if not scenes:
+            raise ValueError("Scene Stills: the timeline has no scene prompts.")
+
+        def encode(text):
+            return clip.encode_from_tokens_scheduled(clip.tokenize(text))
+
+        neg = encode(negative)
+        look = " ".join(str(style).split()).strip().rstrip(".,")
+        cont = max(0.0, min(1.0, float(continuity)))
+        pbar = progress_bar(len(scenes))
+        stills, lines, prev = [], [], None
+        for i, sc in enumerate(scenes):
+            check_interrupt()
+            if i == 0 and first_image is not None:
+                img = _fit(first_image[:1, ..., :3].float(), w, h, "cover")[0]
+                how = "given"
+            else:
+                pos = encode(f"{look}. {sc['prompt']}" if look else sc["prompt"])
+                with resident_models():
+                    if prev is not None and cont > 0.0:
+                        latent, denoise = {"samples": vae.encode(prev)}, 1.0 - 0.45 * cont
+                    else:
+                        latent, denoise = {"samples": torch.zeros(1, 4, h // 8, w // 8)}, 1.0
+                    out = common_ksampler(model, int(seed), int(steps), float(cfg), sampler_name, scheduler,
+                                          pos, neg, latent, denoise=denoise)[0]
+                    img = vae.decode(out["samples"])
+                img = img.reshape(-1, *img.shape[-3:])[:1, ..., :3].float().cpu()
+                how = "new" if denoise >= 1.0 else f"over the previous, denoise {denoise:.2f}"
+            if tuple(img.shape[1:3]) != (h, w):          # VAEs that round the size differently
+                img = _fit(img, w, h, "stretch")[0]
+            prev = img
+            stills.append(img)
+            lines.append(f"  {sc['start'] / fps:6.2f}s  f{sc['start']:<5} {how}: {sc['prompt'][:60]}")
+            pbar.update_absolute(i + 1)
+        keys = torch.cat(stills).clamp(0, 1)
+        idx = ",".join(str(int(s["start"])) for s in scenes)
+        info = "\n".join([f"[Scene Stills] {len(scenes)} stills at {w}x{h}", *lines])
+        return {"ui": {"text": [info]}, "result": (keys, idx, keys[:1], keys[-1:], info)}
+
+
 NODE_CLASS_MAPPINGS = {
     "Difforum_ShotScript": DifforumShotScript,
     "Difforum_KeyframeAssets": DifforumKeyframeAssets,
+    "Difforum_SceneStills": DifforumSceneStills,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_ShotScript": "Difforum · Shot Script (timeline from text)",
     "Difforum_KeyframeAssets": "Difforum · Keyframe Assets (folder)",
+    "Difforum_SceneStills": "Difforum · Scene Stills (storyboard)",
 }

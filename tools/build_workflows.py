@@ -390,7 +390,8 @@ BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLI
                  B_SCRIPT, "Audio"}
 LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot", "Decode"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
-ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "1 · Shot script", "1 · Keyframe assets", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
+ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "1 · Shot script", "1 · Keyframe assets",
+               "2 · Scene stills", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
                "3 · Storyboard", "3 · Export", "Audio", B_FILL, B_POLISH, B_DEPTH)
 
 
@@ -529,23 +530,26 @@ def wf_storyboard():
 
 
 def wf_feedback(depth=False, title="02 · Feedback render (SDXL)", camera_mode="2d", tl=None,
-                duration=5.0, readme=""):
+                duration=5.0, readme="", setup=None, director=None, models=None, sampler=None,
+                first=None, readme_size=(460, 300), prefix="video/difforum"):
     g = Graph(title)
-    control(g, readme)
+    control(g, readme, size=readme_size)
     with g.block(B_DIRECT, C_DIRECT, col=1, row=0):
-        s = g.add("Difforum_Setup", size=(320, 300), duration=duration, long_edge=1024)
-        d = g.add("Difforum_Director", size=(800, 880), camera_mode=camera_mode, timeline=tl or tl_json(120))
+        s = g.add("Difforum_Setup", size=(320, 300), **{"duration": duration, "long_edge": 1024, **(setup or {})})
+        d = g.add("Difforum_Director", size=(800, 880), camera_mode=camera_mode, timeline=tl or tl_json(120),
+                  **(director or {}))
         g.link(s, "params", d, "params")
     with g.block(B_MODELS, C_MODELS, col=0, row=1):
-        ck, pos, neg = sd_models(g)
+        ck, pos, neg = sd_models(g, **(models or {}))
         g.link(ck, "CLIP", d, "clip")
     with g.block(B_FIRST, C_MODELS, col=1, row=1):
-        dec = first_frame(g, ck, pos, neg, s)
+        dec = first_frame(g, ck, pos, neg, s, **(first or {}))
     dp = depth_block(g, (dec, "IMAGE")) if depth else None
     previz(g, d, init=(dec, "IMAGE"), depth=dp)
     with g.block("3 · Render · Feedback Sampler", C_RENDER, col=3):
-        fb = g.add("Difforum_FeedbackSampler", size=(360, 460), steps=20, cfg=6.0,
-                   sampler_name="dpmpp_2m", scheduler="karras", cadence=2)
+        fb = g.add("Difforum_FeedbackSampler", size=(360, 460),
+                   **{"steps": 20, "cfg": 6.0, "sampler_name": "dpmpp_2m", "scheduler": "karras",
+                      "cadence": 2, **(sampler or {})})
         for a, b in (("MODEL", "model"), ("VAE", "vae")):
             g.link(ck, a, fb, b)
         g.link(pos, "CONDITIONING", fb, "positive")
@@ -559,7 +563,7 @@ def wf_feedback(depth=False, title="02 · Feedback render (SDXL)", camera_mode="
         rp = g.add("PreviewAny", size=(300, 200), title="Run report")
         g.link(fb, "report", rp, "source")
     up = upscale(g, (st, "frames"), col=4)
-    sv = output(g, up, col=5, prefix="video/difforum", fps_src=(s, "fps"))
+    sv = output(g, up, col=5, prefix=prefix, fps_src=(s, "fps"))
     return g, s, d, fb, sv
 
 
@@ -1327,6 +1331,161 @@ def wf_h3_assets():
 
 
 # ---------------------------------------------------------------------------
+# 17 - 19: stories (grounded looks, gentle cameras)
+# ---------------------------------------------------------------------------
+
+STORY_NEG = "blurry, low quality, watermark, text, frame, border, people, faces, distorted, oversaturated"
+
+
+def wf_story_h3():
+    g = Graph("17 · Story in three shots (scene stills → MiniMax H3)")
+    control(g, "## A short film in three shots\n\nThe timeline is the script. **Scene Stills** paints one "
+            "picture per scene with the image model (each over the one before, so light and palette carry), "
+            "and MiniMax H3 plays them as three shots with real motion and sound: pictures that already tell "
+            "the story, a video model that only has to move them.\n\n- Change the story in the Director: "
+            "scene prompts are what is on screen, camera blocks are the move of each shot.\n- `style` on "
+            "Scene Stills is the look of the whole film, written once.\n- `continuity` 0.5 keeps the stills "
+            "related; lower it for freer compositions.\n- **Camera → Prompt** has `cuts` on: every scene is "
+            "a shot, not a morph.\n- Ships fast: Turbo LoRA on, H3 Latent Upscale off.\n- Objects, places "
+            "and hands read better than faces at this size.", size=(500, 480))
+    n = 192
+    tl = tl_json(n, scenes=[
+        {"start": 0, "mood": "calm",
+         "prompt": "a small folded paper boat rests on a wooden windowsill beside a rain-streaked window"},
+        {"start": 64, "mood": "build",
+         "prompt": "the paper boat rides a thin stream of rainwater along a cobblestone gutter, tiny ripples"},
+        {"start": 128, "mood": "resolve",
+         "prompt": "the paper boat drifts out onto a wide still pond at sunrise, long reflections, mist"},
+    ], camera=[
+        {"start": 0, "move": "dolly_in", "speed": 0.5, "intensity": 0.5, "ease": "ease_in_out"},
+        {"start": 64, "move": "pan_right", "speed": 0.7, "intensity": 0.6, "ease": "ease_in_out"},
+        {"start": 128, "move": "crane_up", "speed": 0.5, "intensity": 0.6, "ease": "ease_out"},
+    ], keys=[{"start": 150, "label": "The boat reaches open water"}])
+    with g.block(B_DIRECT, C_DIRECT, col=1, row=0):
+        s = g.add("Difforum_Setup", size=(320, 300), target="MiniMax H3", duration=8.0, long_edge=640)
+        d = g.add("Difforum_Director", size=(800, 880), camera_mode="2d", look="stop_motion", timeline=tl)
+        g.link(s, "params", d, "params")
+    with g.block(B_MODELS, C_MODELS, col=0, row=1):
+        ck = g.add("CheckpointLoaderSimple", size=(320, 100), title="Image model (stills)",
+                   ckpt_name="sd_xl_base_1.0.safetensors")
+        un, cl, vv, va = h3_loaders(g, "minimax_h3_ref2va_pruned_int8_convrot.safetensors")
+    with g.block("2 · Scene stills", C_FILL, col=2):
+        st = g.add("Difforum_SceneStills", size=(380, 520), steps=24, cfg=5.5, sampler_name="dpmpp_2m",
+                   scheduler="karras", continuity=0.5, long_edge=1024,
+                   style="Handmade stop-motion miniature, paper and felt and real water, soft window light, "
+                         "shallow depth of field, macro lens, muted teal and warm amber palette",
+                   negative=STORY_NEG)
+        g.link(d, "direction", st, "direction")
+        for a_, b_ in (("MODEL", "model"), ("CLIP", "clip"), ("VAE", "vae")):
+            g.link(ck, a_, st, b_)
+        pv = g.add("PreviewImage", size=(520, 300), title="Storyboard")
+        g.link(st, "keyframes", pv, "images")
+    previz(g, d, init=(st, "first"), keys=(st, None))
+    with g.block("3 · H3 guides", C_RENDER, col=3):
+        cp = g.add("Difforum_CameraPrompt", size=(340, 340), format="H3 structured", cuts=True,
+                   h3_mode="reference (ref2va / guides)",
+                   soundscape="Soft rain on glass, trickling water, then quiet morning air and distant birds.")
+        g.link(d, "direction", cp, "direction")
+        r2v = g.add("MiniMaxH3ReferenceToVideo", size=(420, 300), prompt="", width=832, height=480,
+                    length=124, ref_image_size="match")
+        g.link(cl, "CLIP", r2v, "clip")
+        g.link(vv, "VAE", r2v, "vae")
+        g.link(va, "VAE", r2v, "audio_vae")
+        g.link(st, "first", r2v, "ref_images.ref_image_0")
+        g.link(cp, "text", r2v, "prompt")
+        g.link(s, "width", r2v, "width")
+        g.link(s, "height", r2v, "height")
+        g.link(s, "frames", r2v, "length")
+        hg = g.add("Difforum_H3Guides", size=(420, 220), max_guides=6)
+        g.link(r2v, "positive", hg, "positive")
+        g.link(r2v, "LATENT", hg, "latent")
+        g.link(vv, "VAE", hg, "vae")
+        g.link(st, "keyframes", hg, "keyframes")
+        g.link(st, "indices", hg, "indices")
+    video, audio = h3_render(g, (hg, "positive"), (r2v, "LATENT"), un, vv, va,
+                             "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", col=5)
+    up = upscale(g, video, col=6)
+    output(g, up, col=7, prefix="video/difforum_story", audio=audio)
+    return g
+
+
+def wf_story_parallax():
+    n = 192
+    ph = "photograph, natural light, 35mm, fine detail, "
+    tl = tl_json(n, scenes=[
+        {"start": 0, "mood": "calm",
+         "prompt": ph + "a stone lighthouse on a rocky headland at dusk, calm sea, soft pink and blue sky"},
+        {"start": 72, "mood": "calm",
+         "prompt": ph + "the same lighthouse at blue hour, its lamp glowing warm, first stars, calm sea"},
+        {"start": 136, "mood": "resolve",
+         "prompt": ph + "the same lighthouse at night, a warm beam of light across the water, starry sky"},
+    ], camera=[
+        {"start": 0, "move": "dolly_in", "speed": 0.5, "intensity": 0.5, "ease": "ease_in_out"},
+        {"start": 72, "move": "orbit_right", "speed": 0.5, "intensity": 0.45, "ease": "ease_in_out"},
+        {"start": 136, "move": "crane_up", "speed": 0.4, "intensity": 0.5, "ease": "ease_out"},
+    ], keys=[{"start": 72, "label": "the lamp lights"}],
+        energy=[[0, 0.22], [60, 0.24], [80, 0.34], [100, 0.26], [136, 0.30], [160, 0.24], [191, 0.22]])
+    g, *_ = wf_feedback(
+        depth=True, title="18 · Living photograph (one place, time passing)", camera_mode="3d", tl=tl,
+        setup={"duration": 8.0, "long_edge": 896},
+        director={"look": "documentary"},
+        models={"pos_text": "photograph of a stone lighthouse on a rocky headland at dusk, calm sea, soft pink "
+                            "and blue sky, natural light, 35mm, fine detail",
+                "neg_text": STORY_NEG, "pos_title": "First frame (the photograph)"},
+        sampler={"steps": 20, "cfg": 5.0, "cadence": 2},
+        prefix="video/difforum_living_photo", readme_size=(500, 460),
+        readme="## One photograph, time passing\n\nA picture with real depth and a slow camera: push in, "
+               "drift around, rise. The **energy** stays low (0.22-0.34), so the place holds still and only "
+               "the light changes - dusk, the lamp, night. The one peak is on the key *the lamp lights*.\n\n"
+               "- Use your own photograph: replace **First frame** with a Load Image.\n- Scenes describe "
+               "the *same* place at another moment; keep the subject words identical.\n- Energy is the "
+               "dial: 0.2 = a moving photograph, 0.35 = the light re-paints, above 0.45 things start to "
+               "morph.\n- Moves are 3D on a depth map (Depth Anything 3). Too much parallax: lower "
+               "`camera_scale` on the Director.\n- Faster: a DMD2 / Lightning LoRA at 6 steps, cfg 1.5.")
+    return g
+
+
+def wf_story_painted():
+    n = 144                                               # 12 s at 12 fps
+    look = ("gouache illustration on textured paper, flat shapes, visible brush strokes, soft edges, "
+            "limited palette of sage green, ochre and deep blue")
+    tl = tl_json(n, scenes=[
+        {"start": 0, "mood": "calm", "prompt": look + ", a single seed in dark soil, cross-section, roots of light"},
+        {"start": 36, "mood": "build", "prompt": look + ", a green sprout breaks the soil in soft rain, two small leaves"},
+        {"start": 72, "mood": "build", "prompt": look + ", a young tree in a sunny meadow, wind in its leaves"},
+        {"start": 108, "mood": "resolve", "prompt": look + ", a great old tree under a starry night sky, fireflies"},
+    ], camera=[
+        {"start": 0, "move": "zoom_in", "speed": 0.4, "intensity": 0.4, "ease": "ease_in_out"},
+        {"start": 36, "move": "pan_up", "speed": 0.6, "intensity": 0.6, "ease": "ease_in_out"},
+        {"start": 72, "move": "zoom_out", "speed": 0.5, "intensity": 0.5, "ease": "ease_in_out"},
+        {"start": 108, "move": "pan_up", "speed": 0.4, "intensity": 0.4, "ease": "ease_out"},
+    ], keys=[{"start": 36, "label": "the sprout"}, {"start": 108, "label": "night"}],
+        energy=[[0, 0.34], [30, 0.36], [40, 0.46], [52, 0.38], [68, 0.38], [76, 0.46], [88, 0.38],
+                [104, 0.38], [112, 0.46], [124, 0.36], [143, 0.32]])
+    g, *_ = wf_feedback(
+        title="19 · Painted story (one subject growing)", camera_mode="2d", tl=tl,
+        setup={"duration": 12.0, "fps": 12.0, "long_edge": 768},
+        director={"look": "hand_drawn"},
+        models={"ckpt": "sd_xl_turbo_1.0_fp16.safetensors", "title": "Image model (SDXL-Turbo / DMD2)",
+                "pos_text": look + ", a single seed in dark soil, cross-section, roots of light",
+                "neg_text": STORY_NEG + ", photo, 3d render", "pos_title": "First frame"},
+        first={"steps": 4, "cfg": 1.0, "sampler": "euler_ancestral", "scheduler": "sgm_uniform"},
+        sampler={"steps": 4, "cfg": 1.0, "sampler_name": "euler_ancestral", "scheduler": "sgm_uniform",
+                 "cadence": 2},
+        prefix="video/difforum_painted_story", readme_size=(500, 480),
+        readme="## A painted story\n\nThe feedback look used to tell something: one subject that grows - "
+               "seed, sprout, tree, old tree at night - so every transformation reads as the story moving "
+               "on, not as a random morph.\n\n- 12 fps on purpose: it reads as animation and renders in "
+               "half the frames.\n- The camera only pans and zooms slowly. No rolls, no spirals.\n"
+               "- **Energy** rests at 0.34-0.38 and rises to 0.46 only where a scene changes.\n- Put the "
+               "look (medium, paper, palette) in every scene or in the model's positive prompt, and keep "
+               "the subject in the centre of each prompt.\n- Turbo model, 4 steps, cadence 2. With a "
+               "base model: steps 20, cfg 6.")
+    return g
+
+
+
+# ---------------------------------------------------------------------------
 # 09, 12
 # ---------------------------------------------------------------------------
 
@@ -1443,6 +1602,9 @@ WORKFLOWS = {
     "14_animatediff_on_video.json": wf_animatediff_video,
     "15_animatediff_lcm_fast.json": lambda: wf_animatediff_video(lcm=True),
     "16_h3_keyframe_assets.json": wf_h3_assets,
+    "17_story_three_shots_h3.json": wf_story_h3,
+    "18_story_living_photograph.json": wf_story_parallax,
+    "19_story_painted.json": wf_story_painted,
 }
 
 

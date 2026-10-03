@@ -172,3 +172,24 @@ def test_upscale_auto_skips_model(monkeypatch):
     calls.clear()
     DifforumUpscale().run(big, "x1.5", "lanczos", 0.0, 16, upscale_model=object(), model_use="always")
     assert calls
+
+
+def test_scene_stills(stub_model):
+    from conftest import StubVAE
+    from test_nodes import StubClip
+
+    from difforum.nodes.orchestrate import DifforumSceneStills
+    p = setup(seconds=5.0)[0]
+    tl = script_to_timeline("0s | calm | zoom_in | a boat\n2s | build | the storm\n4s | resolve | sunrise", 24, 120)[0]
+    d = director(p, tl=tl)[0]
+    out = DifforumSceneStills().run(d, stub_model, StubClip(), StubVAE(), "gouache illustration", "blurry",
+                                    4, 1.0, "euler", "normal", 7, 0.5, 512)["result"]
+    keys, idx, first, last, info = out
+    assert idx == "0,48,96" and keys.shape[0] == 3 and keys.shape[-1] == 3
+    assert [round(c["denoise"], 3) for c in stub_model.calls] == [1.0, 0.775, 0.775]
+    assert first.shape[0] == 1 and "over the previous" in info
+    stub_model.calls.clear()
+    import torch
+    DifforumSceneStills().run(d, stub_model, StubClip(), StubVAE(), "", "blurry", 4, 1.0, "euler", "normal",
+                              7, 0.0, 512, first_image=torch.rand(1, 90, 160, 3))
+    assert [c["denoise"] for c in stub_model.calls] == [1.0, 1.0]

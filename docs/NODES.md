@@ -267,6 +267,41 @@ other nodes can replace the folder.
 
 **Outputs:** `keyframes` (IMAGE), `indices` (STRING), `first` (IMAGE), `last` (IMAGE), `masks` (MASK), `info` (STRING)
 
+### Difforum · Scene Stills (storyboard)
+
+`Difforum_SceneStills`
+
+One still per scene of the timeline: the storyboard, painted by the image model.
+
+Each scene prompt (with your `style` in front) becomes a picture at the
+frame where the scene starts. `continuity` paints every still over the one
+before it, so palette, light and layout carry from beat to beat instead of
+jumping; 0 makes each one from scratch. Feed `keyframes` + `indices` to H3
+Guides / LTX Guides and a video model animates between pictures that
+already tell the story: a handful of images instead of a look pass.
+
+Stills are made at `long_edge` (the image model's own size) in the canvas
+aspect, so they stay sharp when the video model renders smaller.
+
+| input | type | default | notes |
+|---|---|---|---|
+| `direction` | DIFFORUM_DIRECTION |  | The Director timeline: one still per scene that has a prompt. |
+| `model` | MODEL |  | An image model (SDXL, SD1.5, Flux...). |
+| `clip` | CLIP |  |  |
+| `vae` | VAE |  | The VAE that matches the model. |
+| `style` | STRING |  | The look shared by every still, written once: medium, light, lens, palette. It goes in front of each scene prompt. |
+| `negative` | STRING | blurry, low quality, watermark, text,... | What no still should show. |
+| `steps` | INT | 24 | Sampling steps per still. 24 for a base model, 4-8 with a turbo / DMD2 model. |
+| `cfg` | FLOAT | 5.5 | Prompt strength. 5-6 for a base model, 1-2 for turbo / DMD2. |
+| `sampler_name` | choice (euler, lcm) | euler | Sampler. euler / dpmpp_2m for regular models, euler_ancestral or lcm for turbo. |
+| `scheduler` | choice (normal, sgm_uniform) | normal | Noise schedule. karras / normal for regular models, sgm_uniform for turbo. |
+| `seed` | INT | 7 | Same seed for every still, so they share composition habits and texture. |
+| `continuity` | FLOAT | 0.5 | How much each still is painted over the one before. 0 = every still from scratch (free composition, the look can jump). 0.5 = palette and layout carry over. 1 = small changes only. |
+| `long_edge` | INT | 1024 | Size the stills are made at, in the canvas aspect. Use the image model's own size (1024 SDXL, 768 SD1.5): the video model scales them down itself. |
+| `first_image` *(optional)* | IMAGE |  | Your own picture as the first still; the rest are painted after it. |
+
+**Outputs:** `keyframes` (IMAGE), `indices` (STRING), `first` (IMAGE), `last` (IMAGE), `info` (STRING)
+
 ## 3 · Curves & Prompts
 
 ### Difforum · Schedule

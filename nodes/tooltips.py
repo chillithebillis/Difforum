@@ -147,6 +147,22 @@ TIPS = {
         "images": "A batch from other nodes instead of the folder (one per key, in order).",
         "times": "Override: '0, 4s, 9.5s' or frame numbers.",
     },
+    "Difforum_SceneStills": {
+        "direction": "The Director timeline: one still per scene that has a prompt.",
+        "model": "An image model (SDXL, SD1.5, Flux...).",
+        "style": "The look shared by every still, written once: medium, light, lens, palette. It goes in "
+                 "front of each scene prompt.",
+        "negative": "What no still should show.",
+        "steps": "Sampling steps per still. 24 for a base model, 4-8 with a turbo / DMD2 model.",
+        "cfg": "Prompt strength. 5-6 for a base model, 1-2 for turbo / DMD2.",
+        "seed": "Same seed for every still, so they share composition habits and texture.",
+        "continuity": "How much each still is painted over the one before. 0 = every still from scratch "
+                      "(free composition, the look can jump). 0.5 = palette and layout carry over. 1 = small "
+                      "changes only.",
+        "long_edge": "Size the stills are made at, in the canvas aspect. Use the image model's own size "
+                     "(1024 SDXL, 768 SD1.5): the video model scales them down itself.",
+        "first_image": "Your own picture as the first still; the rest are painted after it.",
+    },
     "Difforum_Animatic": {
         "direction": "The Director to previz.",
         "preview_scale": "Size vs. Setup. 0.4 = small and instant; 1.0 = full size.",

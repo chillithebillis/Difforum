@@ -5,6 +5,9 @@
 Difforum becomes a direction layer: a visual timeline drives any renderer.
 
 ### New
+- **Scene Stills**: one still per timeline scene, painted with continuity, as keyframes for
+  H3 / LTX. Templates 17-19: a three-shot story on H3, a living photograph (depth, low
+  energy) and a painted story at 12 fps.
 - **Recipes**: ten shot scripts in `example_scripts/` (`examples/<name>.txt` in Shot Script)
   and `docs/EXAMPLES.md`, with fast settings for long pieces.
 - **Shot Script**: the Director timeline from text, CSV, a file in `input/` or an LLM

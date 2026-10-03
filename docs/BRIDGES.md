@@ -303,6 +303,7 @@ to pick a few keyframes from it. When the look can be made as stills, skip it:
 | route | cost | when |
 |---|---|---|
 | **Keyframe Assets** (template 16) | none: pictures you already have | stills from any image model, an art department, a shoot |
+| **Scene Stills** (template 17) | one image per scene (3-6 images) | the timeline is the script; the image model paints the storyboard |
 | Guide Frames + **Keyframe Polish** (template 10) | one image-model pass per keyframe (4-8 images) | one anchor image, the camera path must be exact |
 | Look pass (template 11) | the whole shot through the Feedback Sampler | the look *is* the feedback (morphs, smears) |
 
@@ -315,6 +316,11 @@ Animatic, `first` / `last` for first-last-frame models.
 
 For stills from different sources, pass them through Keyframe Polish at denoise
 0.25-0.35 so they share one look; H3 copies whatever differs between guides.
+
+**Scene Stills** (template 17) makes the stills from the timeline itself: one
+picture per scene prompt, with a shared `style`, each painted over the one
+before (`continuity`), at the image model's own size. With `cuts` on in Camera →
+Prompt every scene becomes an H3 shot that opens on its still.
 
 ## Depth
 
