@@ -94,6 +94,13 @@ EXTERNAL = {
                                         ("inpaint_mask", "MASK")],
                                        ["strength", "start_percent", "end_percent"],
                                        [("positive", "CONDITIONING"), ("negative", "CONDITIONING")]),
+    "ACN_SparseCtrlIndexMethodNode": ([], ["indexes"], [("SPARSE_METHOD", "SPARSE_METHOD")]),
+    "ACN_SparseCtrlLoaderAdvanced": ([("sparse_method", "SPARSE_METHOD"), ("tk_optional", "TIMESTEP_KEYFRAME")],
+                                     ["sparsectrl_name", "use_motion", "motion_strength", "motion_scale",
+                                      "context_aware", "sparse_hint_mult", "sparse_nonhint_mult",
+                                      "sparse_mask_mult"], [("CONTROL_NET", "CONTROL_NET")]),
+    "ACN_SparseCtrlRGBPreprocessor": ([("image", "IMAGE"), ("vae", "VAE"), ("latent_size", "LATENT")], [],
+                                      [("proc_IMAGE", "IMAGE")]),
     "LatentUpscaleBy": ([("samples", "LATENT")], ["upscale_method", "scale_by"], [("LATENT", "LATENT")]),
     "CLIPLoader": ([], ["clip_name", "type", "device"], [("CLIP", "CLIP")]),
     "VAELoader": ([], ["vae_name"], [("VAE", "VAE")]),
@@ -390,7 +397,7 @@ BYPASS_BLOCKS = {B_LIVE, B_FILL, B_RESTYLE, B_LOOKMIX, B_UPSCALE, B_H3UP, B_POLI
                  B_SCRIPT, "Audio"}
 LOCKED_BLOCKS = {B_CONTROL, B_MODELS, B_FIRST, B_LOOKPASS, "3 · H3 guides", "3 · H3 shot", "Decode"}
 UNDER = {B_LIVE: "3 · Render", B_LOOKMIX: B_RESTYLE, "4 · Import": "3 · Export"}
-ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "1 · Shot script", "1 · Keyframe assets",
+ROW0_PREFIX = ("0 · ", "1 · Direction", "1 · Source", "1 · Shot script", "1 · Keyframe assets", "1 · Pictures",
                "2 · Scene stills", "2 · ", "3 · H3", "3 · Look pass", "3 · LTX",
                "3 · Storyboard", "3 · Export", "Audio", B_FILL, B_POLISH, B_DEPTH)
 
@@ -1486,6 +1493,221 @@ def wf_story_painted():
 
 
 # ---------------------------------------------------------------------------
+# 20 - 21: pictures on the Director (travel through your images)
+# ---------------------------------------------------------------------------
+
+TEA_SCENES = [
+    {"start": 0, "mood": "calm", "sound": "a quiet room, a kettle settling",
+     "prompt": "a ceramic teapot on a wooden table by a window, morning light, steam rising"},
+    {"start": 64, "mood": "build", "sound": "tea pouring into a cup",
+     "prompt": "tea pours into a cup, amber liquid swirling, steam curling in the light"},
+    {"start": 128, "mood": "resolve", "sound": "a page turning, birds outside",
+     "prompt": "the full cup beside an open book, sunlight moving across the table"},
+]
+
+
+def _pictures(g, d, n=3):
+    """Load Image x n into the Director's picture inputs."""
+    with g.block("1 · Pictures", C_DIRECT, col=1):
+        g.note("## Pictures\n\nOne picture per scene, in order. Each is pinned to the start of its scene "
+               "(Director `images_at`) and shown on the timeline after a run. Any size: they are cropped to "
+               "the canvas. No pictures yet? Wire **Scene Stills** or **Keyframe Assets** into `images`.",
+               size=(320, 190))
+        for i in range(1, n + 1):
+            li = g.add("LoadImage", size=(260, 300), image="example.png", title=f"Picture {i}")
+            g.link(li, "IMAGE", d, f"image_{i}")
+
+
+def wf_director_pictures_h3():
+    g = Graph("20 · Pictures on the Director → MiniMax H3 with sound (+ AnimateDiff pass)")
+    control(g, "## The Director with pictures\n\nPlug a picture per scene into the Director. The timeline "
+            "says what the camera and the scene do in each frame range (the **Script** button shows it as "
+            "text: `0-63 | calm | dolly_in | prompt | sound: …`), the pictures say what it looks like at "
+            "each moment, and everything travels on the one `direction` wire.\n\n- **MiniMax H3** plays the "
+            "in-betweens with real motion *and sound*: each scene's `sound` becomes the soundscape.\n"
+            "- **AnimateDiff pass** (off) re-draws the H3 clip with AnimateLCM and the same prompt travel, "
+            "frame by frame; it saves a second video with H3's sound.\n- Ships fast: Turbo LoRA on, H3 "
+            "Latent Upscale off.\n- Previz first: the Animatic shows pictures, camera and timing in "
+            "seconds.", size=(520, 470))
+    tl = tl_json(192, scenes=TEA_SCENES, camera=[
+        {"start": 0, "move": "dolly_in", "speed": 0.5, "intensity": 0.5, "ease": "ease_in_out"},
+        {"start": 64, "move": "pan_right", "speed": 0.6, "intensity": 0.5, "ease": "ease_in_out"},
+        {"start": 128, "move": "dolly_out", "speed": 0.5, "intensity": 0.5, "ease": "ease_out"},
+    ], keys=[{"start": 64, "label": "The tea starts to pour"}])
+    with g.block(B_DIRECT, C_DIRECT, col=1, row=0):
+        s = g.add("Difforum_Setup", size=(320, 300), target="MiniMax H3", duration=8.0, long_edge=640)
+        d = g.add("Difforum_Director", size=(800, 880), camera_mode="2d", look="cinematic", timeline=tl)
+        g.link(s, "params", d, "params")
+    _pictures(g, d)
+    previz(g, d)
+    with g.block(B_MODELS, C_MODELS, col=0, row=1):
+        un, cl, vv, va = h3_loaders(g, "minimax_h3_ref2va_pruned_int8_convrot.safetensors")
+    with g.block("3 · H3 guides", C_RENDER, col=3):
+        cp = g.add("Difforum_CameraPrompt", size=(340, 340), format="H3 structured",
+                   h3_mode="reference (ref2va / guides)")
+        g.link(d, "direction", cp, "direction")
+        r2v = g.add("MiniMaxH3ReferenceToVideo", size=(420, 300), prompt="", width=832, height=480,
+                    length=124, ref_image_size="match")
+        g.link(cl, "CLIP", r2v, "clip")
+        g.link(vv, "VAE", r2v, "vae")
+        g.link(va, "VAE", r2v, "audio_vae")
+        g.link(d, "keyframes", r2v, "ref_images.ref_image_0")
+        g.link(cp, "text", r2v, "prompt")
+        g.link(s, "width", r2v, "width")
+        g.link(s, "height", r2v, "height")
+        g.link(s, "frames", r2v, "length")
+        hg = g.add("Difforum_H3Guides", size=(420, 200), max_guides=6, title="H3 Guides (pictures from the Director)")
+        g.link(r2v, "positive", hg, "positive")
+        g.link(r2v, "LATENT", hg, "latent")
+        g.link(vv, "VAE", hg, "vae")
+        g.link(d, "direction", hg, "direction")
+        t = g.add("PreviewAny", size=(420, 220), title="H3 prompt (camera, scenes, sound)")
+        g.link(cp, "text", t, "source")
+    video, audio = h3_render(g, (hg, "positive"), (r2v, "LATENT"), un, vv, va,
+                             "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", col=5)
+    up = upscale(g, video, col=6)
+    output(g, up, col=7, prefix="video/difforum_pictures_h3", audio=audio)
+    b_ad = "4 · AnimateDiff pass"
+    with g.block(b_ad, C_STYLE, col=6):
+        g.note("## AnimateDiff pass\n\nThe H3 clip re-drawn by AnimateLCM, 16 frames at a time, with the "
+               "Director's prompt travel (**Travel Conditioning**: one prompt per frame) and a light edge "
+               "ControlNet so the composition holds.\n\n- `denoise` 0.5 keeps H3's motion, 0.75 lets "
+               "AnimateDiff move things its own way.\n- Lower the ControlNet `strength` / `end_percent` for "
+               "more of AnimateDiff's motion.\n- Needs AnimateDiff-Evolved, Advanced-ControlNet, an SD1.5 "
+               "checkpoint, AnimateLCM (module + LoRA) and `control_v11p_sd15_canny`.", size=(380, 300))
+        ck = g.add("CheckpointLoaderSimple", size=(320, 100), title="SD1.5 checkpoint",
+                   ckpt_name="dreamshaper_8.safetensors")
+        g.link(ck, "CLIP", d, "clip")                    # encodes the scenes for the prompt travel
+        sc = g.add("ImageScaleToTotalPixels", size=(320, 110), title="Working size (SD1.5)",
+                   upscale_method="lanczos", megapixels=0.3, resolution_steps=8)
+        g.link(video[0], video[1], sc, "image")
+        tc = g.add("Difforum_TravelConditioning", size=(320, 110))
+        g.link(d, "direction", tc, "direction")
+        g.link(sc, "IMAGE", tc, "images")
+        ng = g.add("CLIPTextEncode", size=(340, 100), title="Negative", text=STORY_NEG)
+        g.link(ck, "CLIP", ng, "clip")
+        ed = g.add("Canny", size=(300, 100), low_threshold=0.2, high_threshold=0.5)
+        g.link(sc, "IMAGE", ed, "image")
+        ce = g.add("ControlNetLoaderAdvanced", size=(340, 80), title="Edge ControlNet",
+                   control_net_name="control_v11p_sd15_canny.pth")
+        ap = g.add("ACN_AdvancedControlNetApply_v2", size=(320, 170), title="Apply edges", strength=0.45,
+                   start_percent=0.0, end_percent=0.6)
+        g.link(tc, "positive", ap, "positive")
+        g.link(ng, "CONDITIONING", ap, "negative")
+        g.link(ce, "CONTROL_NET", ap, "control_net")
+        g.link(ed, "IMAGE", ap, "image")
+        lo = g.add("LoraLoaderModelOnly", size=(360, 90), title="AnimateLCM LoRA",
+                   lora_name="AnimateLCM_sd15_t2v_lora.safetensors", strength_model=1.0)
+        g.link(ck, "MODEL", lo, "model")
+        cx = g.add("ADE_StandardUniformContextOptions", size=(340, 220), context_length=16, context_stride=1,
+                   context_overlap=4, fuse_method="pyramid", use_on_equal_length=False, start_percent=0.0,
+                   guarantee_steps=1)
+        ad = g.add("ADE_AnimateDiffLoaderGen1", size=(340, 170), title="AnimateLCM motion module",
+                   model_name="AnimateLCM_sd15_t2v.ckpt", beta_schedule="lcm avg(sqrt_linear,linear)")
+        g.link(lo, "MODEL", ad, "model")
+        g.link(cx, "CONTEXT_OPTS", ad, "context_options")
+        en = g.add("VAEEncode", size=(200, 60))
+        g.link(sc, "IMAGE", en, "pixels")
+        g.link(ck, "VAE", en, "vae")
+        ks = g.add("KSampler", size=(300, 260), title="AnimateDiff pass (8 steps)", seed=7, steps=8, cfg=1.8,
+                   sampler_name="lcm", scheduler="sgm_uniform", denoise=0.6)
+        g.link(ad, "MODEL", ks, "model")
+        g.link(ap, "positive", ks, "positive")
+        g.link(ap, "negative", ks, "negative")
+        g.link(en, "LATENT", ks, "latent_image")
+        dv = g.add("VAEDecode", size=(200, 60))
+        g.link(ks, "LATENT", dv, "samples")
+        g.link(ck, "VAE", dv, "vae")
+        u2 = g.add("Difforum_Upscale", size=(320, 200), target="2K (2048 long edge)")
+        g.link(dv, "IMAGE", u2, "frames")
+        cv = g.add("CreateVideo", size=(260, 100), fps=24.0)
+        g.link(u2, "frames", cv, "images")
+        g.link(audio[0], audio[1], cv, "audio")
+        g.link(s, "fps", cv, "fps")
+        sv = g.add("SaveVideo", size=(480, 420), title="AnimateDiff pass video",
+                   filename_prefix="video/difforum_pictures_animatediff", format="auto", codec="auto")
+        g.link(cv, "VIDEO", sv, "video")
+    g.off(b_ad)
+    return g
+
+
+def wf_animatediff_travel():
+    g = Graph("21 · AnimateDiff travel through your pictures (SparseCtrl + prompt travel)")
+    control(g, "## AnimateDiff, keyframed\n\nAnimateDiff makes the motion itself here - nothing to restyle. "
+            "The Director pins a picture to the start of each scene; **SparseCtrl** shows AnimateDiff those "
+            "pictures only at those frames, and the motion module invents everything in between, 16 frames "
+            "at a time, while **Travel Conditioning** changes the prompt frame by frame.\n\n- This is where "
+            "AnimateDiff's own linked motion comes from: free frames between sparse anchors. A dense "
+            "ControlNet on every frame (templates 14 / 15) holds the source motion instead.\n- "
+            "`motion_strength` on the SparseCtrl loader and the ControlNet `strength` trade motion for "
+            "fidelity to the pictures.\n- 12 fps, 512 px: AnimateDiff's home ground. Upscale 2K finishes "
+            "it.\n- Needs AnimateDiff-Evolved, Advanced-ControlNet, an SD1.5 checkpoint, `v3_sd15_mm.ckpt` "
+            "and `v3_sd15_sparsectrl_rgb.ckpt` (models/controlnet).\n- No sound here: for sound, send the "
+            "pictures through MiniMax H3 (template 20).", size=(520, 520))
+    tl = tl_json(96, scenes=[{**sc, "start": sc["start"] // 2} for sc in TEA_SCENES], camera=[
+        {"start": 0, "move": "still", "speed": 1.0, "intensity": 1.0, "ease": "ease_in_out"}], keys=[])
+    with g.block(B_DIRECT, C_DIRECT, col=1, row=0):
+        s = g.add("Difforum_Setup", size=(320, 300), duration=8.0, fps=12.0, long_edge=512)
+        d = g.add("Difforum_Director", size=(800, 880), camera_mode="2d", look="animatediff_dream", timeline=tl)
+        g.link(s, "params", d, "params")
+    _pictures(g, d)
+    previz(g, d)
+    with g.block(B_MODELS, C_MODELS, col=0, row=1):
+        ck = g.add("CheckpointLoaderSimple", size=(320, 100), title="SD1.5 checkpoint",
+                   ckpt_name="dreamshaper_8.safetensors")
+        g.link(ck, "CLIP", d, "clip")
+        ng = g.add("CLIPTextEncode", size=(380, 110), title="Negative", text=STORY_NEG)
+        g.link(ck, "CLIP", ng, "clip")
+    with g.block("3 · Keyframes (SparseCtrl)", C_FILL, col=2):
+        lat = g.add("EmptyLatentImage", size=(260, 110), width=512, height=288, batch_size=96)
+        g.link(s, "width", lat, "width")
+        g.link(s, "height", lat, "height")
+        g.link(s, "frames", lat, "batch_size")
+        tc = g.add("Difforum_TravelConditioning", size=(320, 110))
+        g.link(d, "direction", tc, "direction")
+        im = g.add("ACN_SparseCtrlIndexMethodNode", size=(300, 70), indexes="0")
+        g.link(d, "indices", im, "indexes")
+        sl = g.add("ACN_SparseCtrlLoaderAdvanced", size=(360, 240), sparsectrl_name="v3_sd15_sparsectrl_rgb.ckpt",
+                   use_motion=True, motion_strength=1.0, motion_scale=1.0, context_aware="nearest_hint",
+                   sparse_hint_mult=1.0, sparse_nonhint_mult=1.0, sparse_mask_mult=1.0)
+        g.link(im, "SPARSE_METHOD", sl, "sparse_method")
+        rp = g.add("ACN_SparseCtrlRGBPreprocessor", size=(300, 90))
+        g.link(d, "keyframes", rp, "image")
+        g.link(ck, "VAE", rp, "vae")
+        g.link(lat, "LATENT", rp, "latent_size")
+        ap = g.add("ACN_AdvancedControlNetApply_v2", size=(320, 170), title="Apply keyframes", strength=1.0,
+                   start_percent=0.0, end_percent=0.9)
+        g.link(tc, "positive", ap, "positive")
+        g.link(ng, "CONDITIONING", ap, "negative")
+        g.link(sl, "CONTROL_NET", ap, "control_net")
+        g.link(rp, "proc_IMAGE", ap, "image")
+        pv = g.add("PreviewImage", size=(420, 260), title="Pictures pinned by the Director")
+        g.link(d, "keyframes", pv, "images")
+    with g.block(B_AD, C_STYLE, col=3):
+        cx = g.add("ADE_StandardUniformContextOptions", size=(340, 220), context_length=16, context_stride=1,
+                   context_overlap=6, fuse_method="pyramid", use_on_equal_length=False, start_percent=0.0,
+                   guarantee_steps=1)
+        ad = g.add("ADE_AnimateDiffLoaderGen1", size=(340, 170), model_name="v3_sd15_mm.ckpt",
+                   beta_schedule="autoselect")
+        g.link(ck, "MODEL", ad, "model")
+        g.link(cx, "CONTEXT_OPTS", ad, "context_options")
+    with g.block("3 · Render · AnimateDiff", C_RENDER, col=4):
+        ks = g.add("KSampler", size=(300, 260), seed=7, steps=20, cfg=7.0, sampler_name="dpmpp_2m",
+                   scheduler="karras", denoise=1.0)
+        g.link(ad, "MODEL", ks, "model")
+        g.link(ap, "positive", ks, "positive")
+        g.link(ap, "negative", ks, "negative")
+        g.link(lat, "LATENT", ks, "latent_image")
+        dv = g.add("VAEDecode", size=(200, 60))
+        g.link(ks, "LATENT", dv, "samples")
+        g.link(ck, "VAE", dv, "vae")
+    up = upscale(g, (dv, "IMAGE"), col=5)
+    output(g, up, col=6, prefix="video/difforum_animatediff_travel", fps_src=(s, "fps"))
+    return g
+
+
+
+# ---------------------------------------------------------------------------
 # 09, 12
 # ---------------------------------------------------------------------------
 
@@ -1605,6 +1827,8 @@ WORKFLOWS = {
     "17_story_three_shots_h3.json": wf_story_h3,
     "18_story_living_photograph.json": wf_story_parallax,
     "19_story_painted.json": wf_story_painted,
+    "20_director_pictures_h3_sound.json": wf_director_pictures_h3,
+    "21_animatediff_travel_pictures.json": wf_animatediff_travel,
 }
 
 

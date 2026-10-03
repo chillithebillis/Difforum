@@ -192,11 +192,15 @@ def parse_timeline(raw) -> dict:
     scenes = []
     for s in raw.get("scenes", []) or []:
         if isinstance(s, dict):
-            scenes.append({
+            scene = {
                 "start": max(0, int(_num(s.get("start", 0), 0))),
                 "mood": str(s.get("mood", "calm")).lower(),
                 "prompt": " ".join(str(s.get("prompt", "")).split()),
-            })
+            }
+            sound = " ".join(str(s.get("sound", "") or "").split())
+            if sound:                       # what is heard in this scene (video models with audio)
+                scene["sound"] = sound
+            scenes.append(scene)
     camera = []
     for c in raw.get("camera", []) or []:
         if isinstance(c, dict):
@@ -521,6 +525,8 @@ class DirectionBundle:
     prompts: object | None         # core.prompt.PromptTrack | None
     direction: Direction
     look_name: str = "cinematic"
+    key_images: object | None = None   # IMAGE batch pinned to moments (Director image inputs)
+    key_indices: str = ""              # their frames, "0,48,96"
 
     @property
     def look(self) -> dict:

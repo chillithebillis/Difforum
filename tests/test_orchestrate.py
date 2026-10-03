@@ -40,7 +40,7 @@ def test_script_lines():
     assert [s["mood"] for s in tl["scenes"]] == ["calm", "build", "climax", "calm"]
     cam = {c["start"]: c for c in tl["camera"]}
     assert cam[0]["move"] == "dolly_in" and cam[0]["speed"] == 0.6 and cam[0]["intensity"] == 0.5
-    assert cam[108]["move"] == "orbit_left" and cam[108]["speed"] == 1.5 and cam[108]["lens"] == 35.0
+    assert cam[108]["move"] == "orbit_left" and cam[108]["speed"] == 1.5 and cam[108]["lens"] == 54.4
     assert cam[240]["move"] == "dolly_in" and cam[240]["speed"] == 1.3     # alias push in
     assert tl["keys"] == [{"start": 216, "label": "the light breaks"}]
     assert tl["energy"] == [(240, 0.7)] and not notes
@@ -80,7 +80,7 @@ def test_director_timeline_in():
     baked = json.loads(out["ui"]["difforum_timeline"][0])
     assert baked["scenes"][0]["prompt"] == "outside prompt" and baked["camera"][0]["move"] == "zoom_in"
     assert bundle.direction.keys[0]["start"] == 48
-    assert "timeline_in" in out["result"][-1]
+    assert "timeline_in" in out["result"][5]
     plain = director(p)
     assert plain is not None
 
@@ -193,3 +193,62 @@ def test_scene_stills(stub_model):
     DifforumSceneStills().run(d, stub_model, StubClip(), StubVAE(), "", "blurry", 4, 1.0, "euler", "normal",
                               7, 0.0, 512, first_image=torch.rand(1, 90, 160, 3))
     assert [c["denoise"] for c in stub_model.calls] == [1.0, 1.0]
+
+
+def test_director_pins_images_and_guides_use_them(monkeypatch):
+    import nodes as stub_nodes
+    import torch
+    from test_nodes import StubClip
+
+    from difforum.nodes.bridges import DifforumH3Guides
+    from difforum.nodes.orchestrate import DifforumTravelConditioning
+    p = setup(seconds=5.0)[0]
+    tl = json.dumps(script_to_timeline(
+        "0-47 | calm | zoom_in | a boat | sound: rain\n48-95 | build | the storm | sound: thunder\n"
+        "96-119 | resolve | sunrise", 24, 120)[0])
+    out = DifforumDirector().run(p, tl, "2d", "cinematic", 1.0, 1.0, 0.0, 0.0, 0, clip=StubClip(),
+                                 images=torch.rand(2, 50, 80, 3), image_2=torch.rand(1, 300, 200, 3))
+    bundle, keys, idx = out["result"][0], out["result"][6], out["result"][7]
+    assert idx == "0,48,96" and keys.shape == (3, p["height"], p["width"], 3)
+    assert bundle.key_indices == idx and len(out["ui"]["difforum_thumbs"]) == 3
+    assert out["ui"]["difforum_thumbs"][1]["frame"] == 48
+    assert bundle.direction.scenes[0]["sound"] == "rain"
+
+    calls = []
+
+    class FakeAddGuide:
+        @classmethod
+        def execute(cls, positive, latent, frame_idx, vae=None, audio_vae=None, image=None, audio=None):
+            calls.append(frame_idx)
+            return (positive,)
+
+    monkeypatch.setitem(stub_nodes.NODE_CLASS_MAPPINGS, "MiniMaxH3AddGuide", FakeAddGuide)
+    DifforumH3Guides().run([], {"samples": None}, object(), direction=bundle)
+    assert calls == [0, 48, 96]
+    with pytest.raises(ValueError):
+        DifforumH3Guides().run([], {"samples": None}, object())
+
+    cond, n, _info = DifforumTravelConditioning().run(direction=bundle)
+    assert n == 120 and cond[0][0].shape[0] == 120 and cond[0][1]["pooled_output"].shape[0] == 120
+    cond, n, _ = DifforumTravelConditioning().run(direction=bundle, images=torch.zeros(30, 8, 8, 3))
+    assert n == 30 and cond[0][0].shape[0] == 30
+    assert float(cond[0][0][0].mean()) != float(cond[0][0][-1].mean())      # the prompt travels
+
+
+def test_script_ranges_sound_and_roundtrip():
+    from difforum.core.h3prompt import scene_sounds
+    from difforum.core.script import timeline_to_script
+    from difforum.nodes.routes import convert_script
+    txt = ("do frame 0 ao frame 35 | calm | zoom_in slow | a boat | sound: rain on glass\n"
+           "35-238 | build | pan_right x0.7 amp 0.6 | a stream | sound: trickling water\n"
+           "120 | key: the drop\n240 to 299 | resolve | crane_up | a pond")
+    tl, notes = script_to_timeline(txt, 24, 300)
+    assert not notes and [s["start"] for s in tl["scenes"]] == [0, 35, 240]
+    text = timeline_to_script(tl, 300)
+    assert "0-34 |" in text and "35-239 |" in text and "sound: rain on glass" in text
+    assert script_to_timeline(text, 24, 300)[0] == tl
+    assert convert_script({"timeline": tl, "frames": 300})["text"] == text
+    assert convert_script({"text": text, "fps": 24, "frames": 300})["timeline"] == tl
+    p = setup(seconds=12.5)[0]
+    d = director(p, tl=tl)[0]
+    assert scene_sounds(d.direction) == "Rain on glass, then trickling water."

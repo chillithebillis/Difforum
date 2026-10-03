@@ -1,6 +1,6 @@
 {
- "last_node_id": 42,
- "last_link_id": 60,
+ "last_node_id": 60,
+ "last_link_id": 81,
  "nodes": [
   {
    "id": 1,
@@ -23,18 +23,18 @@
     "locked": [
      "0 · Control",
      "1 · Direction",
-     "1 · Keyframe assets",
+     "1 · Pictures",
      "Models",
      "3 · H3 guides"
     ],
     "modes": {
-     "1 · Shot script (timeline from text)": "bypass",
      "2 · Previz": "mute",
      "3 · Render · MiniMax H3": "mute",
      "Live Preview (TAEH3)": "bypass",
      "H3 Latent Upscale (x2)": "bypass",
      "Upscale 2K": "bypass",
-     "Output": "mute"
+     "Output": "mute",
+     "4 · AnimateDiff pass": "mute"
     }
    },
    "widgets_values": [],
@@ -49,7 +49,7 @@
    ],
    "size": [
     520,
-    520
+    470
    ],
    "flags": {},
    "order": 1,
@@ -60,7 +60,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## Keyframe assets + shot script → MiniMax H3\n\nThe fast way to a styled H3 shot: no look pass to render. Your own stills (any image model, Photoshop, a shoot) are the keyframes, and a text script writes the timeline.\n\n1. Put the stills in `ComfyUI/input/difforum_keys/`, named by time: `0s_wide.png`, `2s_roots.png`, `4.5s_sky.png` (or `f096.png`). Same look, same aspect.\n2. Write the beats in **Shot Script** (`TIME | MOOD | CAMERA | PROMPT`), point `file` at a .txt / .csv in input, or wire an LLM node into `script_in` (its prompt: the `llm_instructions` output). Switch **Shot script** off to draw the timeline by hand.\n3. Previz, then Render: the first still is `<Picture 1>`, every still is an H3 guide.\n\n- Director `external`: *text only* keeps your drawn camera and takes the words from the script.\n- Mixed sources? Run the stills through **Keyframe Polish** (template 10) at denoise 0.25-0.35 so they share one look before H3."
+    "## The Director with pictures\n\nPlug a picture per scene into the Director. The timeline says what the camera and the scene do in each frame range (the **Script** button shows it as text: `0-63 | calm | dolly_in | prompt | sound: …`), the pictures say what it looks like at each moment, and everything travels on the one `direction` wire.\n\n- **MiniMax H3** plays the in-betweens with real motion *and sound*: each scene's `sound` becomes the soundscape.\n- **AnimateDiff pass** (off) re-draws the H3 clip with AnimateLCM and the same prompt travel, frame by frame; it saves a second video with H3's sound.\n- Ships fast: Turbo LoRA on, H3 Latent Upscale off.\n- Previz first: the Animatic shows pictures, camera and timing in seconds."
    ]
   },
   {
@@ -83,8 +83,7 @@
      "name": "params",
      "type": "DIFFORUM_PARAMS",
      "links": [
-      1,
-      2
+      1
      ],
      "slot_index": 0
     },
@@ -92,7 +91,7 @@
      "name": "width",
      "type": "INT",
      "links": [
-      20
+      15
      ],
      "slot_index": 1
     },
@@ -100,7 +99,7 @@
      "name": "height",
      "type": "INT",
      "links": [
-      21
+      16
      ],
      "slot_index": 2
     },
@@ -108,14 +107,16 @@
      "name": "frames",
      "type": "INT",
      "links": [
-      22
+      17
      ],
      "slot_index": 3
     },
     {
      "name": "fps",
      "type": "FLOAT",
-     "links": [],
+     "links": [
+      80
+     ],
      "slot_index": 4
     },
     {
@@ -131,7 +132,7 @@
    "widgets_values": [
     "MiniMax H3",
     "seconds",
-    5.0,
+    8.0,
     24.0,
     "16:9 landscape",
     640,
@@ -165,7 +166,7 @@
     {
      "name": "clip",
      "type": "CLIP",
-     "link": null
+     "link": 56
     },
     {
      "name": "audio",
@@ -175,7 +176,7 @@
     {
      "name": "timeline_in",
      "type": "STRING",
-     "link": 3
+     "link": null
     },
     {
      "name": "images",
@@ -185,17 +186,17 @@
     {
      "name": "image_1",
      "type": "IMAGE",
-     "link": null
+     "link": 2
     },
     {
      "name": "image_2",
      "type": "IMAGE",
-     "link": null
+     "link": 3
     },
     {
      "name": "image_3",
      "type": "IMAGE",
-     "link": null
+     "link": 4
     },
     {
      "name": "image_4",
@@ -219,8 +220,9 @@
      "type": "DIFFORUM_DIRECTION",
      "links": [
       5,
-      7,
-      14
+      9,
+      21,
+      58
      ],
      "slot_index": 0
     },
@@ -257,7 +259,9 @@
     {
      "name": "keyframes",
      "type": "IMAGE",
-     "links": [],
+     "links": [
+      13
+     ],
      "slot_index": 6
     },
     {
@@ -271,7 +275,7 @@
     "Node name for S&R": "Difforum_Director"
    },
    "widgets_values": [
-    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"misty ancient forest at dawn, light shafts through the canopy\"}, {\"start\": 62, \"mood\": \"build\", \"prompt\": \"the mist lifts, glowing moss and roots in the foreground\"}], \"camera\": [{\"start\": 0, \"move\": \"dolly_in\", \"speed\": 0.8, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 62, \"move\": \"orbit_right\", \"speed\": 0.9, \"intensity\": 0.8, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}], \"keys\": [{\"start\": 62, \"label\": \"the light breaks\"}], \"energy\": [], \"guidance\": []}",
+    "{\"version\": 2, \"scenes\": [{\"start\": 0, \"mood\": \"calm\", \"prompt\": \"a ceramic teapot on a wooden table by a window, morning light, steam rising\", \"sound\": \"a quiet room, a kettle settling\"}, {\"start\": 64, \"mood\": \"build\", \"prompt\": \"tea pours into a cup, amber liquid swirling, steam curling in the light\", \"sound\": \"tea pouring into a cup\"}, {\"start\": 128, \"mood\": \"resolve\", \"prompt\": \"the full cup beside an open book, sunlight moving across the table\", \"sound\": \"a page turning, birds outside\"}], \"camera\": [{\"start\": 0, \"move\": \"dolly_in\", \"speed\": 0.5, \"intensity\": 0.5, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 64, \"move\": \"pan_right\", \"speed\": 0.6, \"intensity\": 0.5, \"lens\": 0.0, \"ease\": \"ease_in_out\", \"react\": \"none\"}, {\"start\": 128, \"move\": \"dolly_out\", \"speed\": 0.5, \"intensity\": 0.5, \"lens\": 0.0, \"ease\": \"ease_out\", \"react\": \"none\"}], \"keys\": [{\"start\": 64, \"label\": \"The tea starts to pour\"}], \"energy\": [], \"guidance\": []}",
     "2d",
     "cinematic",
     1.0,
@@ -286,220 +290,152 @@
   },
   {
    "id": 5,
-   "type": "Difforum_ShotScript",
+   "type": "MarkdownNote",
    "pos": [
     1940,
     66
    ],
    "size": [
-    520,
-    300
+    320,
+    190
    ],
    "flags": {},
    "order": 4,
    "mode": 0,
-   "inputs": [
-    {
-     "name": "params",
-     "type": "DIFFORUM_PARAMS",
-     "link": 2
-    },
-    {
-     "name": "script_in",
-     "type": "STRING",
-     "link": null
-    }
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## Pictures\n\nOne picture per scene, in order. Each is pinned to the start of its scene (Director `images_at`) and shown on the timeline after a run. Any size: they are cropped to the canvas. No pictures yet? Wire **Scene Stills** or **Keyframe Assets** into `images`."
+   ]
+  },
+  {
+   "id": 6,
+   "type": "LoadImage",
+   "pos": [
+    1940,
+    312
    ],
+   "size": [
+    260,
+    300
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [],
    "outputs": [
     {
-     "name": "timeline",
-     "type": "STRING",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    null
+   ],
+   "title": "Picture 1"
+  },
+  {
+   "id": 7,
+   "type": "LoadImage",
+   "pos": [
+    1940,
+    668
+   ],
+   "size": [
+    260,
+    300
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
      "links": [
       3
      ],
      "slot_index": 0
     },
     {
-     "name": "llm_instructions",
-     "type": "STRING",
-     "links": [],
-     "slot_index": 1
-    },
-    {
-     "name": "info",
-     "type": "STRING",
-     "links": [
-      4
-     ],
-     "slot_index": 2
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "Difforum_ShotScript"
-   },
-   "widgets_values": [
-    "# TIME | MOOD | CAMERA | PROMPT     (one beat per line, # comments)\n0s   | calm    | dolly_in slow small | misty ancient forest at dawn, light shafts through the canopy\n2s   | build   | orbit_left          | glowing moss and roots in the foreground\n3.5s | key: the light breaks\n4s   | resolve | crane_up slow       | the canopy opens to a pale sky",
-    ""
-   ],
-   "title": "Shot Script"
-  },
-  {
-   "id": 6,
-   "type": "PreviewAny",
-   "pos": [
-    2500,
-    66
-   ],
-   "size": [
-    420,
-    200
-   ],
-   "flags": {},
-   "order": 5,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "source",
-     "type": "*",
-     "link": 4
-    }
-   ],
-   "outputs": [
-    {
-     "name": "STRING",
-     "type": "STRING",
-     "links": [],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PreviewAny"
-   },
-   "widgets_values": [],
-   "title": "Script read as"
-  },
-  {
-   "id": 7,
-   "type": "Difforum_KeyframeAssets",
-   "pos": [
-    3038,
-    66
-   ],
-   "size": [
-    340,
-    234
-   ],
-   "flags": {},
-   "order": 6,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "direction",
-     "type": "DIFFORUM_DIRECTION",
-     "link": 5
-    },
-    {
-     "name": "params",
-     "type": "DIFFORUM_PARAMS",
-     "link": null
-    },
-    {
-     "name": "images",
-     "type": "IMAGE",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "keyframes",
-     "type": "IMAGE",
-     "links": [
-      6,
-      9,
-      26
-     ],
-     "slot_index": 0
-    },
-    {
-     "name": "indices",
-     "type": "STRING",
-     "links": [
-      10,
-      27
-     ],
-     "slot_index": 1
-    },
-    {
-     "name": "first",
-     "type": "IMAGE",
-     "links": [
-      8,
-      18
-     ],
-     "slot_index": 2
-    },
-    {
-     "name": "last",
-     "type": "IMAGE",
-     "links": [],
-     "slot_index": 3
-    },
-    {
-     "name": "masks",
+     "name": "MASK",
      "type": "MASK",
      "links": [],
-     "slot_index": 4
-    },
-    {
-     "name": "info",
-     "type": "STRING",
-     "links": [],
-     "slot_index": 5
+     "slot_index": 1
     }
    ],
    "properties": {
-    "Node name for S&R": "Difforum_KeyframeAssets"
+    "Node name for S&R": "LoadImage"
    },
    "widgets_values": [
-    "difforum_keys",
-    "filename",
-    "cover (crop)",
-    ""
-   ]
+    "example.png",
+    null
+   ],
+   "title": "Picture 2"
   },
   {
    "id": 8,
-   "type": "PreviewImage",
+   "type": "LoadImage",
    "pos": [
-    3418,
-    66
+    1940,
+    1024
    ],
    "size": [
-    420,
-    280
+    260,
+    300
    ],
    "flags": {},
    "order": 7,
    "mode": 0,
-   "inputs": [
+   "inputs": [],
+   "outputs": [
     {
-     "name": "images",
+     "name": "IMAGE",
      "type": "IMAGE",
-     "link": 6
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
     }
    ],
-   "outputs": [],
    "properties": {
-    "Node name for S&R": "PreviewImage"
+    "Node name for S&R": "LoadImage"
    },
-   "widgets_values": [],
-   "title": "Keyframe assets"
+   "widgets_values": [
+    "example.png",
+    null
+   ],
+   "title": "Picture 3"
   },
   {
    "id": 9,
    "type": "MarkdownNote",
    "pos": [
-    3956,
+    2378,
     66
    ],
    "size": [
@@ -522,7 +458,7 @@
    "id": 10,
    "type": "Difforum_Animatic",
    "pos": [
-    4356,
+    2778,
     66
    ],
    "size": [
@@ -536,12 +472,12 @@
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 7
+     "link": 5
     },
     {
      "name": "init_image",
      "type": "IMAGE",
-     "link": 8
+     "link": null
     },
     {
      "name": "depth",
@@ -551,12 +487,12 @@
     {
      "name": "key_images",
      "type": "IMAGE",
-     "link": 9
+     "link": null
     },
     {
      "name": "key_indices",
      "type": "STRING",
-     "link": 10
+     "link": null
     }
    ],
    "outputs": [
@@ -564,7 +500,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      11
+      6
      ],
      "slot_index": 0
     },
@@ -572,7 +508,7 @@
      "name": "fps",
      "type": "FLOAT",
      "links": [
-      12
+      7
      ],
      "slot_index": 1
     },
@@ -596,7 +532,7 @@
    "id": 11,
    "type": "CreateVideo",
    "pos": [
-    4756,
+    3178,
     66
    ],
    "size": [
@@ -610,7 +546,7 @@
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 11
+     "link": 6
     },
     {
      "name": "audio",
@@ -620,7 +556,7 @@
     {
      "name": "fps",
      "type": "FLOAT",
-     "link": 12,
+     "link": 7,
      "widget": {
       "name": "fps"
      }
@@ -631,7 +567,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      13
+      8
      ],
      "slot_index": 0
     }
@@ -647,7 +583,7 @@
    "id": 12,
    "type": "SaveVideo",
    "pos": [
-    5056,
+    3478,
     66
    ],
    "size": [
@@ -661,7 +597,7 @@
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 13
+     "link": 8
     }
    ],
    "outputs": [],
@@ -680,7 +616,7 @@
    "type": "UNETLoader",
    "pos": [
     24,
-    1254
+    1504
    ],
    "size": [
     420,
@@ -695,7 +631,7 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      28
+      23
      ],
      "slot_index": 0
     }
@@ -713,7 +649,7 @@
    "type": "CLIPLoader",
    "pos": [
     24,
-    1400
+    1650
    ],
    "size": [
     420,
@@ -728,7 +664,7 @@
      "name": "CLIP",
      "type": "CLIP",
      "links": [
-      15
+      10
      ],
      "slot_index": 0
     }
@@ -747,7 +683,7 @@
    "type": "VAELoader",
    "pos": [
     24,
-    1566
+    1816
    ],
    "size": [
     420,
@@ -762,10 +698,10 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      16,
-      25,
-      44,
-      53
+      11,
+      20,
+      39,
+      48
      ],
      "slot_index": 0
     }
@@ -783,7 +719,7 @@
    "type": "VAELoader",
    "pos": [
     24,
-    1682
+    1932
    ],
    "size": [
     420,
@@ -798,8 +734,8 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      17,
-      55
+      12,
+      50
      ],
      "slot_index": 0
     }
@@ -816,12 +752,12 @@
    "id": 17,
    "type": "Difforum_CameraPrompt",
    "pos": [
-    5534,
+    3956,
     66
    ],
    "size": [
     340,
-    320
+    340
    ],
    "flags": {},
    "order": 16,
@@ -830,7 +766,7 @@
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": 14
+     "link": 9
     },
     {
      "name": "params",
@@ -848,7 +784,8 @@
      "name": "text",
      "type": "STRING",
      "links": [
-      19
+      14,
+      22
      ],
      "slot_index": 0
     }
@@ -861,7 +798,7 @@
     "",
     true,
     "reference (ref2va / guides)",
-    "Soft birdsong and a low wind moving through the trees.",
+    "",
     "",
     false
    ]
@@ -870,7 +807,7 @@
    "id": 18,
    "type": "MiniMaxH3ReferenceToVideo",
    "pos": [
-    5914,
+    4336,
     66
    ],
    "size": [
@@ -884,27 +821,27 @@
     {
      "name": "clip",
      "type": "CLIP",
-     "link": 15
+     "link": 10
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 16
+     "link": 11
     },
     {
      "name": "audio_vae",
      "type": "VAE",
-     "link": 17
+     "link": 12
     },
     {
      "name": "ref_images.ref_image_0",
      "type": "IMAGE",
-     "link": 18
+     "link": 13
     },
     {
      "name": "prompt",
      "type": "STRING",
-     "link": 19,
+     "link": 14,
      "widget": {
       "name": "prompt"
      }
@@ -912,7 +849,7 @@
     {
      "name": "width",
      "type": "INT",
-     "link": 20,
+     "link": 15,
      "widget": {
       "name": "width"
      }
@@ -920,7 +857,7 @@
     {
      "name": "height",
      "type": "INT",
-     "link": 21,
+     "link": 16,
      "widget": {
       "name": "height"
      }
@@ -928,7 +865,7 @@
     {
      "name": "length",
      "type": "INT",
-     "link": 22,
+     "link": 17,
      "widget": {
       "name": "length"
      }
@@ -939,7 +876,7 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      23
+      18
      ],
      "slot_index": 0
     },
@@ -947,8 +884,8 @@
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      24,
-      37
+      19,
+      32
      ],
      "slot_index": 1
     }
@@ -968,7 +905,7 @@
    "id": 19,
    "type": "Difforum_H3Guides",
    "pos": [
-    6374,
+    4796,
     66
    ],
    "size": [
@@ -982,32 +919,32 @@
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 23
+     "link": 18
     },
     {
      "name": "latent",
      "type": "LATENT",
-     "link": 24
+     "link": 19
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 25
+     "link": 20
     },
     {
      "name": "keyframes",
      "type": "IMAGE",
-     "link": 26
+     "link": null
     },
     {
      "name": "indices",
      "type": "STRING",
-     "link": 27
+     "link": null
     },
     {
      "name": "direction",
      "type": "DIFFORUM_DIRECTION",
-     "link": null
+     "link": 21
     },
     {
      "name": "audio_vae",
@@ -1025,8 +962,8 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      31,
-      42
+      26,
+      37
      ],
      "slot_index": 0
     },
@@ -1041,29 +978,65 @@
     "Node name for S&R": "Difforum_H3Guides"
    },
    "widgets_values": [
-    8,
+    6,
     false
-   ]
+   ],
+   "title": "H3 Guides (pictures from the Director)"
   },
   {
    "id": 20,
-   "type": "LoraLoaderModelOnly",
+   "type": "PreviewAny",
    "pos": [
-    862,
-    1254
+    4336,
+    422
    ],
    "size": [
-    360,
-    90
+    420,
+    220
    ],
    "flags": {},
    "order": 19,
    "mode": 0,
    "inputs": [
     {
+     "name": "source",
+     "type": "*",
+     "link": 22
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "H3 prompt (camera, scenes, sound)"
+  },
+  {
+   "id": 21,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    862,
+    1504
+   ],
+   "size": [
+    360,
+    90
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
      "name": "model",
      "type": "MODEL",
-     "link": 28
+     "link": 23
     }
    ],
    "outputs": [
@@ -1071,8 +1044,8 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      29,
-      45
+      24,
+      40
      ],
      "slot_index": 0
     }
@@ -1087,18 +1060,18 @@
    "title": "Turbo LoRA (4 steps) · Ctrl+B + steps 20 for the base model"
   },
   {
-   "id": 21,
+   "id": 22,
    "type": "MarkdownNote",
    "pos": [
     562,
-    1640
+    1890
    ],
    "size": [
     360,
     200
    ],
    "flags": {},
-   "order": 20,
+   "order": 21,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -1110,24 +1083,24 @@
    ]
   },
   {
-   "id": 22,
+   "id": 23,
    "type": "ModelPreviewOverrideKJ",
    "pos": [
     962,
-    1640
+    1890
    ],
    "size": [
     380,
     640
    ],
    "flags": {},
-   "order": 21,
+   "order": 22,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 29
+     "link": 24
     },
     {
      "name": "vae",
@@ -1145,8 +1118,8 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      30,
-      32
+      25,
+      27
      ],
      "slot_index": 0
     }
@@ -1164,29 +1137,29 @@
    ]
   },
   {
-   "id": 23,
+   "id": 24,
    "type": "BasicGuider",
    "pos": [
     1562,
-    1254
+    1504
    ],
    "size": [
     220,
     54
    ],
    "flags": {},
-   "order": 22,
+   "order": 23,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 30
+     "link": 25
     },
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 31
+     "link": 26
     }
    ],
    "outputs": [
@@ -1194,7 +1167,7 @@
      "name": "GUIDER",
      "type": "GUIDER",
      "links": [
-      34
+      29
      ],
      "slot_index": 0
     }
@@ -1205,18 +1178,18 @@
    "widgets_values": []
   },
   {
-   "id": 24,
+   "id": 25,
    "type": "RandomNoise",
    "pos": [
     562,
-    1254
+    1504
    ],
    "size": [
     260,
     90
    ],
    "flags": {},
-   "order": 23,
+   "order": 24,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1224,8 +1197,8 @@
      "name": "NOISE",
      "type": "NOISE",
      "links": [
-      33,
-      47
+      28,
+      42
      ],
      "slot_index": 0
     }
@@ -1239,18 +1212,18 @@
    ]
   },
   {
-   "id": 25,
+   "id": 26,
    "type": "KSamplerSelect",
    "pos": [
     562,
-    1400
+    1650
    ],
    "size": [
     260,
     60
    ],
    "flags": {},
-   "order": 24,
+   "order": 25,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1258,7 +1231,7 @@
      "name": "SAMPLER",
      "type": "SAMPLER",
      "links": [
-      35
+      30
      ],
      "slot_index": 0
     }
@@ -1271,24 +1244,24 @@
    ]
   },
   {
-   "id": 26,
+   "id": 27,
    "type": "BasicScheduler",
    "pos": [
     1262,
-    1254
+    1504
    ],
    "size": [
     260,
     110
    ],
    "flags": {},
-   "order": 25,
+   "order": 26,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 32
+     "link": 27
     }
    ],
    "outputs": [
@@ -1296,7 +1269,7 @@
      "name": "SIGMAS",
      "type": "SIGMAS",
      "links": [
-      36
+      31
      ],
      "slot_index": 0
     }
@@ -1311,44 +1284,44 @@
    ]
   },
   {
-   "id": 27,
+   "id": 28,
    "type": "SamplerCustomAdvanced",
    "pos": [
     1822,
-    1254
+    1504
    ],
    "size": [
     260,
     120
    ],
    "flags": {},
-   "order": 26,
+   "order": 27,
    "mode": 0,
    "inputs": [
     {
      "name": "noise",
      "type": "NOISE",
-     "link": 33
+     "link": 28
     },
     {
      "name": "guider",
      "type": "GUIDER",
-     "link": 34
+     "link": 29
     },
     {
      "name": "sampler",
      "type": "SAMPLER",
-     "link": 35
+     "link": 30
     },
     {
      "name": "sigmas",
      "type": "SIGMAS",
-     "link": 36
+     "link": 31
     },
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 37
+     "link": 32
     }
    ],
    "outputs": [
@@ -1356,7 +1329,7 @@
      "name": "output",
      "type": "LATENT",
      "links": [
-      38
+      33
      ],
      "slot_index": 0
     },
@@ -1373,18 +1346,18 @@
    "widgets_values": []
   },
   {
-   "id": 28,
+   "id": 29,
    "type": "MarkdownNote",
    "pos": [
     2440,
-    1254
+    1504
    ],
    "size": [
     380,
     360
    ],
    "flags": {},
-   "order": 27,
+   "order": 28,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -1396,24 +1369,24 @@
    ]
   },
   {
-   "id": 29,
+   "id": 30,
    "type": "LTXVSeparateAVLatent",
    "pos": [
     2860,
-    1254
+    1504
    ],
    "size": [
     240,
     70
    ],
    "flags": {},
-   "order": 28,
+   "order": 29,
    "mode": 4,
    "inputs": [
     {
      "name": "av_latent",
      "type": "LATENT",
-     "link": 38
+     "link": 33
     }
    ],
    "outputs": [
@@ -1421,7 +1394,7 @@
      "name": "video_latent",
      "type": "LATENT",
      "links": [
-      39
+      34
      ],
      "slot_index": 0
     },
@@ -1429,7 +1402,7 @@
      "name": "audio_latent",
      "type": "LATENT",
      "links": [
-      41
+      36
      ],
      "slot_index": 1
     }
@@ -1440,24 +1413,24 @@
    "widgets_values": []
   },
   {
-   "id": 30,
+   "id": 31,
    "type": "MinimaxH3LatentUpscaler3D",
    "pos": [
     3140,
-    1254
+    1504
    ],
    "size": [
     340,
     260
    ],
    "flags": {},
-   "order": 29,
+   "order": 30,
    "mode": 4,
    "inputs": [
     {
      "name": "latent",
      "type": "*",
-     "link": 39
+     "link": 34
     }
    ],
    "outputs": [
@@ -1465,7 +1438,7 @@
      "name": "latent",
      "type": "*",
      "links": [
-      40
+      35
      ],
      "slot_index": 0
     }
@@ -1485,29 +1458,29 @@
    "title": "Minimax H3 Latent Upscaler (3D)"
   },
   {
-   "id": 31,
+   "id": 32,
    "type": "LTXVConcatAVLatent",
    "pos": [
     3520,
-    1254
+    1504
    ],
    "size": [
     240,
     70
    ],
    "flags": {},
-   "order": 30,
+   "order": 31,
    "mode": 4,
    "inputs": [
     {
      "name": "video_latent",
      "type": "LATENT",
-     "link": 40
+     "link": 35
     },
     {
      "name": "audio_latent",
      "type": "LATENT",
-     "link": 41
+     "link": 36
     }
    ],
    "outputs": [
@@ -1515,8 +1488,8 @@
      "name": "latent",
      "type": "LATENT",
      "links": [
-      43,
-      51
+      38,
+      46
      ],
      "slot_index": 0
     }
@@ -1527,34 +1500,34 @@
    "widgets_values": []
   },
   {
-   "id": 32,
+   "id": 33,
    "type": "Difforum_H3RefineGuides",
    "pos": [
     3800,
-    1254
+    1504
    ],
    "size": [
     300,
     110
    ],
    "flags": {},
-   "order": 31,
+   "order": 32,
    "mode": 4,
    "inputs": [
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 42
+     "link": 37
     },
     {
      "name": "latent",
      "type": "LATENT",
-     "link": 43
+     "link": 38
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 44
+     "link": 39
     }
    ],
    "outputs": [
@@ -1562,7 +1535,7 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      46
+      41
      ],
      "slot_index": 0
     },
@@ -1581,29 +1554,29 @@
    ]
   },
   {
-   "id": 33,
+   "id": 34,
    "type": "BasicGuider",
    "pos": [
     4140,
-    1254
+    1504
    ],
    "size": [
     220,
     54
    ],
    "flags": {},
-   "order": 32,
+   "order": 33,
    "mode": 4,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 45
+     "link": 40
     },
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 46
+     "link": 41
     }
    ],
    "outputs": [
@@ -1611,7 +1584,7 @@
      "name": "GUIDER",
      "type": "GUIDER",
      "links": [
-      48
+      43
      ],
      "slot_index": 0
     }
@@ -1623,18 +1596,18 @@
    "title": "Refine guider"
   },
   {
-   "id": 34,
+   "id": 35,
    "type": "KSamplerSelect",
    "pos": [
     2440,
-    1670
+    1920
    ],
    "size": [
     260,
     60
    ],
    "flags": {},
-   "order": 33,
+   "order": 34,
    "mode": 4,
    "inputs": [],
    "outputs": [
@@ -1642,7 +1615,7 @@
      "name": "SAMPLER",
      "type": "SAMPLER",
      "links": [
-      49
+      44
      ],
      "slot_index": 0
     }
@@ -1655,18 +1628,18 @@
    ]
   },
   {
-   "id": 35,
+   "id": 36,
    "type": "ManualSigmas",
    "pos": [
     2440,
-    1786
+    2036
    ],
    "size": [
     300,
     60
    ],
    "flags": {},
-   "order": 34,
+   "order": 35,
    "mode": 4,
    "inputs": [],
    "outputs": [
@@ -1674,7 +1647,7 @@
      "name": "SIGMAS",
      "type": "SIGMAS",
      "links": [
-      50
+      45
      ],
      "slot_index": 0
     }
@@ -1688,44 +1661,44 @@
    "title": "Refine sigmas"
   },
   {
-   "id": 36,
+   "id": 37,
    "type": "SamplerCustomAdvanced",
    "pos": [
     4400,
-    1254
+    1504
    ],
    "size": [
     260,
     120
    ],
    "flags": {},
-   "order": 35,
+   "order": 36,
    "mode": 4,
    "inputs": [
     {
      "name": "noise",
      "type": "NOISE",
-     "link": 47
+     "link": 42
     },
     {
      "name": "guider",
      "type": "GUIDER",
-     "link": 48
+     "link": 43
     },
     {
      "name": "sampler",
      "type": "SAMPLER",
-     "link": 49
+     "link": 44
     },
     {
      "name": "sigmas",
      "type": "SIGMAS",
-     "link": 50
+     "link": 45
     },
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 51
+     "link": 46
     }
    ],
    "outputs": [
@@ -1733,8 +1706,8 @@
      "name": "output",
      "type": "LATENT",
      "links": [
-      52,
-      54
+      47,
+      49
      ],
      "slot_index": 0
     },
@@ -1752,52 +1725,11 @@
    "title": "Refine at 2x"
   },
   {
-   "id": 37,
+   "id": 38,
    "type": "VAEDecode",
    "pos": [
     2122,
-    1254
-   ],
-   "size": [
-    200,
-    60
-   ],
-   "flags": {},
-   "order": 36,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "samples",
-     "type": "LATENT",
-     "link": 52
-    },
-    {
-     "name": "vae",
-     "type": "VAE",
-     "link": 53
-    }
-   ],
-   "outputs": [
-    {
-     "name": "IMAGE",
-     "type": "IMAGE",
-     "links": [
-      56
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "VAEDecode"
-   },
-   "widgets_values": []
-  },
-  {
-   "id": 38,
-   "type": "VAEDecodeAudio",
-   "pos": [
-    2122,
-    1370
+    1504
    ],
    "size": [
     200,
@@ -1810,12 +1742,54 @@
     {
      "name": "samples",
      "type": "LATENT",
-     "link": 54
+     "link": 47
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 55
+     "link": 48
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      51,
+      57
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 39,
+   "type": "VAEDecodeAudio",
+   "pos": [
+    2122,
+    1620
+   ],
+   "size": [
+    200,
+    60
+   ],
+   "flags": {},
+   "order": 38,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 49
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 50
     }
    ],
    "outputs": [
@@ -1823,7 +1797,8 @@
      "name": "AUDIO",
      "type": "AUDIO",
      "links": [
-      59
+      54,
+      79
      ],
      "slot_index": 0
     }
@@ -1834,18 +1809,18 @@
    "widgets_values": []
   },
   {
-   "id": 39,
+   "id": 40,
    "type": "UpscaleModelLoader",
    "pos": [
     4778,
-    1254
+    1504
    ],
    "size": [
     320,
     80
    ],
    "flags": {},
-   "order": 38,
+   "order": 39,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -1853,7 +1828,7 @@
      "name": "UPSCALE_MODEL",
      "type": "UPSCALE_MODEL",
      "links": [
-      57
+      52
      ],
      "slot_index": 0
     }
@@ -1867,29 +1842,29 @@
    "title": "Upscale model"
   },
   {
-   "id": 40,
+   "id": 41,
    "type": "Difforum_Upscale",
    "pos": [
     5138,
-    1254
+    1504
    ],
    "size": [
     320,
     200
    ],
    "flags": {},
-   "order": 39,
+   "order": 40,
    "mode": 0,
    "inputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "link": 56
+     "link": 51
     },
     {
      "name": "upscale_model",
      "type": "UPSCALE_MODEL",
-     "link": 57
+     "link": 52
     }
    ],
    "outputs": [
@@ -1897,7 +1872,7 @@
      "name": "frames",
      "type": "IMAGE",
      "links": [
-      58
+      53
      ],
      "slot_index": 0
     },
@@ -1920,29 +1895,29 @@
    ]
   },
   {
-   "id": 41,
+   "id": 42,
    "type": "CreateVideo",
    "pos": [
     5576,
-    1254
+    1504
    ],
    "size": [
     260,
     100
    ],
    "flags": {},
-   "order": 40,
+   "order": 41,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 58
+     "link": 53
     },
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 59
+     "link": 54
     }
    ],
    "outputs": [
@@ -1950,7 +1925,7 @@
      "name": "VIDEO",
      "type": "VIDEO",
      "links": [
-      60
+      55
      ],
      "slot_index": 0
     }
@@ -1963,24 +1938,24 @@
    ]
   },
   {
-   "id": 42,
+   "id": 43,
    "type": "SaveVideo",
    "pos": [
     5876,
-    1254
+    1504
    ],
    "size": [
     480,
     420
    ],
    "flags": {},
-   "order": 41,
+   "order": 42,
    "mode": 0,
    "inputs": [
     {
      "name": "video",
      "type": "VIDEO",
-     "link": 60
+     "link": 55
     }
    ],
    "outputs": [],
@@ -1988,10 +1963,848 @@
     "Node name for S&R": "SaveVideo"
    },
    "widgets_values": [
-    "video/difforum_h3_assets",
+    "video/difforum_pictures_h3",
     "auto",
     "auto"
    ]
+  },
+  {
+   "id": 44,
+   "type": "MarkdownNote",
+   "pos": [
+    6474,
+    1504
+   ],
+   "size": [
+    380,
+    300
+   ],
+   "flags": {},
+   "order": 43,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "## AnimateDiff pass\n\nThe H3 clip re-drawn by AnimateLCM, 16 frames at a time, with the Director's prompt travel (**Travel Conditioning**: one prompt per frame) and a light edge ControlNet so the composition holds.\n\n- `denoise` 0.5 keeps H3's motion, 0.75 lets AnimateDiff move things its own way.\n- Lower the ControlNet `strength` / `end_percent` for more of AnimateDiff's motion.\n- Needs AnimateDiff-Evolved, Advanced-ControlNet, an SD1.5 checkpoint, AnimateLCM (module + LoRA) and `control_v11p_sd15_canny`."
+   ]
+  },
+  {
+   "id": 45,
+   "type": "CheckpointLoaderSimple",
+   "pos": [
+    6474,
+    1860
+   ],
+   "size": [
+    320,
+    100
+   ],
+   "flags": {},
+   "order": 44,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      66
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      56,
+      60
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      70,
+      76
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CheckpointLoaderSimple"
+   },
+   "widgets_values": [
+    "dreamshaper_8.safetensors"
+   ],
+   "title": "SD1.5 checkpoint"
+  },
+  {
+   "id": 46,
+   "type": "ImageScaleToTotalPixels",
+   "pos": [
+    7674,
+    1504
+   ],
+   "size": [
+    320,
+    110
+   ],
+   "flags": {},
+   "order": 45,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 57
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      59,
+      61,
+      69
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ImageScaleToTotalPixels"
+   },
+   "widgets_values": [
+    "lanczos",
+    0.3,
+    8
+   ],
+   "title": "Working size (SD1.5)"
+  },
+  {
+   "id": 47,
+   "type": "Difforum_TravelConditioning",
+   "pos": [
+    8034,
+    1504
+   ],
+   "size": [
+    320,
+    110
+   ],
+   "flags": {},
+   "order": 46,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": 58
+    },
+    {
+     "name": "prompts",
+     "type": "DIFFORUM_PROMPT",
+     "link": null
+    },
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 59
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      62
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "frames",
+     "type": "INT",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_TravelConditioning"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 48,
+   "type": "CLIPTextEncode",
+   "pos": [
+    6894,
+    1504
+   ],
+   "size": [
+    340,
+    100
+   ],
+   "flags": {},
+   "order": 47,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 60
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      63
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "blurry, low quality, watermark, text, frame, border, people, faces, distorted, oversaturated"
+   ],
+   "title": "Negative"
+  },
+  {
+   "id": 49,
+   "type": "Canny",
+   "pos": [
+    8034,
+    1670
+   ],
+   "size": [
+    300,
+    100
+   ],
+   "flags": {},
+   "order": 48,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 61
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      65
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Canny"
+   },
+   "widgets_values": [
+    0.2,
+    0.5
+   ]
+  },
+  {
+   "id": 50,
+   "type": "ControlNetLoaderAdvanced",
+   "pos": [
+    6474,
+    2016
+   ],
+   "size": [
+    340,
+    80
+   ],
+   "flags": {},
+   "order": 49,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "tk_optional",
+     "type": "TIMESTEP_KEYFRAME",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONTROL_NET",
+     "type": "CONTROL_NET",
+     "links": [
+      64
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ControlNetLoaderAdvanced"
+   },
+   "widgets_values": [
+    "control_v11p_sd15_canny.pth"
+   ],
+   "title": "Edge ControlNet"
+  },
+  {
+   "id": 51,
+   "type": "ACN_AdvancedControlNetApply_v2",
+   "pos": [
+    8394,
+    1504
+   ],
+   "size": [
+    320,
+    294
+   ],
+   "flags": {},
+   "order": 50,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 62
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 63
+    },
+    {
+     "name": "control_net",
+     "type": "CONTROL_NET",
+     "link": 64
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 65
+    },
+    {
+     "name": "mask_optional",
+     "type": "MASK",
+     "link": null
+    },
+    {
+     "name": "timestep_kf",
+     "type": "TIMESTEP_KEYFRAME",
+     "link": null
+    },
+    {
+     "name": "latent_kf_override",
+     "type": "LATENT_KEYFRAME",
+     "link": null
+    },
+    {
+     "name": "weights_override",
+     "type": "CONTROL_NET_WEIGHTS",
+     "link": null
+    },
+    {
+     "name": "vae_optional",
+     "type": "VAE",
+     "link": null
+    },
+    {
+     "name": "inpaint_mask",
+     "type": "MASK",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      72
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [
+      73
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ACN_AdvancedControlNetApply_v2"
+   },
+   "widgets_values": [
+    0.45,
+    0.0,
+    0.6
+   ],
+   "title": "Apply edges"
+  },
+  {
+   "id": 52,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    6894,
+    1660
+   ],
+   "size": [
+    360,
+    90
+   ],
+   "flags": {},
+   "order": 51,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 66
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      67
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "AnimateLCM_sd15_t2v_lora.safetensors",
+    1.0
+   ],
+   "title": "AnimateLCM LoRA"
+  },
+  {
+   "id": 53,
+   "type": "ADE_StandardUniformContextOptions",
+   "pos": [
+    6474,
+    2152
+   ],
+   "size": [
+    340,
+    222
+   ],
+   "flags": {},
+   "order": 52,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "prev_context",
+     "type": "CONTEXT_OPTIONS",
+     "link": null
+    },
+    {
+     "name": "view_opts",
+     "type": "VIEW_OPTS",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONTEXT_OPTS",
+     "type": "CONTEXT_OPTIONS",
+     "links": [
+      68
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ADE_StandardUniformContextOptions"
+   },
+   "widgets_values": [
+    16,
+    1,
+    4,
+    "pyramid",
+    false,
+    0.0,
+    1
+   ]
+  },
+  {
+   "id": 54,
+   "type": "ADE_AnimateDiffLoaderGen1",
+   "pos": [
+    7294,
+    1504
+   ],
+   "size": [
+    340,
+    249
+   ],
+   "flags": {},
+   "order": 53,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 67
+    },
+    {
+     "name": "context_options",
+     "type": "CONTEXT_OPTIONS",
+     "link": 68
+    },
+    {
+     "name": "motion_lora",
+     "type": "MOTION_LORA",
+     "link": null
+    },
+    {
+     "name": "ad_settings",
+     "type": "AD_SETTINGS",
+     "link": null
+    },
+    {
+     "name": "ad_keyframes",
+     "type": "AD_KEYFRAMES",
+     "link": null
+    },
+    {
+     "name": "sample_settings",
+     "type": "SAMPLE_SETTINGS",
+     "link": null
+    },
+    {
+     "name": "scale_multival",
+     "type": "MULTIVAL",
+     "link": null
+    },
+    {
+     "name": "effect_multival",
+     "type": "MULTIVAL",
+     "link": null
+    },
+    {
+     "name": "per_block",
+     "type": "PER_BLOCK",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      71
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ADE_AnimateDiffLoaderGen1"
+   },
+   "widgets_values": [
+    "AnimateLCM_sd15_t2v.ckpt",
+    "lcm avg(sqrt_linear,linear)"
+   ],
+   "title": "AnimateLCM motion module"
+  },
+  {
+   "id": 55,
+   "type": "VAEEncode",
+   "pos": [
+    8034,
+    1826
+   ],
+   "size": [
+    200,
+    60
+   ],
+   "flags": {},
+   "order": 54,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "pixels",
+     "type": "IMAGE",
+     "link": 69
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 70
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      74
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEEncode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 56,
+   "type": "KSampler",
+   "pos": [
+    8754,
+    1504
+   ],
+   "size": [
+    300,
+    264
+   ],
+   "flags": {},
+   "order": 55,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 71
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 72
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 73
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 74
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      75
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    7,
+    "fixed",
+    8,
+    1.8,
+    "lcm",
+    "sgm_uniform",
+    0.6
+   ],
+   "title": "AnimateDiff pass (8 steps)"
+  },
+  {
+   "id": 57,
+   "type": "VAEDecode",
+   "pos": [
+    9094,
+    1504
+   ],
+   "size": [
+    200,
+    60
+   ],
+   "flags": {},
+   "order": 56,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 75
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 76
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      77
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 58,
+   "type": "Difforum_Upscale",
+   "pos": [
+    9334,
+    1504
+   ],
+   "size": [
+    320,
+    200
+   ],
+   "flags": {},
+   "order": 57,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "link": 77
+    },
+    {
+     "name": "upscale_model",
+     "type": "UPSCALE_MODEL",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      78
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "info",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "Difforum_Upscale"
+   },
+   "widgets_values": [
+    "2K (2048 long edge)",
+    "lanczos",
+    0.15,
+    16,
+    "auto (when enlarging 2x or more)"
+   ]
+  },
+  {
+   "id": 59,
+   "type": "CreateVideo",
+   "pos": [
+    9694,
+    1504
+   ],
+   "size": [
+    260,
+    100
+   ],
+   "flags": {},
+   "order": 58,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 78
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 79
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 80,
+     "widget": {
+      "name": "fps"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      81
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24.0
+   ]
+  },
+  {
+   "id": 60,
+   "type": "SaveVideo",
+   "pos": [
+    9994,
+    1504
+   ],
+   "size": [
+    480,
+    420
+   ],
+   "flags": {},
+   "order": 59,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 81
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/difforum_pictures_animatediff",
+    "auto",
+    "auto"
+   ],
+   "title": "AnimateDiff pass video"
   }
  ],
  "links": [
@@ -2005,46 +2818,30 @@
   ],
   [
    2,
-   3,
-   0,
-   5,
-   0,
-   "DIFFORUM_PARAMS"
-  ],
-  [
-   3,
-   5,
-   0,
-   4,
-   3,
-   "STRING"
-  ],
-  [
-   4,
-   5,
-   2,
    6,
    0,
-   "STRING"
-  ],
-  [
-   5,
    4,
-   0,
-   7,
-   0,
-   "DIFFORUM_DIRECTION"
-  ],
-  [
-   6,
-   7,
-   0,
-   8,
-   0,
+   5,
    "IMAGE"
   ],
   [
+   3,
    7,
+   0,
+   4,
+   6,
+   "IMAGE"
+  ],
+  [
+   4,
+   8,
+   0,
+   4,
+   7,
+   "IMAGE"
+  ],
+  [
+   5,
    4,
    0,
    10,
@@ -2052,31 +2849,7 @@
    "DIFFORUM_DIRECTION"
   ],
   [
-   8,
-   7,
-   2,
-   10,
-   1,
-   "IMAGE"
-  ],
-  [
-   9,
-   7,
-   0,
-   10,
-   3,
-   "IMAGE"
-  ],
-  [
-   10,
-   7,
-   1,
-   10,
-   4,
-   "STRING"
-  ],
-  [
-   11,
+   6,
    10,
    0,
    11,
@@ -2084,7 +2857,7 @@
    "IMAGE"
   ],
   [
-   12,
+   7,
    10,
    1,
    11,
@@ -2092,7 +2865,7 @@
    "FLOAT"
   ],
   [
-   13,
+   8,
    11,
    0,
    12,
@@ -2100,7 +2873,7 @@
    "VIDEO"
   ],
   [
-   14,
+   9,
    4,
    0,
    17,
@@ -2108,7 +2881,7 @@
    "DIFFORUM_DIRECTION"
   ],
   [
-   15,
+   10,
    14,
    0,
    18,
@@ -2116,7 +2889,7 @@
    "CLIP"
   ],
   [
-   16,
+   11,
    15,
    0,
    18,
@@ -2124,7 +2897,7 @@
    "VAE"
   ],
   [
-   17,
+   12,
    16,
    0,
    18,
@@ -2132,15 +2905,15 @@
    "VAE"
   ],
   [
-   18,
-   7,
-   2,
+   13,
+   4,
+   6,
    18,
    3,
    "IMAGE"
   ],
   [
-   19,
+   14,
    17,
    0,
    18,
@@ -2148,7 +2921,7 @@
    "STRING"
   ],
   [
-   20,
+   15,
    3,
    1,
    18,
@@ -2156,7 +2929,7 @@
    "INT"
   ],
   [
-   21,
+   16,
    3,
    2,
    18,
@@ -2164,7 +2937,7 @@
    "INT"
   ],
   [
-   22,
+   17,
    3,
    3,
    18,
@@ -2172,7 +2945,7 @@
    "INT"
   ],
   [
-   23,
+   18,
    18,
    0,
    19,
@@ -2180,7 +2953,7 @@
    "CONDITIONING"
   ],
   [
-   24,
+   19,
    18,
    1,
    19,
@@ -2188,7 +2961,7 @@
    "LATENT"
   ],
   [
-   25,
+   20,
    15,
    0,
    19,
@@ -2196,282 +2969,490 @@
    "VAE"
   ],
   [
-   26,
-   7,
+   21,
+   4,
    0,
    19,
-   3,
-   "IMAGE"
+   5,
+   "DIFFORUM_DIRECTION"
   ],
   [
-   27,
-   7,
-   1,
-   19,
-   4,
+   22,
+   17,
+   0,
+   20,
+   0,
    "STRING"
   ],
   [
-   28,
+   23,
    13,
    0,
-   20,
+   21,
    0,
    "MODEL"
   ],
   [
-   29,
-   20,
-   0,
-   22,
-   0,
-   "MODEL"
-  ],
-  [
-   30,
-   22,
+   24,
+   21,
    0,
    23,
    0,
    "MODEL"
   ],
   [
-   31,
+   25,
+   23,
+   0,
+   24,
+   0,
+   "MODEL"
+  ],
+  [
+   26,
    19,
    0,
-   23,
+   24,
    1,
    "CONDITIONING"
   ],
   [
-   32,
-   22,
+   27,
+   23,
    0,
-   26,
+   27,
    0,
    "MODEL"
   ],
   [
-   33,
-   24,
+   28,
+   25,
    0,
-   27,
+   28,
    0,
    "NOISE"
   ],
   [
-   34,
-   23,
+   29,
+   24,
    0,
-   27,
+   28,
    1,
    "GUIDER"
   ],
   [
-   35,
-   25,
+   30,
+   26,
    0,
-   27,
+   28,
    2,
    "SAMPLER"
   ],
   [
-   36,
-   26,
-   0,
+   31,
    27,
+   0,
+   28,
    3,
    "SIGMAS"
   ],
   [
-   37,
+   32,
    18,
    1,
-   27,
+   28,
    4,
    "LATENT"
   ],
   [
-   38,
-   27,
-   0,
-   29,
-   0,
-   "LATENT"
-  ],
-  [
-   39,
-   29,
+   33,
+   28,
    0,
    30,
    0,
    "LATENT"
   ],
   [
-   40,
+   34,
    30,
    0,
    31,
+   0,
+   "LATENT"
+  ],
+  [
+   35,
+   31,
+   0,
+   32,
    0,
    "*"
   ],
   [
-   41,
-   29,
+   36,
+   30,
    1,
-   31,
+   32,
    1,
    "LATENT"
   ],
   [
-   42,
+   37,
    19,
    0,
-   32,
+   33,
    0,
    "CONDITIONING"
   ],
   [
-   43,
-   31,
-   0,
+   38,
    32,
+   0,
+   33,
    1,
    "LATENT"
   ],
   [
-   44,
+   39,
    15,
    0,
-   32,
+   33,
    2,
    "VAE"
   ],
   [
-   45,
-   20,
+   40,
+   21,
    0,
-   33,
+   34,
    0,
    "MODEL"
+  ],
+  [
+   41,
+   33,
+   0,
+   34,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   42,
+   25,
+   0,
+   37,
+   0,
+   "NOISE"
+  ],
+  [
+   43,
+   34,
+   0,
+   37,
+   1,
+   "GUIDER"
+  ],
+  [
+   44,
+   35,
+   0,
+   37,
+   2,
+   "SAMPLER"
+  ],
+  [
+   45,
+   36,
+   0,
+   37,
+   3,
+   "SIGMAS"
   ],
   [
    46,
    32,
    0,
-   33,
-   1,
-   "CONDITIONING"
-  ],
-  [
-   47,
-   24,
-   0,
-   36,
-   0,
-   "NOISE"
-  ],
-  [
-   48,
-   33,
-   0,
-   36,
-   1,
-   "GUIDER"
-  ],
-  [
-   49,
-   34,
-   0,
-   36,
-   2,
-   "SAMPLER"
-  ],
-  [
-   50,
-   35,
-   0,
-   36,
-   3,
-   "SIGMAS"
-  ],
-  [
-   51,
-   31,
-   0,
-   36,
+   37,
    4,
    "LATENT"
   ],
   [
-   52,
-   36,
-   0,
+   47,
    37,
+   0,
+   38,
    0,
    "LATENT"
   ],
   [
-   53,
+   48,
    15,
    0,
-   37,
+   38,
    1,
    "VAE"
   ],
   [
-   54,
-   36,
+   49,
+   37,
    0,
-   38,
+   39,
    0,
    "LATENT"
   ],
   [
-   55,
+   50,
    16,
    0,
-   38,
+   39,
    1,
    "VAE"
   ],
   [
-   56,
-   37,
+   51,
+   38,
    0,
-   40,
+   41,
    0,
    "IMAGE"
   ],
   [
-   57,
-   39,
-   0,
+   52,
    40,
+   0,
+   41,
    1,
    "UPSCALE_MODEL"
   ],
   [
-   58,
-   40,
-   0,
+   53,
    41,
+   0,
+   42,
    0,
    "IMAGE"
   ],
   [
-   59,
-   38,
+   54,
+   39,
    0,
-   41,
+   42,
    1,
    "AUDIO"
   ],
   [
-   60,
-   41,
-   0,
+   55,
    42,
+   0,
+   43,
+   0,
+   "VIDEO"
+  ],
+  [
+   56,
+   45,
+   1,
+   4,
+   1,
+   "CLIP"
+  ],
+  [
+   57,
+   38,
+   0,
+   46,
+   0,
+   "IMAGE"
+  ],
+  [
+   58,
+   4,
+   0,
+   47,
+   0,
+   "DIFFORUM_DIRECTION"
+  ],
+  [
+   59,
+   46,
+   0,
+   47,
+   2,
+   "IMAGE"
+  ],
+  [
+   60,
+   45,
+   1,
+   48,
+   0,
+   "CLIP"
+  ],
+  [
+   61,
+   46,
+   0,
+   49,
+   0,
+   "IMAGE"
+  ],
+  [
+   62,
+   47,
+   0,
+   51,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   63,
+   48,
+   0,
+   51,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   64,
+   50,
+   0,
+   51,
+   2,
+   "CONTROL_NET"
+  ],
+  [
+   65,
+   49,
+   0,
+   51,
+   3,
+   "IMAGE"
+  ],
+  [
+   66,
+   45,
+   0,
+   52,
+   0,
+   "MODEL"
+  ],
+  [
+   67,
+   52,
+   0,
+   54,
+   0,
+   "MODEL"
+  ],
+  [
+   68,
+   53,
+   0,
+   54,
+   1,
+   "CONTEXT_OPTIONS"
+  ],
+  [
+   69,
+   46,
+   0,
+   55,
+   0,
+   "IMAGE"
+  ],
+  [
+   70,
+   45,
+   2,
+   55,
+   1,
+   "VAE"
+  ],
+  [
+   71,
+   54,
+   0,
+   56,
+   0,
+   "MODEL"
+  ],
+  [
+   72,
+   51,
+   0,
+   56,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   73,
+   51,
+   1,
+   56,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   74,
+   55,
+   0,
+   56,
+   3,
+   "LATENT"
+  ],
+  [
+   75,
+   56,
+   0,
+   57,
+   0,
+   "LATENT"
+  ],
+  [
+   76,
+   45,
+   2,
+   57,
+   1,
+   "VAE"
+  ],
+  [
+   77,
+   57,
+   0,
+   58,
+   0,
+   "IMAGE"
+  ],
+  [
+   78,
+   58,
+   0,
+   59,
+   0,
+   "IMAGE"
+  ],
+  [
+   79,
+   39,
+   0,
+   59,
+   1,
+   "AUDIO"
+  ],
+  [
+   80,
+   3,
+   4,
+   59,
+   2,
+   "FLOAT"
+  ],
+  [
+   81,
+   59,
+   0,
+   60,
    0,
    "VIDEO"
   ]
@@ -2484,7 +3465,7 @@
     0,
     0,
     568,
-    1118
+    1068
    ],
    "color": "#444",
    "font_size": 22,
@@ -2505,12 +3486,12 @@
   },
   {
    "id": 3,
-   "title": "1 · Shot script (timeline from text)",
+   "title": "1 · Pictures",
    "bounding": [
     1916,
     0,
-    1028,
-    410
+    368,
+    1368
    ],
    "color": "#3f789e",
    "font_size": 22,
@@ -2518,22 +3499,9 @@
   },
   {
    "id": 4,
-   "title": "1 · Keyframe assets",
-   "bounding": [
-    3014,
-    0,
-    848,
-    390
-   ],
-   "color": "#3f789e",
-   "font_size": 22,
-   "flags": {}
-  },
-  {
-   "id": 5,
    "title": "2 · Previz",
    "bounding": [
-    3932,
+    2354,
     0,
     1508,
     430
@@ -2543,11 +3511,11 @@
    "flags": {}
   },
   {
-   "id": 6,
+   "id": 5,
    "title": "Models",
    "bounding": [
     0,
-    1188,
+    1438,
     468,
     598
    ],
@@ -2556,24 +3524,24 @@
    "flags": {}
   },
   {
-   "id": 7,
+   "id": 6,
    "title": "3 · H3 guides",
    "bounding": [
-    5510,
+    3932,
     0,
     1308,
-    430
+    686
    ],
    "color": "#8A8",
    "font_size": 22,
    "flags": {}
   },
   {
-   "id": 8,
+   "id": 7,
    "title": "3 · Render · MiniMax H3",
    "bounding": [
     538,
-    1188,
+    1438,
     1808,
     316
    ],
@@ -2582,11 +3550,11 @@
    "flags": {}
   },
   {
-   "id": 9,
+   "id": 8,
    "title": "Live Preview (TAEH3)",
    "bounding": [
     538,
-    1574,
+    1824,
     828,
     750
    ],
@@ -2595,11 +3563,11 @@
    "flags": {}
   },
   {
-   "id": 10,
+   "id": 9,
    "title": "H3 Latent Upscale (x2)",
    "bounding": [
     2416,
-    1188,
+    1438,
     2268,
     702
    ],
@@ -2608,11 +3576,11 @@
    "flags": {}
   },
   {
-   "id": 11,
+   "id": 10,
    "title": "Upscale 2K",
    "bounding": [
     4754,
-    1188,
+    1438,
     728,
     310
    ],
@@ -2621,15 +3589,28 @@
    "flags": {}
   },
   {
-   "id": 12,
+   "id": 11,
    "title": "Output",
    "bounding": [
     5552,
-    1188,
+    1438,
     828,
     530
    ],
    "color": "#8A8",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 12,
+   "title": "4 · AnimateDiff pass",
+   "bounding": [
+    6450,
+    1438,
+    4048,
+    980
+   ],
+   "color": "#a1309b",
    "font_size": 22,
    "flags": {}
   }
@@ -2644,7 +3625,7 @@
    ]
   },
   "difforum": "1.0",
-  "title": "16 · H3 from keyframe assets and a shot script (no look pass)"
+  "title": "20 · Pictures on the Director → MiniMax H3 with sound (+ AnimateDiff pass)"
  },
  "version": 0.4
 }

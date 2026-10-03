@@ -63,6 +63,13 @@ TIPS = {
         "timeline_in": "A timeline from outside: Shot Script, an LLM node, a text loader. Plain shot lines "
                        "('0s | calm | dolly_in slow | prompt'), CSV or Director JSON. The editor shows the "
                        "result after each run; disconnect to edit by hand.",
+        "images": "Pictures pinned to moments of the clip, in order (a batch: Keyframe Assets, Scene Stills, "
+                  "Batch Images). They travel on the direction wire: the Feedback Sampler passes through "
+                  "them, H3 / LTX Guides anchor them, the Animatic shows them.",
+        **{f"image_{i}": f"Picture {i}, any size (cropped to the canvas). Pinned in order, after `images`."
+           for i in range(1, 7)},
+        "images_at": "Where the pictures land: the start of each scene, the Keys markers, or spread evenly "
+                     "from the first to the last frame.",
         "external": "How timeline_in meets the drawn timeline. replace: all from outside. text only: scenes "
                     "and keys from outside, your drawn camera stays. camera only: the reverse. add to drawn: "
                     "both, outside wins on the same frame.",
@@ -125,6 +132,12 @@ TIPS = {
                   "content the render passes through, so make them good: same style, same resolution.",
         "times": "Override the Director's Keys: '0, 4s, 9.5s' or frame numbers. Empty = use the Keys "
                  "track; no keys = spread evenly.",
+    },
+    "Difforum_TravelConditioning": {
+        "direction": "A Director with a CLIP connected: its scene prompts become one prompt per frame.",
+        "prompts": "Or the output of a Prompt Travel node.",
+        "images": "Optional: the frames that will be sampled; the travel is stretched to their count.",
+        "latent": "Optional: the latent batch that will be sampled; the travel is stretched to its count.",
     },
     "Difforum_ShotScript": {
         "script": "One beat per line: TIME | MOOD | CAMERA | PROMPT. TIME 0s, 4.5s, 00:09 or f96. CAMERA a "

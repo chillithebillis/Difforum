@@ -381,13 +381,77 @@ class DifforumSceneStills:
         return {"ui": {"text": [info]}, "result": (keys, idx, keys[:1], keys[-1:], info)}
 
 
+# ---------------------------------------------------------------------------
+# Travel Conditioning
+# ---------------------------------------------------------------------------
+
+class DifforumTravelConditioning:
+    """The Director's prompt travel as one CONDITIONING with a prompt per frame.
+
+    Samplers that render a whole clip at once - AnimateDiff, or any batch
+    KSampler - take a single conditioning. This node stacks the timeline's
+    scene prompts, blended from scene to scene, into a batch as long as the
+    clip, so frame 40 is sampled with the prompt of frame 40: the Deforum
+    prompt schedule, on AnimateDiff. Connect a CLIP to the Director (it encodes
+    the scenes). The batch is as long as the Director's clip, or as the
+    `images` / `latent` you connect (a rendered video of another length).
+    """
+
+    DESCRIPTION = __doc__
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {},
+                "optional": {"direction": (DIRECTION,), "prompts": ("DIFFORUM_PROMPT",),
+                             "images": ("IMAGE",), "latent": ("LATENT",)}}
+
+    RETURN_TYPES = ("CONDITIONING", "INT", "STRING")
+    RETURN_NAMES = ("positive", "frames", "info")
+    FUNCTION = "run"
+    CATEGORY = CAT_DIRECT
+
+    def run(self, direction=None, prompts=None, images=None, latent=None):
+        track = prompts if prompts is not None else (direction.prompts if direction is not None else None)
+        if track is None or not len(track):
+            raise ValueError("Travel Conditioning: connect a CLIP to the Director (or a Prompt Travel node) "
+                             "so the scene prompts are encoded.")
+        total = len(track)
+        if images is not None:                       # match the clip being sampled, whatever its length
+            n = int(images.shape[0])
+        elif latent is not None:
+            n = int(latent["samples"].shape[0])
+        else:
+            n = int(direction.params["max_frames"]) if direction is not None else total
+        conds = [track[min(total - 1, round(f * (total - 1) / max(1, n - 1)) if n != total else f)]
+                 for f in range(n)]
+        tokens = max(c[0][0].shape[1] for c in conds)
+        rows, pooled = [], []
+        for c in conds:
+            t = c[0][0]
+            if t.shape[1] < tokens:                      # prompts of different length: pad the short ones
+                t = torch.cat([t, torch.zeros(t.shape[0], tokens - t.shape[1], t.shape[2], dtype=t.dtype)], 1)
+            rows.append(t[:1])
+            po = c[0][1].get("pooled_output")
+            if po is not None:
+                pooled.append(po[:1])
+        extra = {k: v for k, v in conds[0][0][1].items() if k != "pooled_output"}
+        if len(pooled) == n:
+            extra["pooled_output"] = torch.cat(pooled)
+        keys = getattr(track, "keyframes", [])
+        info = "\n".join([f"[Travel Conditioning] {n} frames, {len(keys)} prompts",
+                          *(f"  f{f:<5} {t[:70]}" for f, t in keys)])
+        return ([[torch.cat(rows), extra]], n, info)
+
+
 NODE_CLASS_MAPPINGS = {
     "Difforum_ShotScript": DifforumShotScript,
     "Difforum_KeyframeAssets": DifforumKeyframeAssets,
     "Difforum_SceneStills": DifforumSceneStills,
+    "Difforum_TravelConditioning": DifforumTravelConditioning,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Difforum_ShotScript": "Difforum · Shot Script (timeline from text)",
     "Difforum_KeyframeAssets": "Difforum · Keyframe Assets (folder)",
     "Difforum_SceneStills": "Difforum · Scene Stills (storyboard)",
+    "Difforum_TravelConditioning": "Difforum · Travel Conditioning (prompt per frame)",
 }

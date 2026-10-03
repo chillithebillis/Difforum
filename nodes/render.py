@@ -322,6 +322,8 @@ class DifforumFeedbackSampler:
             sharpen=float(kw["sharpen"]), noise=float(kw["noise"]),
         )
         engine = FeedbackEngine(camera, cfg_e, depth=depth)
+        if key_images is None and getattr(direction, "key_images", None) is not None:
+            key_images, key_indices = direction.key_images, direction.key_indices
         hook = key_hook(key_images, key_indices, w, h, key_pull, key_approach)
         pbar = progress_bar(n)
         frames = []

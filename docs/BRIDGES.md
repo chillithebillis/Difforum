@@ -255,6 +255,55 @@ structured`) write the Director timeline in MiniMax H3's native prompt format:
 sections for ref2va with H3 Guides. Scene prompts and key labels work best as
 things that can be seen or heard.
 
+## Pictures and frame ranges on the Director
+
+The Director takes pictures directly: `images` (a batch) and `image_1..6` (any
+size, cropped to the canvas). `images_at` pins them, in order, to the scene
+starts (default), the Keys markers, or evenly from first to last frame. After a
+run each picture shows on its scene in the timeline. They ride the `direction`
+wire, so nothing else has to be wired:
+
+| consumer | what it does with the pictures |
+|---|---|
+| Feedback Sampler | travels *through* them (`key_pull`, `key_approach`) while the prompt travels between scenes |
+| H3 Guides / LTX Guides | anchors them in the video model (connect `direction`, leave `keyframes` empty) |
+| Animatic | shows them at their moments; the first one is the plate |
+| `keyframes` + `indices` outputs | for anything else: SparseCtrl, Fill Reveal, a preview |
+
+The **Script** button on the Director shows the timeline as text, one line per
+frame range, and applies what you type:
+
+```
+0-35   | calm  | zoom_in x0.6        | a teapot by a window | sound: a quiet room
+35-238 | build | pan_right amp 0.6   | tea pours into a cup | sound: tea pouring
+120    | key: the pour starts
+120    | energy 0.5
+```
+
+Per range: the mood, the camera (move, `x` speed, `amp` amount, `fov`, easing,
+audio reaction), what is on screen, and what is heard. `sound` goes to video
+models that make audio: Camera → Prompt writes the scenes' sounds, in order, as
+the H3 `overall_soundscape` unless you type one there.
+
+### Where each look gets its motion
+
+| you want | what makes the motion | template |
+|---|---|---|
+| the Deforum travel: camera warp + prompt travel through your pictures | Feedback Sampler | 02, 12 with pictures on the Director |
+| real motion and sound between your pictures | MiniMax H3 guides | 16, 17, 20 |
+| AnimateDiff's own linked motion between your pictures | SparseCtrl keyframes + Travel Conditioning | 21 |
+| an AnimateDiff texture over a finished clip | AnimateDiff vid2vid with ControlNets | 14, 15, the pass in 20 |
+
+Restyle and a ControlNet on every frame cannot produce AnimateDiff's motion:
+Restyle paints frames one at a time (no motion module), and a dense depth /
+edge ControlNet at denoise 0.5-0.75 pins every frame to the source, so the
+motion module only has texture left to animate. AnimateDiff moves things itself
+when frames are free: full denoise from an empty latent, pictures given only at
+a few frames (SparseCtrl), a prompt that changes over time (Travel
+Conditioning), and context windows that overlap (16 frames, overlap 4-6). In
+templates 14 / 15, lowering the ControlNet strength and `end_percent` and
+raising denoise moves toward that; template 21 starts there.
+
 ## Orchestration: scripts and assets
 
 ### Timeline from text

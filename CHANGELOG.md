@@ -5,6 +5,15 @@
 Difforum becomes a direction layer: a visual timeline drives any renderer.
 
 ### New
+- **Director picture inputs** (`images`, `image_1..6`, `images_at`): pictures pinned to scene
+  starts / Keys, thumbnails on the timeline, carried on the `direction` wire (Feedback Sampler,
+  H3 / LTX Guides and Animatic use them without extra wiring); `keyframes` + `indices` outputs.
+- **Script panel** on the Director: the timeline as text, one line per frame range
+  (`0-35 | mood | camera | prompt | sound: ...`), both ways.
+- **Scene sound**: a `sound` per scene, written into the H3 soundscape in time order.
+- **Travel Conditioning**: the prompt travel as one conditioning with a prompt per frame, for
+  AnimateDiff. Templates 20 (pictures → H3 with sound, optional AnimateDiff pass) and 21
+  (AnimateDiff through your pictures with SparseCtrl).
 - **Scene Stills**: one still per timeline scene, painted with continuity, as keyframes for
   H3 / LTX. Templates 17-19: a three-shot story on H3, a living photograph (depth, low
   energy) and a painted story at 12 fps.

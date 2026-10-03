@@ -35,6 +35,15 @@ def _params_camera(direction, params, camera):
     return params, camera
 
 
+def _keys_or_direction(keyframes, indices, direction, who):
+    """Explicit keyframes win; otherwise the pictures pinned on the Director."""
+    if keyframes is None and direction is not None and getattr(direction, "key_images", None) is not None:
+        return direction.key_images, direction.key_indices
+    if keyframes is None:
+        raise ValueError(f"{who}: connect keyframes + indices, or a direction whose Director has images.")
+    return keyframes, indices
+
+
 def _parse_indices(text: str, n: int) -> list[int]:
     out = []
     for tok in str(text or "").replace(";", ",").split(","):
@@ -260,13 +269,16 @@ class DifforumLTXGuides:
                 "negative": ("CONDITIONING",),
                 "vae": ("VAE",),
                 "latent": ("LATENT",),
-                "keyframes": ("IMAGE",),
-                "indices": ("STRING", {"default": "0", "forceInput": True}),
                 "strength": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01,
                              "tooltip": "Guide strength for in-between keyframes."}),
                 "first_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01,
                                    "tooltip": "Frame 0 usually locks the look: keep it high."}),
                 "last_strength": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {
+                "keyframes": ("IMAGE",),
+                "indices": ("STRING", {"default": "0", "forceInput": True}),
+                "direction": (DIRECTION,),
             },
         }
 
@@ -275,8 +287,9 @@ class DifforumLTXGuides:
     FUNCTION = "run"
     CATEGORY = CAT_BRIDGE
 
-    def run(self, positive, negative, vae, latent, keyframes, indices, strength,
-            first_strength, last_strength):
+    def run(self, positive, negative, vae, latent, keyframes=None, indices="", strength=0.7,
+            first_strength=1.0, last_strength=0.7, direction=None):
+        keyframes, indices = _keys_or_direction(keyframes, indices, direction, "LTX Guides")
         idx = _parse_indices(indices, 10**9)
         if len(idx) != keyframes.shape[0]:
             raise ValueError(f"{keyframes.shape[0]} keyframes but {len(idx)} indices ({indices!r})")
@@ -411,13 +424,14 @@ class DifforumH3Guides:
                 "positive": ("CONDITIONING",),
                 "latent": ("LATENT", {"tooltip": "The MiniMax H3 AV latent."}),
                 "vae": ("VAE", {"tooltip": "MiniMax H3 video VAE."}),
-                "keyframes": ("IMAGE",),
-                "indices": ("STRING", {"default": "0", "forceInput": True}),
                 "max_guides": ("INT", {"default": 4, "min": 1, "max": 16}),
                 "skip_first": ("BOOLEAN", {"default": False,
                                "tooltip": "Enable when frame 0 is already set (e.g. Image to Video first_frame)."}),
             },
             "optional": {
+                "keyframes": ("IMAGE",),
+                "indices": ("STRING", {"default": "0", "forceInput": True}),
+                "direction": (DIRECTION,),
                 "audio_vae": ("VAE", {"tooltip": "MiniMax H3 audio VAE, needed with audio."}),
                 "audio": ("AUDIO", {"tooltip": "Soundtrack anchored at frame 0."}),
             },
@@ -428,8 +442,9 @@ class DifforumH3Guides:
     FUNCTION = "run"
     CATEGORY = CAT_BRIDGE
 
-    def run(self, positive, latent, vae, keyframes, indices, max_guides, skip_first,
-            audio_vae=None, audio=None):
+    def run(self, positive, latent, vae, keyframes=None, indices="", max_guides=4, skip_first=False,
+            audio_vae=None, audio=None, direction=None):
+        keyframes, indices = _keys_or_direction(keyframes, indices, direction, "H3 Guides")
         idx = _parse_indices(indices, 10**9)
         if len(idx) != keyframes.shape[0]:
             raise ValueError(f"{keyframes.shape[0]} keyframes but {len(idx)} indices ({indices!r})")

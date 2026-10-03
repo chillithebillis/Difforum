@@ -320,8 +320,10 @@ function buildEditor(node, tw) {
     addKeyBtn.title = "Mark a key moment at the playhead (Keyframe Images / Animatic / Feedback Sampler use them)";
     fitBtn.title = "Show the whole shot (mouse wheel zooms the timeline, shift+wheel scrolls it)";
     previzBtn.title = "Mute every output except the Animatic / Storyboard, so Queue renders only the previz";
-    bar.append(playBtn, time, el("span", "dfx-sp"), addScene, addCam, addKeyBtn, autoE, fitBtn, previzBtn, del);
-    for (const b of [playBtn, addScene, addCam, addKeyBtn, autoE, fitBtn, previzBtn, del]) b.type = "button";
+    const scriptBtn = el("button", "dfx-btn", "Script");
+    scriptBtn.title = "Edit the whole timeline as text: one line per frame range (0-35 | mood | camera | prompt | sound: ...)";
+    bar.append(playBtn, time, el("span", "dfx-sp"), addScene, addCam, addKeyBtn, autoE, fitBtn, scriptBtn, previzBtn, del);
+    for (const b of [playBtn, addScene, addCam, addKeyBtn, autoE, fitBtn, scriptBtn, previzBtn, del]) b.type = "button";
 
     // preview + tracks
     const main = el("div", "dfx-main");
@@ -337,6 +339,20 @@ function buildEditor(node, tw) {
     const warn = el("div", "dfx-warn");
     const ins = el("div", "dfx-ins");
     root.append(bar, main, warn, ins);
+
+    // ---- pinned pictures (sent back by the node after a run) -------------
+    const thumbs = new Map();           // frame -> HTMLImageElement
+    function setThumbs(list) {
+        thumbs.clear();
+        for (const t of list || []) {
+            const im = new Image();
+            im.onload = () => draw();
+            im.src = t.src;
+            thumbs.set(t.frame, im);
+        }
+        draw();
+    }
+    const thumbAt = (f) => { const im = thumbs.get(f); return im && im.complete && im.width ? im : null; };
 
     // ---- data -----------------------------------------------------------
     function load() {
@@ -477,12 +493,25 @@ function buildEditor(node, tw) {
             ctx.fillStyle = m.color + "cc";
             roundRect(ctx, x0 + 1, y + 2, Math.max(4, x1 - x0 - 2), h - 4, 5, true);
             if (sel?.track === "scenes" && sel.i === i) outline(ctx, x0 + 1, y + 2, x1 - x0 - 2, h - 4);
+            const th = thumbAt(s.start);
+            const tx = th ? Math.min(Math.round((h - 6) * (th.width / Math.max(1, th.height))), 60) + 6 : 0;
+            if (th && x1 - x0 > tx + 10) {
+                ctx.drawImage(th, x0 + 4, y + 3, tx - 6, h - 6);
+            }
+            const lx = th && x1 - x0 > tx + 10 ? tx : 0;
             ctx.fillStyle = "#fff"; ctx.font = "600 10px sans-serif";
-            clipText(ctx, s.prompt || "(empty prompt)", x0 + 6, y + 15, x1 - x0 - 12);
+            clipText(ctx, s.prompt || "(empty prompt)", x0 + 6 + lx, y + 15, x1 - x0 - 12 - lx);
             ctx.fillStyle = "#ffffffaa"; ctx.font = "9px sans-serif";
-            clipText(ctx, s.mood, x0 + 6, y + 27, x1 - x0 - 12);
+            clipText(ctx, s.mood + (s.sound ? "  ♪ " + s.sound : ""), x0 + 6 + lx, y + 27, x1 - x0 - 12 - lx);
             grip(ctx, x0, y, h);
         });
+        // pictures pinned to moments that are not a scene start (Keys markers, spread evenly)
+        for (const [f, im] of thumbs) {
+            if (tl.scenes.some((s) => s.start === f) || !im.complete) continue;
+            const [y, h] = L.keys;
+            const tw2 = Math.round(h * (im.width / Math.max(1, im.height)));
+            ctx.drawImage(im, fx(f, W) - tw2 / 2, y, tw2, h);
+        }
         // camera
         tl.camera.forEach((c, i) => {
             const [y, h] = L.camera;
@@ -779,8 +808,49 @@ function buildEditor(node, tw) {
         return s;
     }
 
+    // ---- script panel: the timeline as text, one line per frame range -------
+    let scriptMode = false;
+    async function scriptCall(body) {
+        const r = await api.fetchApi("/difforum/script", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...body, fps: setup.fps, frames: N() }),
+        });
+        const j = await r.json();
+        if (j.error) throw new Error(j.error);
+        return j;
+    }
+    function renderScript() {
+        const ta = el("textarea", "dfx-script");
+        ta.style.minHeight = "150px"; ta.style.fontFamily = "ui-monospace, monospace"; ta.spellcheck = false;
+        ta.placeholder = "0-35 | calm | zoom_in slow | what is on screen | sound: what is heard";
+        ta.addEventListener("keydown", (e) => e.stopPropagation());
+        const msg = el("span", "dfx-hint", "FRAMES | MOOD | CAMERA | PROMPT | sound: …   ·   times can be frames (0-35), " +
+            "seconds (0s-1.5s) or 00:04   ·   '120 | key: label' marks a key   ·   '60 | energy 0.5' sets the energy");
+        const apply = el("button", "dfx-btn pri", "Apply");
+        const close = el("button", "dfx-btn", "Close");
+        apply.type = close.type = "button";
+        apply.onclick = async () => {
+            try {
+                const j = await scriptCall({ text: ta.value });
+                tl = normalise(j.timeline); sel = null; save(); draw();
+                msg.textContent = (j.notes || []).length ? "⚠ " + j.notes.join("   ") : "Applied.";
+            } catch (e) { msg.textContent = "⚠ " + e.message; }
+        };
+        close.onclick = () => { scriptMode = false; scriptBtn.classList.remove("on"); renderInspector(); };
+        const row = el("div", "dfx-row");
+        row.append(apply, close, msg);
+        ins.append(ta, row);
+        scriptCall({ timeline: tl }).then((j) => { ta.value = j.text || ""; })
+            .catch((e) => { msg.textContent = "⚠ " + e.message + " (restart ComfyUI after updating Difforum)"; });
+    }
+    scriptBtn.onclick = () => {
+        scriptMode = !scriptMode; scriptBtn.classList.toggle("on", scriptMode); renderInspector();
+    };
+
     function renderInspector() {
+        if (scriptMode && ins.querySelector(".dfx-script")) return;      // keep what is being typed
         ins.replaceChildren();
+        if (scriptMode) { renderScript(); return; }
         if (!sel || (sel.track !== "energy" && !tl[sel.track]?.[sel.i])) {
             ins.append(el("div", "dfx-hint",
                 "Click a block to edit it · double-click a lane to add a block · drag a block's left edge to retime · " +
@@ -827,7 +897,16 @@ function buildEditor(node, tw) {
             ta.addEventListener("input", () => { s.prompt = ta.value; draw(); });
             ta.addEventListener("change", save);
             ta.addEventListener("keydown", (e) => e.stopPropagation());
-            ins.append(r1, ta);
+            const r2 = el("div", "dfx-row");
+            const snd = el("input");
+            snd.type = "text"; snd.style.flex = "1";
+            snd.placeholder = "♪ what is heard in this scene (for video models with sound, e.g. MiniMax H3)";
+            snd.value = s.sound || "";
+            snd.addEventListener("input", () => { if (snd.value.trim()) s.sound = snd.value; else delete s.sound; draw(); });
+            snd.addEventListener("change", save);
+            snd.addEventListener("keydown", (e) => e.stopPropagation());
+            r2.append(el("span", "dfx-lbl", "Sound"), snd);
+            ins.append(r1, ta, r2);
             return;
         }
         // camera block
@@ -930,6 +1009,7 @@ function buildEditor(node, tw) {
     return {
         root,
         reload: () => { load(); sel = null; renderInspector(); schedulePreview(); draw(); },
+        setThumbs,
         refresh: () => schedulePreview(),
         dispose: () => { playing = false; clearInterval(syncTimer); ro.disconnect(); },
     };
@@ -997,6 +1077,7 @@ app.registerExtension({
                 tw.value = t;
                 this.__dfx?.reload();
             }
+            if (msg?.difforum_thumbs) this.__dfx?.setThumbs(msg.difforum_thumbs);
         };
         const onRemoved = nodeType.prototype.onRemoved;
         nodeType.prototype.onRemoved = function () {

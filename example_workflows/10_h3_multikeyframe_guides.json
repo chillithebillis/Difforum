@@ -219,6 +219,41 @@
      "name": "timeline_in",
      "type": "STRING",
      "link": null
+    },
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "image_1",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "image_2",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "image_3",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "image_4",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "image_5",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "image_6",
+     "type": "IMAGE",
+     "link": null
     }
    ],
    "outputs": [
@@ -261,6 +296,18 @@
      "type": "STRING",
      "links": [],
      "slot_index": 5
+    },
+    {
+     "name": "keyframes",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 6
+    },
+    {
+     "name": "indices",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 7
     }
    ],
    "properties": {
@@ -276,7 +323,8 @@
     0.0,
     0,
     "fixed",
-    "replace"
+    "replace",
+    "scene starts"
    ]
   },
   {
@@ -1412,7 +1460,7 @@
    ],
    "size": [
     420,
-    220
+    228
    ],
    "flags": {},
    "order": 27,
@@ -1442,6 +1490,11 @@
      "name": "indices",
      "type": "STRING",
      "link": 44
+    },
+    {
+     "name": "direction",
+     "type": "DIFFORUM_DIRECTION",
+     "link": null
     },
     {
      "name": "audio_vae",
@@ -1484,7 +1537,7 @@
    "type": "PreviewImage",
    "pos": [
     6556,
-    342
+    350
    ],
    "size": [
     420,
@@ -3155,7 +3208,7 @@
     4932,
     0,
     2068,
-    666
+    674
    ],
    "color": "#8A8",
    "font_size": 22,

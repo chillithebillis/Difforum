@@ -136,13 +136,30 @@ def body(direction, style: str, lead: str = "", start: int = 0, end: int | None 
     return " ".join(shots), max(1, n_shots)
 
 
+def scene_sounds(direction, start: int = 0, end: int | None = None) -> str:
+    """The scenes' `sound` notes in time order: 'Rain on glass, then trickling water, then birds.'"""
+    end = int(direction.frames if end is None else end)
+    scenes = sorted(direction.scenes, key=lambda s: s["start"])
+    heard = []
+    for i, sc in enumerate(scenes):
+        nxt = scenes[i + 1]["start"] if i + 1 < len(scenes) else 10**9
+        text = str(sc.get("sound", "")).strip().rstrip(".,;")
+        if text and sc["start"] < end and nxt > start and (not heard or heard[-1].lower() != text.lower()):
+            heard.append(text)
+    if not heard:
+        return ""
+    return _sentence(heard[0]) if len(heard) == 1 else \
+        _sentence(heard[0] + ", then " + ", then ".join(_lower_first(h) for h in heard[1:]))
+
+
 def h3_prompt(direction, look_prompt: str, mode: str = MODES[0], lead: str = "", soundscape: str = "",
               music: str = "", start: int = 0, end: int | None = None, cuts: bool = False) -> str:
     fps = float(direction.fps)
     end = int(direction.frames if end is None else end)
     duration = max(0.0, (end - 1 - start) / fps)
     style = look_prompt or "Cinematic live-action footage."
-    sound = soundscape.strip() or "Natural ambient sound of the environment, soft and continuous."
+    sound = soundscape.strip() or scene_sounds(direction, start, end) \
+        or "Natural ambient sound of the environment, soft and continuous."
     score = music.strip() or "N/A"
     ref = mode.startswith("reference")
     text, n = body(direction, style, lead, start, end, cuts, first_frame_ref=ref)

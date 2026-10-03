@@ -59,6 +59,12 @@ One `direction` wire carries camera, strength, cfg and prompt travel into
 the Feedback Sampler or a video-model bridge. The separate outputs are
 there for custom graphs.
 
+Plug pictures into `images` / `image_1..6` and each one is pinned to a
+moment (the scene starts by default): the Feedback Sampler travels through
+them, H3 / LTX Guides anchor them, the Animatic shows them - all through
+the same wire. The **Script** button edits the whole timeline as text, one
+line per frame range.
+
 | input | type | default | notes |
 |---|---|---|---|
 | `params` | DIFFORUM_PARAMS |  | From Setup: the timeline length and fps. |
@@ -74,8 +80,16 @@ there for custom graphs.
 | `audio` *(optional)* | DIFFORUM_AUDIO |  | From Audio Analyzer: enables the per-block audio reactions (beat pulse, bass speed...). |
 | `timeline_in` *(optional)* | STRING |  | A timeline from outside: Shot Script, an LLM node, a text loader. Plain shot lines ('0s / calm / dolly_in slow / prompt'), CSV or Director JSON. The editor shows the result after each run; disconnect to edit by hand. |
 | `external` *(optional)* | choice (replace, text only (keep drawn camera), camera only (keep drawn text), add to drawn) | replace | How timeline_in meets the drawn timeline. replace: all from outside. text only: scenes and keys from outside, your drawn camera stays. camera only: the reverse. add to drawn: both, outside wins on the same frame. |
+| `images` *(optional)* | IMAGE |  | Pictures pinned to moments of the clip, in order (a batch: Keyframe Assets, Scene Stills, Batch Images). They travel on the direction wire: the Feedback Sampler passes through them, H3 / LTX Guides anchor them, the Animatic shows them. |
+| `image_1` *(optional)* | IMAGE |  | Picture 1, any size (cropped to the canvas). Pinned in order, after `images`. |
+| `image_2` *(optional)* | IMAGE |  | Picture 2, any size (cropped to the canvas). Pinned in order, after `images`. |
+| `image_3` *(optional)* | IMAGE |  | Picture 3, any size (cropped to the canvas). Pinned in order, after `images`. |
+| `image_4` *(optional)* | IMAGE |  | Picture 4, any size (cropped to the canvas). Pinned in order, after `images`. |
+| `image_5` *(optional)* | IMAGE |  | Picture 5, any size (cropped to the canvas). Pinned in order, after `images`. |
+| `image_6` *(optional)* | IMAGE |  | Picture 6, any size (cropped to the canvas). Pinned in order, after `images`. |
+| `images_at` *(optional)* | choice (scene starts, Keys markers, spread evenly) | scene starts | Where the pictures land: the start of each scene, the Keys markers, or spread evenly from the first to the last frame. |
 
-**Outputs:** `direction` (DIFFORUM_DIRECTION), `camera` (DIFFORUM_CAMERA), `strength` (DIFFORUM_SCHEDULE), `prompts` (DIFFORUM_PROMPT), `camera_text` (STRING), `info` (STRING)
+**Outputs:** `direction` (DIFFORUM_DIRECTION), `camera` (DIFFORUM_CAMERA), `strength` (DIFFORUM_SCHEDULE), `prompts` (DIFFORUM_PROMPT), `camera_text` (STRING), `info` (STRING), `keyframes` (IMAGE), `indices` (STRING)
 
 ### Difforum · Camera (keys)
 
@@ -301,6 +315,29 @@ aspect, so they stay sharp when the video model renders smaller.
 | `first_image` *(optional)* | IMAGE |  | Your own picture as the first still; the rest are painted after it. |
 
 **Outputs:** `keyframes` (IMAGE), `indices` (STRING), `first` (IMAGE), `last` (IMAGE), `info` (STRING)
+
+### Difforum · Travel Conditioning (prompt per frame)
+
+`Difforum_TravelConditioning`
+
+The Director's prompt travel as one CONDITIONING with a prompt per frame.
+
+Samplers that render a whole clip at once - AnimateDiff, or any batch
+KSampler - take a single conditioning. This node stacks the timeline's
+scene prompts, blended from scene to scene, into a batch as long as the
+clip, so frame 40 is sampled with the prompt of frame 40: the Deforum
+prompt schedule, on AnimateDiff. Connect a CLIP to the Director (it encodes
+the scenes). The batch is as long as the Director's clip, or as the
+`images` / `latent` you connect (a rendered video of another length).
+
+| input | type | default | notes |
+|---|---|---|---|
+| `direction` *(optional)* | DIFFORUM_DIRECTION |  | A Director with a CLIP connected: its scene prompts become one prompt per frame. |
+| `prompts` *(optional)* | DIFFORUM_PROMPT |  | Or the output of a Prompt Travel node. |
+| `images` *(optional)* | IMAGE |  | Optional: the frames that will be sampled; the travel is stretched to their count. |
+| `latent` *(optional)* | LATENT |  | Optional: the latent batch that will be sampled; the travel is stretched to its count. |
+
+**Outputs:** `positive` (CONDITIONING), `frames` (INT), `info` (STRING)
 
 ## 3 · Curves & Prompts
 
@@ -653,11 +690,12 @@ LTX latent whose length matches (Setup target = LTX).
 | `negative` | CONDITIONING |  | LTX negative conditioning. |
 | `vae` | VAE |  | LTX video VAE. |
 | `latent` | LATENT |  | Empty LTX latent (length and size from Keyframes / Setup). |
-| `keyframes` | IMAGE |  | Keyframe pictures (from Keyframes or Keyframe Images). |
-| `indices` | STRING | 0 | Frame number of each keyframe, comma separated, e.g. 0,48,96,123. |
 | `strength` | FLOAT | 0.7 | Guide strength of the keyframes in between. 0.6-0.8 = follows the path, 1 = locked. |
 | `first_strength` | FLOAT | 1.0 | Frame 0 usually locks the look: keep it high. |
 | `last_strength` | FLOAT | 0.7 | Strength of the last keyframe. High = the shot must end on it. |
+| `keyframes` *(optional)* | IMAGE |  | Keyframe pictures (from Keyframes or Keyframe Images). |
+| `indices` *(optional)* | STRING | 0 | Frame number of each keyframe, comma separated, e.g. 0,48,96,123. |
+| `direction` *(optional)* | DIFFORUM_DIRECTION |  | The Director's wire: camera, energy curve, scene prompts, keys and look in one cable. |
 
 **Outputs:** `positive` (CONDITIONING), `negative` (CONDITIONING), `latent` (LATENT), `info` (STRING)
 
@@ -711,10 +749,11 @@ the last and evenly spaced ones in between.
 | `positive` | CONDITIONING |  | Positive conditioning from MiniMax H3 Reference to Video. |
 | `latent` | LATENT |  | The MiniMax H3 AV latent. |
 | `vae` | VAE |  | MiniMax H3 video VAE. |
-| `keyframes` | IMAGE |  | Keyframe pictures (Keyframes, Keyframe Images or Fill Reveal). |
-| `indices` | STRING | 0 | Frame number of each keyframe, comma separated, e.g. 0,48,96,123. |
 | `max_guides` | INT | 4 | Most keyframes anchored inside the generation. The first and last are kept, the rest evenly spaced. More = H3 follows your frames closely; fewer = more of H3's own motion and invention. 4 for a camera path, 6-8 for a look pass. |
 | `skip_first` | BOOLEAN | False | Enable when frame 0 is already set (e.g. Image to Video first_frame). |
+| `keyframes` *(optional)* | IMAGE |  | Keyframe pictures (Keyframes, Keyframe Images or Fill Reveal). |
+| `indices` *(optional)* | STRING | 0 | Frame number of each keyframe, comma separated, e.g. 0,48,96,123. |
+| `direction` *(optional)* | DIFFORUM_DIRECTION |  | The Director's wire: camera, energy curve, scene prompts, keys and look in one cable. |
 | `audio_vae` *(optional)* | VAE |  | MiniMax H3 audio VAE, needed with audio. |
 | `audio` *(optional)* | AUDIO |  | Soundtrack anchored at frame 0. |
 

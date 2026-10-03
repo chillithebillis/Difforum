@@ -39,7 +39,7 @@ def director(params, tl=None, mode="2d", clip=None):
 
 def test_registry():
     v1 = [k for k in difforum.NODE_CLASS_MAPPINGS if k.startswith("Difforum_")]
-    assert len(v1) == 37
+    assert len(v1) == 38
     legacy = difforum.NODE_CLASS_MAPPINGS["DifforumFeedbackSampler"]
     assert legacy.DEPRECATED and legacy.CATEGORY == "Difforum/legacy"
     for k in v1:
@@ -63,7 +63,7 @@ def test_setup_snaps_to_model_grid(target, rule, mult):
 
 def test_director_storyboard_and_sampler():
     params = setup()[0]
-    bundle, camera, strength, prompts, text, info = director(params, clip=StubClip())
+    bundle, camera, strength, prompts, text, info, *_ = director(params, clip=StubClip())
     assert len(camera.deltas) == params["max_frames"] and len(strength) == params["max_frames"]
     assert text.startswith("The camera")
     assert len(prompts) == params["max_frames"]

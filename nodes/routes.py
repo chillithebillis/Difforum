@@ -51,6 +51,17 @@ def compute_preview(body: dict) -> dict:
     }
 
 
+def convert_script(body: dict) -> dict:
+    """{timeline} -> {text};  {text} -> {timeline, notes}."""
+    from ..core.script import script_to_timeline, timeline_to_script
+    fps = float(body.get("fps", 24.0) or 24.0)
+    frames = int(body.get("frames", 0) or 0) or None
+    if "text" in body:
+        tl, notes = script_to_timeline(str(body["text"]), fps, frames)
+        return {"timeline": tl, "notes": notes}
+    return {"text": timeline_to_script(body.get("timeline") or {}, frames)}
+
+
 def register_routes():
     try:
         from aiohttp import web
@@ -63,6 +74,15 @@ def register_routes():
     async def _catalog(_request):
         from ..core.direction import ui_catalog
         return web.json_response(ui_catalog())
+
+    @routes.post("/difforum/script")
+    async def _script(request):
+        """Timeline <-> text for the Director's Script panel."""
+        try:
+            body = await request.json()
+            return web.json_response(convert_script(body))
+        except Exception as exc:
+            return web.json_response({"error": str(exc)}, status=400)
 
     @routes.post("/difforum/preview")
     async def _preview(request):

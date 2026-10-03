@@ -66,6 +66,14 @@ key to **Keyframe Images**. The Feedback Sampler travels *through* them, H3 /
 LTX Guides anchor them, the Animatic flashes them. Built for installations and
 pieces that must hit an image on a beat.
 
+**Pictures and frame ranges on the Director.** Plug a picture per scene into
+the Director (`images`, `image_1..6`): each is pinned to its moment, shown on
+the timeline, and carried by the `direction` wire to the Feedback Sampler, H3 /
+LTX Guides and the Animatic. The **Script** button shows the same timeline as
+text, one line per frame range - `0-35 | calm | zoom_in slow | prompt | sound: rain`
+- and each scene's `sound` becomes the soundscape of video models with audio.
+**Travel Conditioning** gives AnimateDiff a prompt per frame (templates 20, 21).
+
 **Orchestration from outside.** **Shot Script** writes the Director timeline
 from text (`0s | calm | dolly_in slow | prompt`), a CSV, a file in `input/` or
 any STRING node such as an LLM. **Keyframe Assets** loads a folder of stills
@@ -111,6 +119,8 @@ No camera expressions to write. They are still there if you want them.
 | 17 | `story_three_shots_h3` | **A story in three shots**: Scene Stills paints one picture per scene, H3 plays them as shots with cuts | an image model + H3 ref2va |
 | 18 | `story_living_photograph` | **Living photograph**: one place with real depth, a slow camera, low energy; only the light changes | an image model + Depth Anything 3 |
 | 19 | `story_painted` | **Painted story**: one subject that grows, 12 fps gouache look, pans and zooms only | a turbo image model |
+| 20 | `director_pictures_h3_sound` | **Pictures on the Director → H3 with sound**: a picture per scene, camera and sound per frame range, optional AnimateDiff pass | H3 ref2va (+ AnimateDiff-Evolved for the pass) |
+| 21 | `animatediff_travel_pictures` | **AnimateDiff travel through your pictures**: SparseCtrl keyframes + a prompt per frame, AnimateDiff invents the in-betweens | AnimateDiff-Evolved, Advanced-ControlNet, SD 1.5, SparseCtrl RGB |
 
 Every template is laid out in the same blocks: **Control** (switches and notes),
 **Direction**, **Previz** on the top row; **Models → Render → Restyle → Upscale 2K

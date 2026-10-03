@@ -47,6 +47,72 @@ def _fit(series: list, n: int, pad):
     return series[:n]
 
 
+IMAGE_SLOTS = 6
+IMAGES_AT = ("scene starts", "Keys markers", "spread evenly")
+
+
+def _cover(img, w: int, h: int):
+    """[1,H,W,C] -> [1,h,w,3], scaled to cover the canvas and centre-cropped."""
+    import torch.nn.functional as F
+    chw = img[..., :3].float().permute(0, 3, 1, 2)
+    ih, iw = chw.shape[-2:]
+    if (ih, iw) == (h, w):
+        return img[..., :3].float()
+    k = max(w / iw, h / ih)
+    nw, nh = max(w, round(iw * k)), max(h, round(ih * k))
+    rs = F.interpolate(chw, size=(nh, nw), mode="bilinear", align_corners=False, antialias=True)
+    y, x = (nh - h) // 2, (nw - w) // 2
+    return rs[:, :, y:y + h, x:x + w].permute(0, 2, 3, 1)
+
+
+def _pin_images(images, slots, images_at, d, params):
+    """Director image inputs -> (keyframes at the canvas size, 'f0,f1,...', info lines)."""
+    import torch
+    pics = [] if images is None else [images[i:i + 1] for i in range(images.shape[0])]
+    for i in range(1, IMAGE_SLOTS + 1):
+        im = slots.get(f"image_{i}")
+        if im is not None:
+            pics.extend(im[j:j + 1] for j in range(im.shape[0]))
+    if not pics:
+        return None, "", []
+    n, fps = int(params["max_frames"]), float(params["fps"])
+    w, h = int(params["width"]), int(params["height"])
+    if images_at.startswith("scene") and d.scenes:
+        frames, where = [s["start"] for s in d.scenes], "scene starts"
+    elif images_at.startswith("Keys") and d.keys:
+        frames, where = [k["start"] for k in d.keys], "Keys markers"
+    else:
+        m = len(pics)
+        frames, where = [round(i * (n - 1) / max(1, m - 1)) for i in range(m)], "spread evenly"
+    count = min(len(frames), len(pics))
+    frames = [max(0, min(n - 1, int(f))) for f in frames[:count]]
+    keys = torch.cat([_cover(p, w, h) for p in pics[:count]]).clamp(0, 1)
+    lines = [f"  {count} image(s) pinned to {where}: " + ", ".join(f"{f / fps:.2f}s" for f in frames)]
+    if len(pics) != count or (where != "spread evenly" and count < len(frames)):
+        lines.append(f"  ! {len(pics)} image(s) for the timeline's moments: using {count}")
+    return keys, ",".join(map(str, frames)), lines
+
+
+def _thumbs(keys, key_idx, size: int = 96):
+    """Small JPEG previews of the pinned images for the timeline editor."""
+    if keys is None:
+        return []
+    import base64
+    import io
+
+    import numpy as np
+    from PIL import Image
+    out = []
+    for f, img in zip(str(key_idx).split(","), keys):
+        arr = (img[..., :3].clamp(0, 1).cpu().numpy() * 255).astype(np.uint8)
+        im = Image.fromarray(arr)
+        im.thumbnail((size, size))
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=70)
+        out.append({"frame": int(f), "src": "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()})
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Director
 # ---------------------------------------------------------------------------
@@ -62,6 +128,12 @@ class DifforumDirector:
     One `direction` wire carries camera, strength, cfg and prompt travel into
     the Feedback Sampler or a video-model bridge. The separate outputs are
     there for custom graphs.
+
+    Plug pictures into `images` / `image_1..6` and each one is pinned to a
+    moment (the scene starts by default): the Feedback Sampler travels through
+    them, H3 / LTX Guides anchor them, the Animatic shows them - all through
+    the same wire. The **Script** button edits the whole timeline as text, one
+    line per frame range.
     """
 
     DESCRIPTION = __doc__
@@ -94,17 +166,21 @@ class DifforumDirector:
                 "audio": (AUDIO, {"tooltip": "From Audio Analyzer - enables per-block audio reactions."}),
                 "timeline_in": ("STRING", {"forceInput": True}),
                 "external": (list(EXTERNAL_MODES), {"default": EXTERNAL_MODES[0]}),
+                "images": ("IMAGE",),
+                **{f"image_{i}": ("IMAGE",) for i in range(1, IMAGE_SLOTS + 1)},
+                "images_at": (list(IMAGES_AT), {"default": IMAGES_AT[0]}),
             },
         }
 
-    RETURN_TYPES = (DIRECTION, CAMERA, SCHEDULE, PROMPT, "STRING", "STRING")
-    RETURN_NAMES = ("direction", "camera", "strength", "prompts", "camera_text", "info")
+    RETURN_TYPES = (DIRECTION, CAMERA, SCHEDULE, PROMPT, "STRING", "STRING", "IMAGE", "STRING")
+    RETURN_NAMES = ("direction", "camera", "strength", "prompts", "camera_text", "info", "keyframes",
+                    "indices")
     FUNCTION = "run"
     CATEGORY = CAT_DIRECT
 
     def run(self, params, timeline, camera_mode, look, transition, camera_scale,
             energy_bias, variation, variation_seed, clip=None, audio=None, timeline_in=None,
-            external=EXTERNAL_MODES[0]):
+            external=EXTERNAL_MODES[0], images=None, images_at=IMAGES_AT[0], **image_slots):
         n = int(params["max_frames"])
         fps = float(params["fps"])
         ext_notes = []
@@ -122,11 +198,14 @@ class DifforumDirector:
         cfg = Schedule(values=d.cfg, fps=fps, source="director guidance") if d.cfg else None
         prompts = encode_prompt_track(clip, d.prompts, n) if clip is not None else None
 
+        keys, key_idx, key_lines = _pin_images(images, image_slots, images_at, d, params)
         bundle = DirectionBundle(params=params, camera=camera, strength=strength, cfg=cfg,
-                                 prompts=prompts, direction=d, look_name=look)
+                                 prompts=prompts, direction=d, look_name=look,
+                                 key_images=keys, key_indices=key_idx)
         info = "\n".join([
             f"[Difforum Director]  {n} frames  {n / fps:.2f}s  camera {camera_mode}  look {look}",
             *ext_notes,
+            *key_lines,
             *d.summary,
             *([""] + [f"  ! {w}" for w in d.warnings] if d.warnings else []),
             "" if clip is not None else "  (connect a CLIP to get prompt travel on the direction wire)",
@@ -135,10 +214,11 @@ class DifforumDirector:
         ui = {"text": [info]}
         if ext_notes:                    # the editor shows what was rendered
             ui["difforum_timeline"] = [timeline]
+        ui["difforum_thumbs"] = _thumbs(keys, key_idx)
         return {
             "ui": ui,
             "result": (bundle, camera, strength, prompts,
-                       d.camera_text + " " + bundle.look_prompt + "\n\n" + timed, info),
+                       d.camera_text + " " + bundle.look_prompt + "\n\n" + timed, info, keys, key_idx),
         }
 
 
@@ -513,6 +593,10 @@ class DifforumAnimatic:
         plate = init_image if init_image is not None else _synthetic_plate(w, h)
         engine = FeedbackEngine(camera, EngineConfig(width=w, height=h, sharpen=0.0, noise=0.0,
                                 hole_noise=0.0, color_mode="none", anchor_mode="none"), depth=depth)
+        if key_images is None and direction.key_images is not None:      # pictures pinned on the Director
+            key_images, key_indices = direction.key_images, direction.key_indices
+        if init_image is None and key_images is not None and str(key_indices).split(",")[0].strip() == "0":
+            plate = key_images[:1]
         hook = key_hook(key_images, key_indices, w, h, 1.0, 6)
         frames = [img for _f, img in iter_feedback(engine, plate, n, pre_warp=hook)]
         video = torch.cat(frames, dim=0)

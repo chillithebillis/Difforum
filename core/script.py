@@ -13,12 +13,14 @@ Accepted forms (mixed freely, one beat per line):
     @12s  the mist lifts and the camera rises          (time + prompt)
     a lone tree on a hill                               (no time: spread evenly)
 
-- time: `4s`, `4.5s`, `00:04`, `1:02.5`, `f96` / `96` (frames)
+- time: `4s`, `4.5s`, `00:04`, `1:02.5`, `f96` / `96` (frames), or a range
+  `0-35`, `0s-1.5s` (a range ends where the next one starts)
 - the fields after the time are recognised by content: a mood name
   (calm, build, tense, climax, resolve, dream), a camera move (`dolly_in`,
   `dolly in`, `push in`...) with optional modifiers (`slow`, `fast`, `small`,
-  `large`, `x1.3` speed, `amp 0.8`, `35mm`, an easing, an audio reaction,
-  `energy 0.6`), `key: label`, and the rest is the prompt.
+  `large`, `x1.3` speed, `amp 0.8`, `35mm` / `fov 46`, an easing, an audio
+  reaction, `energy 0.6`), `key: label`, `sound: what is heard`, and the rest
+  is the prompt.
 - a CSV with a header row (`time,mood,camera,prompt,key,energy`) and a JSON
   timeline (what the Director saves) are accepted as they are.
 """
@@ -28,6 +30,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 import re
 
 from .camera_presets import CAMERA_PRESETS
@@ -45,6 +48,19 @@ SPEED_WORDS = {"very_slow": 0.4, "slow": 0.6, "slowly": 0.6, "medium": 1.0, "fas
 AMP_WORDS = {"subtle": 0.4, "small": 0.5, "gentle": 0.6, "big": 1.4, "large": 1.4, "huge": 1.8, "strong": 1.4}
 
 _KEY = re.compile(r"^(?:key|mark|beat)\s*[:\-]\s*(.*)$", re.I)
+_SOUND = re.compile(r"^(?:sound|audio|sfx)\s*[:\-]\s*(.*)$", re.I)
+_RANGE = re.compile(r"^(.+?)\s*(?:-|–|—|→|->|\bto\b|\bao?\b|\baté\b)\s*(.+)$", re.I)
+
+
+def parse_start(token: str, fps: float) -> int | None:
+    """A time, or the start of a range: `0-35`, `0s-1.5s`, `f0 to f35`."""
+    t = parse_time(token, fps)
+    if t is not None:
+        return t
+    m = _RANGE.match(token.strip())
+    if m and parse_time(m.group(2), fps) is not None:
+        return parse_time(m.group(1), fps)
+    return None
 
 
 def parse_time(token: str, fps: float) -> int | None:
@@ -53,6 +69,7 @@ def parse_time(token: str, fps: float) -> int | None:
         return None
     if t.startswith("@"):
         t = t[1:]
+    t = re.sub(r"^(?:do|de|from)?(?:frames?|quadros?)(?=\d)", "f", t)      # 'frame 35', 'do frame 35'
     if re.fullmatch(r"f\d+", t):
         return int(t[1:])
     m = re.fullmatch(r"(?:(\d+):)?(\d+):(\d+(?:\.\d+)?)", t)          # h:mm:ss / mm:ss(.x)
@@ -108,10 +125,12 @@ def parse_camera(text: str):
             block["react"] = w
         elif re.fullmatch(r"x\d+(\.\d+)?", w):
             block["speed"] = float(w[1:])
-        elif re.fullmatch(r"\d+mm", w):
-            block["lens"] = float(w[:-2])
-        elif w in ("speed", "amp", "amplitude", "intensity", "lens") and re.fullmatch(r"\d+(\.\d+)?", nxt):
-            key = {"amp": "intensity", "amplitude": "intensity"}.get(w, w)
+        elif re.fullmatch(r"\d+mm", w):            # full-frame focal length -> horizontal field of view
+            block["lens"] = round(math.degrees(2 * math.atan(36.0 / (2 * float(w[:-2])))), 1)
+        elif re.fullmatch(r"\d+deg", w):
+            block["lens"] = float(w[:-3])
+        elif w in ("speed", "amp", "amplitude", "intensity", "lens", "fov") and re.fullmatch(r"\d+(\.\d+)?", nxt):
+            key = {"amp": "intensity", "amplitude": "intensity", "fov": "lens"}.get(w, w)
             block[key] = float(nxt)
             i += 1
         i += 1
@@ -128,10 +147,14 @@ def _empty():
 
 
 def _add_beat(tl, start, fields, notes, line_no):
-    mood, cam, prompt_parts = None, None, []
+    mood, cam, sound, prompt_parts = None, None, "", []
     for f in fields:
         f = f.strip()
         if not f:
+            continue
+        sm = _SOUND.match(f)
+        if sm:
+            sound = sm.group(1).strip()
             continue
         km = _KEY.match(f)
         if km:
@@ -152,15 +175,16 @@ def _add_beat(tl, start, fields, notes, line_no):
             continue
         prompt_parts.append(f)
     prompt = ", ".join(prompt_parts)
-    if prompt or mood:
-        tl["scenes"].append({"start": start, "mood": mood or "calm", "prompt": prompt})
+    if prompt or mood or sound:
+        tl["scenes"].append({"start": start, "mood": mood or "calm", "prompt": prompt,
+                             **({"sound": sound} if sound else {})})
     if cam is not None:
         m = MOODS.get(mood or "", {})
         for k in ("speed", "intensity", "ease"):
             if k not in cam and k in m:
                 cam[k] = m[k]
         tl["camera"].append({"start": start, **cam})
-    if not (prompt or mood or cam) and not any(k["start"] == start for k in tl["keys"]):
+    if not (prompt or mood or cam or sound) and not any(k["start"] == start for k in tl["keys"]):
         notes.append(f"line {line_no}: nothing recognised")
 
 
@@ -170,7 +194,7 @@ def _from_csv(text, fps):
     notes = []
     for i, r in enumerate(rows, 2):
         r = {(k or "").strip().lower(): (v or "").strip() for k, v in r.items()}
-        start = parse_time(r.get("time") or r.get("start") or r.get("frame") or "", fps)
+        start = parse_start(r.get("time") or r.get("start") or r.get("frame") or r.get("frames") or "", fps)
         if start is None:
             notes.append(f"row {i}: no time")
             continue
@@ -179,6 +203,8 @@ def _from_csv(text, fps):
             fields.append("key: " + (r.get("key") or r.get("label")))
         if r.get("energy"):
             fields.append("energy " + r["energy"])
+        if r.get("sound"):
+            fields.append("sound: " + r["sound"])
         _add_beat(tl, start, fields, notes, i)
     return tl, notes
 
@@ -206,7 +232,7 @@ def script_to_timeline(text: str, fps: float = 24.0, frames: int | None = None):
             if not line:
                 continue
             parts = [p.strip() for p in line.split("|")]
-            start = parse_time(parts[0], fps)
+            start = parse_start(parts[0], fps)
             if start is None and len(parts) == 1:          # '@12s the prompt' / '4s: prompt'
                 m = re.match(r"^(@?\s*[\d:.]+\s*(?:s|sec|f)?|f\d+)\s*[:\-–]?\s+(.+)$", line, re.I)
                 if m and parse_time(m.group(1), fps) is not None:
@@ -229,6 +255,53 @@ def script_to_timeline(text: str, fps: float = 24.0, frames: int | None = None):
         if late:
             notes.append(f"{len(late)} beat(s) start after the clip ends ({frames} frames)")
     return parse_timeline(tl), notes
+
+
+def _camera_words(c: dict) -> str:
+    out = [c.get("move", "still")]
+    if abs(float(c.get("speed", 1.0)) - 1.0) > 1e-6:
+        out.append(f"x{float(c['speed']):g}")
+    if abs(float(c.get("intensity", 1.0)) - 1.0) > 1e-6:
+        out.append(f"amp {float(c['intensity']):g}")
+    if float(c.get("lens", 0.0) or 0.0) > 0:
+        out.append(f"fov {float(c['lens']):g}")
+    if c.get("ease", "ease_in_out") != "ease_in_out":
+        out.append(c["ease"])
+    if c.get("react", "none") != "none":
+        out.append(c["react"])
+    return " ".join(out)
+
+
+def timeline_to_script(timeline, frames: int | None = None) -> str:
+    """The timeline as editable text, one line per frame range:
+    `0-35 | calm | zoom_in x0.8 | prompt | sound: ...` (what script_to_timeline reads back)."""
+    from .direction import parse_timeline
+
+    tl = parse_timeline(timeline)
+    starts = sorted({b["start"] for b in tl["scenes"] + tl["camera"]})
+    end = int(frames) if frames else (max(starts) + 48 if starts else 48)
+    scenes = {s["start"]: s for s in tl["scenes"]}
+    cams = {c["start"]: c for c in tl["camera"]}
+    lines = ["# FRAMES | MOOD | CAMERA | PROMPT | sound: ...   (ranges end where the next one starts)"]
+    for i, f in enumerate(starts):
+        nxt = starts[i + 1] if i + 1 < len(starts) else end
+        parts = [f"{f}-{max(f, nxt - 1)}"]
+        sc, cam = scenes.get(f), cams.get(f)
+        if sc:
+            parts.append(sc["mood"])
+        if cam:
+            parts.append(_camera_words(cam))
+        if sc:
+            if sc["prompt"]:
+                parts.append(sc["prompt"])
+            if sc.get("sound"):
+                parts.append("sound: " + sc["sound"])
+        lines.append(" | ".join(parts))
+    for k in tl["keys"]:
+        lines.append(f"{k['start']} | key: {k['label']}")
+    for f, v in tl["energy"]:
+        lines.append(f"{f} | energy {v:g}")
+    return "\n".join(lines)
 
 
 def merge_timelines(drawn: dict, external: dict, mode: str) -> dict:
@@ -259,7 +332,7 @@ LLM_GUIDE = (
     "TIME | MOOD | CAMERA | PROMPT\n"
     "TIME: seconds like 0s, 2.5s. MOOD: calm, build, tense, climax, resolve or dream.\n"
     "CAMERA: one of {moves}, optionally followed by slow/fast, small/large, a lens like 35mm.\n"
-    "PROMPT: what is on screen, in one visual sentence.\n"
+    "PROMPT: what is on screen, in one visual sentence. Optionally add `| sound: what is heard`.\n"
     "Add lines like `6s | key: the light breaks` for moments that must land on a beat.\n"
     "Answer with the lines only."
 )
