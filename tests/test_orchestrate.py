@@ -115,3 +115,60 @@ def test_keyframe_assets(input_dir):
     d = director(p, tl={"scenes": [], "camera": [], "keys": [{"start": 10}, {"start": 50}, {"start": 90}]})
     _k, idx, *_ = node.run("difforum_keys", "Director keys", "stretch", direction=d[0])["result"]
     assert idx == "10,50,90"
+
+
+def test_shipped_example_scripts(input_dir):
+    import os
+
+    from difforum.nodes.orchestrate import EXAMPLES_DIR
+    names = sorted(f for f in os.listdir(EXAMPLES_DIR) if f.endswith(".txt"))
+    assert len(names) == 10
+    p = setup(seconds=10.0)[0]
+    for name in names:
+        tl, _guide, info = DifforumShotScript().run("", f"examples/{name}", params=None)["result"]
+        tl = json.loads(tl)
+        assert tl["scenes"] or tl["camera"], name
+        assert "nothing recognised" not in info, (name, info)
+    with pytest.raises(ValueError):
+        DifforumShotScript().run("", "examples/../nodes/render.py", params=p)
+
+
+def test_resident_models_suspends_flag(monkeypatch):
+    from difforum.nodes.render import resident_models
+    comfy = types.ModuleType("comfy")
+    mm = types.ModuleType("comfy.model_management")
+    mm.DISABLE_SMART_MEMORY = True
+    comfy.model_management = mm
+    monkeypatch.setitem(sys.modules, "comfy", comfy)
+    monkeypatch.setitem(sys.modules, "comfy.model_management", mm)
+    with resident_models() as active:
+        assert active and mm.DISABLE_SMART_MEMORY is False
+    assert mm.DISABLE_SMART_MEMORY is True
+    monkeypatch.setenv("DIFFORUM_RESPECT_MEMORY_FLAGS", "1")
+    with resident_models() as active:
+        assert not active and mm.DISABLE_SMART_MEMORY is True
+
+
+def test_upscale_auto_skips_model(monkeypatch):
+    import nodes as stub_nodes
+    import torch
+
+    from difforum.nodes.finish import DifforumUpscale
+    calls = []
+
+    class FakeUp:
+        FUNCTION = "upscale"
+
+        def upscale(self, upscale_model, image):
+            calls.append(image.shape)
+            return (image.repeat_interleave(4, 1).repeat_interleave(4, 2),)
+
+    monkeypatch.setitem(stub_nodes.NODE_CLASS_MAPPINGS, "ImageUpscaleWithModel", FakeUp)
+    big, small = torch.rand(2, 72, 128, 3), torch.rand(2, 36, 64, 3)
+    out, info = DifforumUpscale().run(big, "x1.5", "lanczos", 0.0, 16, upscale_model=object())
+    assert not calls and "model skipped" in info and out.shape[1:3] == (108, 192)
+    out, info = DifforumUpscale().run(small, "x4", "lanczos", 0.0, 16, upscale_model=object())
+    assert calls and out.shape[1:3] == (144, 256)
+    calls.clear()
+    DifforumUpscale().run(big, "x1.5", "lanczos", 0.0, 16, upscale_model=object(), model_use="always")
+    assert calls

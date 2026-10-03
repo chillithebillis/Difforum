@@ -1,0 +1,8 @@
+# Infinite zoom - the Deforum classic. 10 s.
+# Template 02 (or 05 for a turbo model). Director look: deforum_morph. Setup: 10 s, long edge 640-768.
+# Speed: a 4-step turbo / DMD2 model, cadence 2.
+0s   | dream  | zoom_in slow        | a doorway carved in an ancient tree, moss, soft morning light
+2.5s | build  | zoom_in             | inside the tree a spiral library of glowing books
+5s   | tense  | zoom_in fast        | the books become a city of glass towers at night
+7.5s | climax | spiral fast large   | the city dissolves into a galaxy of light
+9s   | resolve | zoom_in slow small | a single star, calm, deep blue

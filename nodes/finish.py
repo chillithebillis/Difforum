@@ -264,6 +264,9 @@ def _unsharp(x: torch.Tensor, amount: float) -> torch.Tensor:
     return (chw + amount * (chw - blur)).clamp(0, 1).movedim(1, -1)
 
 
+MODEL_USE = ("auto (when enlarging 2x or more)", "always", "never")
+
+
 class DifforumUpscale:
     """Finish at 2K (or 1080p / 1440p / 4K / xN) for delivery.
 
@@ -287,7 +290,10 @@ class DifforumUpscale:
                 "chunk": ("INT", {"default": 16, "min": 1, "max": 256,
                           "tooltip": "Frames per model pass; lower it if VRAM runs out."}),
             },
-            "optional": {"upscale_model": ("UPSCALE_MODEL",)},
+            "optional": {
+                "upscale_model": ("UPSCALE_MODEL",),
+                "model_use": (list(MODEL_USE), {"default": MODEL_USE[0]}),
+            },
         }
 
     RETURN_TYPES = ("IMAGE", "STRING")
@@ -295,9 +301,15 @@ class DifforumUpscale:
     FUNCTION = "run"
     CATEGORY = CAT_POST
 
-    def run(self, frames, target, method, sharpen, chunk, upscale_model=None):
+    def run(self, frames, target, method, sharpen, chunk, upscale_model=None, model_use=MODEL_USE[0]):
         n, h, w = int(frames.shape[0]), int(frames.shape[1]), int(frames.shape[2])
         tw, th = target_size(h, w, target)
+        scale = max(tw / w, th / h)
+        skipped = ""
+        if upscale_model is not None and (model_use.startswith("never")
+                                          or (model_use.startswith("auto") and scale < 2.0)):
+            # a 4x model on frames that only need x1.6 renders 6x the pixels it keeps
+            upscale_model, skipped = None, f", model skipped at x{scale:.2f}"
         step = max(1, int(chunk))
         pbar = progress_bar(math.ceil(n / step))
         out = []
@@ -308,7 +320,8 @@ class DifforumUpscale:
                 x = call_comfy_node("ImageUpscaleWithModel", upscale_model=upscale_model, image=x)[0]
             out.append(_unsharp(_resize(x.float().cpu(), tw, th, method), float(sharpen)))
             pbar.update_absolute(k + 1)
-        info = f"{n} frames {w}x{h} -> {tw}x{th} ({'model + ' if upscale_model is not None else ''}{method})"
+        info = (f"{n} frames {w}x{h} -> {tw}x{th} "
+                f"({'model + ' if upscale_model is not None else ''}{method}{skipped})")
         return (torch.cat(out, dim=0), info)
 
 

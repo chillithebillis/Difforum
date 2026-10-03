@@ -5,6 +5,8 @@
 Difforum becomes a direction layer: a visual timeline drives any renderer.
 
 ### New
+- **Recipes**: ten shot scripts in `example_scripts/` (`examples/<name>.txt` in Shot Script)
+  and `docs/EXAMPLES.md`, with fast settings for long pieces.
 - **Shot Script**: the Director timeline from text, CSV, a file in `input/` or an LLM
   node (`TIME | MOOD | CAMERA | PROMPT`); Director `timeline_in` + `external` merge modes,
   the editor shows what was rendered.
@@ -65,6 +67,10 @@ Difforum becomes a direction layer: a visual timeline drives any renderer.
 - 13 templates in ComfyUI's template browser, generated from the node definitions.
 
 ### Improved
+- **Speed by default**: H3 templates ship with the Turbo LoRA on (4 / 8 steps) and the latent
+  upscale off; template 11 ships with Restyle off.
+- Per-frame loops keep the image model and VAE loaded under `--disable-smart-memory`.
+- Upscale `model_use = auto`: the upscale model is skipped when the clip grows less than 2x.
 - One shared feedback engine behind the Feedback Sampler, Live Sampler and Storyboard.
 - Depth follows the image in 3D, and pseudo-3D replaces the silent freeze without depth.
 - Steps scale with the energy, like Deforum (about 2x faster); the run report shows

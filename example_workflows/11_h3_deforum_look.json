@@ -50,7 +50,7 @@
    ],
    "size": [
     480,
-    400
+    440
    ],
    "flags": {},
    "order": 1,
@@ -61,7 +61,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## Deforum / AnimateDiff / Disco look, H3 motion\n\nThree stages, each on a switch:\n\n1. **Look pass** - a turbo **Feedback Sampler** renders the shot the Deforum way; its frames guide H3 (**H3 Guides**, one per second), so the morphs and dissolves happen in H3.\n2. **Restyle** - the same image model re-paints every H3 frame in the look, carried along H3's motion (`deforum morph`, `animatediff boil`, `disco flicker`).\n3. **Look Mix** - optional grain / flicker cuts from the look pass.\n\nThen **Upscale 2K**. Change the Director's `look` to steer all of it."
+    "## Deforum / AnimateDiff / Disco look, H3 motion\n\nThree stages, each on a switch:\n\n1. **Look pass** - a turbo **Feedback Sampler** renders the shot the Deforum way; its frames guide H3 (**H3 Guides**, one per second), so the morphs and dissolves happen in H3.\n2. **Restyle** (off by default, the slow stage) - the same image model re-paints every H3 frame in the look, carried along H3's motion (`deforum morph`, `animatediff boil`, `disco flicker`).\n3. **Look Mix** - grain / flicker cuts from the look pass, compositing only.\n\nThen **Upscale 2K**. Ships fast: H3 Turbo LoRA at 4 steps, latent upscale and Restyle off. Switch them on for the final render. Change the Director's `look` to steer all of it."
    ]
   },
   {
@@ -464,7 +464,7 @@
    "type": "CheckpointLoaderSimple",
    "pos": [
     24,
-    1168
+    1208
    ],
    "size": [
     320,
@@ -517,7 +517,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     484,
-    1168
+    1208
    ],
    "size": [
     380,
@@ -557,7 +557,7 @@
    "type": "CLIPTextEncode",
    "pos": [
     484,
-    1364
+    1404
    ],
    "size": [
     380,
@@ -597,7 +597,7 @@
    "type": "UNETLoader",
    "pos": [
     24,
-    1324
+    1364
    ],
    "size": [
     420,
@@ -630,7 +630,7 @@
    "type": "CLIPLoader",
    "pos": [
     24,
-    1470
+    1510
    ],
    "size": [
     420,
@@ -664,7 +664,7 @@
    "type": "VAELoader",
    "pos": [
     24,
-    1636
+    1676
    ],
    "size": [
     420,
@@ -700,7 +700,7 @@
    "type": "VAELoader",
    "pos": [
     24,
-    1752
+    1792
    ],
    "size": [
     420,
@@ -1231,7 +1231,7 @@
    "type": "LoraLoaderModelOnly",
    "pos": [
     1282,
-    1168
+    1208
    ],
    "size": [
     360,
@@ -1239,7 +1239,7 @@
    ],
    "flags": {},
    "order": 22,
-   "mode": 4,
+   "mode": 0,
    "inputs": [
     {
      "name": "model",
@@ -1265,14 +1265,14 @@
     "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
     1.0
    ],
-   "title": "Turbo LoRA (Ctrl+B to enable, then steps 4-8)"
+   "title": "Turbo LoRA (4 steps) · Ctrl+B + steps 20 for the base model"
   },
   {
    "id": 24,
    "type": "MarkdownNote",
    "pos": [
     982,
-    1554
+    1594
    ],
    "size": [
     360,
@@ -1295,7 +1295,7 @@
    "type": "ModelPreviewOverrideKJ",
    "pos": [
     1382,
-    1554
+    1594
    ],
    "size": [
     380,
@@ -1349,7 +1349,7 @@
    "type": "BasicGuider",
    "pos": [
     1982,
-    1168
+    1208
    ],
    "size": [
     220,
@@ -1390,7 +1390,7 @@
    "type": "RandomNoise",
    "pos": [
     982,
-    1168
+    1208
    ],
    "size": [
     260,
@@ -1424,7 +1424,7 @@
    "type": "KSamplerSelect",
    "pos": [
     982,
-    1314
+    1354
    ],
    "size": [
     260,
@@ -1456,7 +1456,7 @@
    "type": "BasicScheduler",
    "pos": [
     1682,
-    1168
+    1208
    ],
    "size": [
     260,
@@ -1487,7 +1487,7 @@
    },
    "widgets_values": [
     "simple",
-    20,
+    4,
     1.0
    ]
   },
@@ -1496,7 +1496,7 @@
    "type": "SamplerCustomAdvanced",
    "pos": [
     2242,
-    1168
+    1208
    ],
    "size": [
     260,
@@ -1558,7 +1558,7 @@
    "type": "MarkdownNote",
    "pos": [
     2860,
-    1168
+    1208
    ],
    "size": [
     380,
@@ -1573,7 +1573,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use `0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
+    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Off by default: it is the quality pass, about as long again as the render.\n- Refine sigmas: `0.6316, 0.3158, 0.0000` with the Turbo LoRA; for the base model use `0.6316, 0.4737, 0.3158, 0.1579, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
    ]
   },
   {
@@ -1581,7 +1581,7 @@
    "type": "LTXVSeparateAVLatent",
    "pos": [
     3280,
-    1168
+    1208
    ],
    "size": [
     240,
@@ -1589,7 +1589,7 @@
    ],
    "flags": {},
    "order": 31,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "av_latent",
@@ -1625,7 +1625,7 @@
    "type": "MinimaxH3LatentUpscaler3D",
    "pos": [
     3560,
-    1168
+    1208
    ],
    "size": [
     340,
@@ -1633,7 +1633,7 @@
    ],
    "flags": {},
    "order": 32,
-   "mode": "scale by multiplier",
+   "mode": 4,
    "inputs": [
     {
      "name": "latent",
@@ -1670,7 +1670,7 @@
    "type": "LTXVConcatAVLatent",
    "pos": [
     3940,
-    1168
+    1208
    ],
    "size": [
     240,
@@ -1678,7 +1678,7 @@
    ],
    "flags": {},
    "order": 33,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "video_latent",
@@ -1712,7 +1712,7 @@
    "type": "Difforum_H3RefineGuides",
    "pos": [
     4220,
-    1168
+    1208
    ],
    "size": [
     300,
@@ -1720,7 +1720,7 @@
    ],
    "flags": {},
    "order": 34,
-   "mode": "re-encode",
+   "mode": 4,
    "inputs": [
     {
      "name": "positive",
@@ -1766,7 +1766,7 @@
    "type": "BasicGuider",
    "pos": [
     4560,
-    1168
+    1208
    ],
    "size": [
     220,
@@ -1774,7 +1774,7 @@
    ],
    "flags": {},
    "order": 35,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "model",
@@ -1808,7 +1808,7 @@
    "type": "KSamplerSelect",
    "pos": [
     2860,
-    1584
+    1624
    ],
    "size": [
     260,
@@ -1816,7 +1816,7 @@
    ],
    "flags": {},
    "order": 36,
-   "mode": 0,
+   "mode": 4,
    "inputs": [],
    "outputs": [
     {
@@ -1840,7 +1840,7 @@
    "type": "ManualSigmas",
    "pos": [
     2860,
-    1700
+    1740
    ],
    "size": [
     300,
@@ -1848,7 +1848,7 @@
    ],
    "flags": {},
    "order": 37,
-   "mode": 0,
+   "mode": 4,
    "inputs": [],
    "outputs": [
     {
@@ -1864,7 +1864,7 @@
     "Node name for S&R": "ManualSigmas"
    },
    "widgets_values": [
-    "0.6316, 0.4737, 0.3158, 0.1579, 0.0000"
+    "0.6316, 0.3158, 0.0000"
    ],
    "title": "Refine sigmas"
   },
@@ -1873,7 +1873,7 @@
    "type": "SamplerCustomAdvanced",
    "pos": [
     4820,
-    1168
+    1208
    ],
    "size": [
     260,
@@ -1881,7 +1881,7 @@
    ],
    "flags": {},
    "order": 38,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "noise",
@@ -1937,7 +1937,7 @@
    "type": "VAEDecode",
    "pos": [
     2542,
-    1168
+    1208
    ],
    "size": [
     200,
@@ -1978,7 +1978,7 @@
    "type": "VAEDecodeAudio",
    "pos": [
     2542,
-    1284
+    1324
    ],
    "size": [
     200,
@@ -2019,7 +2019,7 @@
    "type": "MarkdownNote",
    "pos": [
     5198,
-    1168
+    1208
    ],
    "size": [
     380,
@@ -2042,7 +2042,7 @@
    "type": "Difforum_Restyle",
    "pos": [
     5618,
-    1168
+    1208
    ],
    "size": [
     360,
@@ -2050,7 +2050,7 @@
    ],
    "flags": {},
    "order": 42,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "video",
@@ -2143,7 +2143,7 @@
    "type": "PreviewAny",
    "pos": [
     6018,
-    1168
+    1208
    ],
    "size": [
     300,
@@ -2151,7 +2151,7 @@
    ],
    "flags": {},
    "order": 43,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "source",
@@ -2178,7 +2178,7 @@
    "type": "Difforum_LookMix",
    "pos": [
     5198,
-    1909
+    1949
    ],
    "size": [
     300,
@@ -2228,7 +2228,7 @@
    "type": "UpscaleModelLoader",
    "pos": [
     6436,
-    1168
+    1208
    ],
    "size": [
     320,
@@ -2261,7 +2261,7 @@
    "type": "Difforum_Upscale",
    "pos": [
     6796,
-    1168
+    1208
    ],
    "size": [
     320,
@@ -2305,7 +2305,8 @@
     "2K (2048 long edge)",
     "lanczos",
     0.15,
-    16
+    16,
+    "auto (when enlarging 2x or more)"
    ]
   },
   {
@@ -2313,7 +2314,7 @@
    "type": "CreateVideo",
    "pos": [
     7234,
-    1168
+    1208
    ],
    "size": [
     260,
@@ -2356,7 +2357,7 @@
    "type": "SaveVideo",
    "pos": [
     7534,
-    1168
+    1208
    ],
    "size": [
     480,
@@ -2985,7 +2986,7 @@
     0,
     0,
     528,
-    1032
+    1072
    ],
    "color": "#444",
    "font_size": 22,
@@ -3022,7 +3023,7 @@
    "title": "Models",
    "bounding": [
     0,
-    1102,
+    1142,
     888,
     754
    ],
@@ -3061,7 +3062,7 @@
    "title": "3 · Render · MiniMax H3",
    "bounding": [
     958,
-    1102,
+    1142,
     1808,
     316
    ],
@@ -3074,7 +3075,7 @@
    "title": "Live Preview (TAEH3)",
    "bounding": [
     958,
-    1488,
+    1528,
     828,
     750
    ],
@@ -3087,7 +3088,7 @@
    "title": "H3 Latent Upscale (x2)",
    "bounding": [
     2836,
-    1102,
+    1142,
     2268,
     702
    ],
@@ -3100,7 +3101,7 @@
    "title": "Restyle (look pass)",
    "bounding": [
     5174,
-    1102,
+    1142,
     1168,
     671
    ],
@@ -3113,7 +3114,7 @@
    "title": "Look Mix",
    "bounding": [
     5174,
-    1843,
+    1883,
     348,
     410
    ],
@@ -3126,7 +3127,7 @@
    "title": "Upscale 2K",
    "bounding": [
     6412,
-    1102,
+    1142,
     728,
     310
    ],
@@ -3139,7 +3140,7 @@
    "title": "Output",
    "bounding": [
     7210,
-    1102,
+    1142,
     828,
     530
    ],

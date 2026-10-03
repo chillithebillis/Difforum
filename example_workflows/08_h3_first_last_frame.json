@@ -61,7 +61,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## MiniMax H3 · first / last frame\n\nThe **Director** draws the move, **Guide Frames** carries your first frame to where the camera ends, and **Fill Reveal (AI)** paints what the camera uncovers. **H3 Shot** hands H3 the first frame, that last frame, the length (17k+5), the size and a prompt with the camera move and the Director's **look**.\n\n- **Switches**: Previz, Fill Reveal, Live Preview (TAEH3), Render, Upscale 2K.\n- Fill model: an inpaint checkpoint gives the cleanest seams.\n- Turbo LoRA: Ctrl+B, steps 6-8. Live preview needs KJNodes."
+    "## MiniMax H3 · first / last frame\n\nThe **Director** draws the move, **Guide Frames** carries your first frame to where the camera ends, and **Fill Reveal (AI)** paints what the camera uncovers. **H3 Shot** hands H3 the first frame, that last frame, the length (17k+5), the size and a prompt with the camera move and the Director's **look**.\n\n- **Switches**: Previz, Fill Reveal, Live Preview (TAEH3), Render, Upscale 2K.\n- Fill model: an inpaint checkpoint gives the cleanest seams.\n- Ships fast: Turbo LoRA on (8 steps), H3 Latent Upscale off. Live preview needs KJNodes."
    ]
   },
   {
@@ -1402,7 +1402,7 @@
    ],
    "flags": {},
    "order": 27,
-   "mode": 4,
+   "mode": 0,
    "inputs": [
     {
      "name": "model",
@@ -1428,7 +1428,7 @@
     "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
     1.0
    ],
-   "title": "Turbo LoRA (Ctrl+B to enable, then steps 4-8)"
+   "title": "Turbo LoRA (8 steps) · Ctrl+B + steps 20 for the base model"
   },
   {
    "id": 29,
@@ -1650,7 +1650,7 @@
    },
    "widgets_values": [
     "simple",
-    20,
+    8,
     1.0
    ]
   },
@@ -1736,7 +1736,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use `0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
+    "## H3 Latent Upscale (two-stage)\n\nH3 renders at the Setup size (640 px, fast), the **Minimax H3 Latent Upscaler (3D)** lifts the latent to ~1 MP, and H3 re-samples it for a few steps at full size: new detail that holds over time, no decode / re-encode.\n\n- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n- Off by default: it is the quality pass, about as long again as the render.\n- Refine sigmas: `0.6316, 0.3158, 0.0000` with the Turbo LoRA; for the base model use `0.6316, 0.4737, 0.3158, 0.1579, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode the small render directly."
    ]
   },
   {
@@ -1752,7 +1752,7 @@
    ],
    "flags": {},
    "order": 36,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "av_latent",
@@ -1796,7 +1796,7 @@
    ],
    "flags": {},
    "order": 37,
-   "mode": "scale by multiplier",
+   "mode": 4,
    "inputs": [
     {
      "name": "latent",
@@ -1841,7 +1841,7 @@
    ],
    "flags": {},
    "order": 38,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "video_latent",
@@ -1883,7 +1883,7 @@
    ],
    "flags": {},
    "order": 39,
-   "mode": "re-encode",
+   "mode": 4,
    "inputs": [
     {
      "name": "positive",
@@ -1937,7 +1937,7 @@
    ],
    "flags": {},
    "order": 40,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "model",
@@ -1979,7 +1979,7 @@
    ],
    "flags": {},
    "order": 41,
-   "mode": 0,
+   "mode": 4,
    "inputs": [],
    "outputs": [
     {
@@ -2011,7 +2011,7 @@
    ],
    "flags": {},
    "order": 42,
-   "mode": 0,
+   "mode": 4,
    "inputs": [],
    "outputs": [
     {
@@ -2027,7 +2027,7 @@
     "Node name for S&R": "ManualSigmas"
    },
    "widgets_values": [
-    "0.6316, 0.4737, 0.3158, 0.1579, 0.0000"
+    "0.6316, 0.3158, 0.0000"
    ],
    "title": "Refine sigmas"
   },
@@ -2044,7 +2044,7 @@
    ],
    "flags": {},
    "order": 43,
-   "mode": 0,
+   "mode": 4,
    "inputs": [
     {
      "name": "noise",
@@ -2259,7 +2259,8 @@
     "2K (2048 long edge)",
     "lanczos",
     0.15,
-    16
+    16,
+    "auto (when enlarging 2x or more)"
    ]
   },
   {

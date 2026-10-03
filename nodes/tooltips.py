@@ -130,8 +130,8 @@ TIPS = {
         "script": "One beat per line: TIME | MOOD | CAMERA | PROMPT. TIME 0s, 4.5s, 00:09 or f96. CAMERA a "
                   "move (dolly_in, orbit_left, crane_up...) plus slow / fast, small / large, 35mm, an easing. "
                   "'4s | key: label' adds a key. Lines without a time are spread evenly.",
-        "file": "A .txt / .csv / .json in ComfyUI/input (e.g. shots/scene01.txt). Re-read whenever it "
-                "changes. Overrides the box.",
+        "file": "A .txt / .csv / .json in ComfyUI/input (e.g. shots/scene01.txt), or a shipped example: "
+                "examples/01_infinite_zoom.txt. Re-read whenever it changes. Overrides the box.",
         "params": "From Setup: converts seconds to frames and flags beats past the end.",
         "script_in": "Text from another node (an LLM, a text file loader, a spreadsheet export). Overrides "
                      "the box and the file. Feed the llm_instructions output to the LLM as its prompt.",
@@ -367,6 +367,9 @@ TIPS = {
         "method": "Resize filter after the model. lanczos is sharpest.",
         "sharpen": "Light unsharp after resizing.",
         "upscale_model": "Load Upscale Model (RealESRGAN, 4x-UltraSharp, Remacri...). Empty = resize only.",
+        "model_use": "auto: the model runs only when the clip grows 2x or more (640 -> 2K); a clip that is "
+                     "already large (1280 -> 2K) is resized and sharpened, many times faster. always / never "
+                     "force it.",
     },
 }
 

@@ -37,6 +37,18 @@ def _safe(name):
     return safe_input_path(_input_dir(), name)
 
 
+EXAMPLES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "example_scripts")
+
+
+def _script_path(name):
+    """A file in ComfyUI/input, or `examples/<name>` for the scripts shipped with the pack."""
+    name = str(name).strip().replace("\\", "/")
+    if name.startswith("examples/"):
+        from ..core.video import safe_input_path
+        return safe_input_path(EXAMPLES_DIR, name[len("examples/"):])
+    return _safe(name)
+
+
 def _natural(s):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", s)]
 
@@ -54,7 +66,8 @@ class DifforumShotScript:
     (`time,mood,camera,prompt,key,energy`) or a Director JSON works too.
 
     The text can come from the box, from a `.txt` / `.csv` / `.json` file in
-    ComfyUI's input folder (re-read when it changes), or from any node that
+    ComfyUI's input folder (re-read when it changes; `examples/01_infinite_zoom.txt`
+    and the other shipped scripts work too), or from any node that
     outputs a STRING - an LLM node, a text loader, a spreadsheet export - into
     `script_in`. Wire `timeline` into the Director's `timeline_in`.
     `llm_instructions` is a ready prompt that asks an LLM for this format.
@@ -84,7 +97,7 @@ class DifforumShotScript:
     def IS_CHANGED(cls, script, file, params=None, script_in=None):
         if str(file).strip():
             try:
-                return os.path.getmtime(_safe(file.strip()))
+                return os.path.getmtime(_script_path(file))
             except Exception:
                 return float("nan")
         return ""
@@ -95,11 +108,12 @@ class DifforumShotScript:
         if script_in is not None and str(script_in).strip():
             text, source = str(script_in), "script_in"
         elif str(file).strip():
-            path = _safe(file.strip())
+            path = _script_path(file)
             if not os.path.isfile(path):
-                raise ValueError(f"Shot Script: {file!r} not found in ComfyUI/input")
+                raise ValueError(f"Shot Script: {file!r} not found in ComfyUI/input "
+                                 "(or use examples/01_infinite_zoom.txt ... for the shipped scripts)")
             with open(path, encoding="utf-8-sig") as fh:
-                text, source = fh.read(), f"input/{file.strip()}"
+                text, source = fh.read(), file.strip()
         else:
             text, source = script, "text box"
         tl, notes = script_to_timeline(text, fps, frames)

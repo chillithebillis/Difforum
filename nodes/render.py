@@ -3,7 +3,9 @@ and the Live Sampler (realtime loop with live preview and VJ outputs)."""
 
 from __future__ import annotations
 
+import contextlib
 import math
+import os
 import time
 
 import torch
@@ -72,6 +74,10 @@ def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, sche
 
     def diffuse(img: torch.Tensor, f: int) -> torch.Tensor:
         check_interrupt()
+        with resident_models():
+            return _diffuse(img, f)
+
+    def _diffuse(img: torch.Tensor, f: int) -> torch.Tensor:
         denoise = max(0.0, min(1.0, float(strength_at(f))))
         pos = prompts[f] if prompts is not None and len(prompts) else positive
         neg = negative
@@ -100,6 +106,33 @@ def make_diffuser(model, vae, positive, negative, steps, cfg, sampler_name, sche
 _WARNED = []
 
 
+@contextlib.contextmanager
+def resident_models():
+    """Keep the image model and its VAE loaded together while a frame is made.
+
+    A feedback frame is VAE encode -> sample -> VAE decode. Under
+    `--disable-smart-memory` ComfyUI unloads every other model before each of
+    those loads, so the image model is re-staged twice per frame and a clip
+    takes many times longer. Inside this block the flag is suspended (ComfyUI
+    then frees memory only when it is actually needed) and restored on exit.
+    Set DIFFORUM_RESPECT_MEMORY_FLAGS=1 to leave the launch flags untouched.
+    """
+    try:
+        import comfy.model_management as mm
+    except Exception:
+        yield False
+        return
+    was = bool(getattr(mm, "DISABLE_SMART_MEMORY", False))
+    active = was and not os.environ.get("DIFFORUM_RESPECT_MEMORY_FLAGS")
+    if active:
+        mm.DISABLE_SMART_MEMORY = False
+    try:
+        yield active
+    finally:
+        if active:
+            mm.DISABLE_SMART_MEMORY = was
+
+
 def launch_warning() -> str:
     """Launch flags that make per-frame sampling slow (model re-staged every frame)."""
     try:
@@ -107,15 +140,21 @@ def launch_warning() -> str:
         from comfy.cli_args import args
     except Exception:
         return ""
-    bad = []
+    bad, kept = [], ""
     if getattr(mm, "vram_state", None) in (mm.VRAMState.LOW_VRAM, mm.VRAMState.NO_VRAM):
         bad.append("--lowvram/--novram")
     if getattr(args, "disable_smart_memory", False):
-        bad.append("--disable-smart-memory")
+        if os.environ.get("DIFFORUM_RESPECT_MEMORY_FLAGS"):
+            bad.append("--disable-smart-memory")
+        else:
+            kept = ("--disable-smart-memory is suspended while frames are made, so the image model "
+                    "and VAE stay loaded together")
     if not bad:
-        return ""
-    msg = (f"launched with {' '.join(bad)}: the image model is re-loaded for every frame. "
+        return kept
+    msg = (f"launched with {' '.join(bad)}: the image model may be re-loaded for every frame. "
            "If the image model fits in VRAM, run Feedback / Live renders without these flags.")
+    if kept:
+        msg += f" ({kept})"
     if not _WARNED:
         _WARNED.append(1)
         print(f"[Difforum] {msg}")

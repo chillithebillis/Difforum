@@ -1,0 +1,5 @@
+# Storyboard stills to a shot: your pictures are the keyframes. 5 s. Template 16.
+# Put stills in ComfyUI/input/difforum_keys named 0s_*.png, 2s_*.png, 4.5s_*.png.
+0s   | calm    | dolly_in slow | the wide: a red car alone on a salt flat at dawn
+2s   | build   | orbit_left    | closer: dust lifts behind the wheels
+4.5s | resolve | still         | the driver's eyes in the mirror

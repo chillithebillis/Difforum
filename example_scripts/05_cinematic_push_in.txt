@@ -1,0 +1,5 @@
+# A cinematic move on MiniMax H3 from one frame. 5 s. Template 08 (first / last frame).
+# Scene prompts say what can be seen; the camera words are written for H3 by Camera -> Prompt.
+0s   | calm  | dolly_in slow small | a lighthouse keeper at a window, storm light on his face, shallow depth of field
+3s   | build | crane_up slow       | rain streaks the glass, the lamp behind him starts to turn
+4.5s | key: the lamp flares

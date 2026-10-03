@@ -1,0 +1,4 @@
+# Seamless loop for VJ sets and LED walls. 8 s. Template 06.
+# Keep one mood and gentle moves: the loop closes the camera and the prompt on itself.
+0s | dream | roll_cw slow small | a kaleidoscope of liquid gold and obsidian, symmetric, macro
+4s | dream | breathe            | liquid gold folding into petals, symmetric, macro

@@ -1103,7 +1103,8 @@
     "2K (2048 long edge)",
     "lanczos",
     0.15,
-    16
+    16,
+    "auto (when enlarging 2x or more)"
    ]
   },
   {

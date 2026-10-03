@@ -220,7 +220,8 @@ just prompts without times (spread evenly). A CSV with a header row
 (`time,mood,camera,prompt,key,energy`) or a Director JSON works too.
 
 The text can come from the box, from a `.txt` / `.csv` / `.json` file in
-ComfyUI's input folder (re-read when it changes), or from any node that
+ComfyUI's input folder (re-read when it changes; `examples/01_infinite_zoom.txt`
+and the other shipped scripts work too), or from any node that
 outputs a STRING - an LLM node, a text loader, a spreadsheet export - into
 `script_in`. Wire `timeline` into the Director's `timeline_in`.
 `llm_instructions` is a ready prompt that asks an LLM for this format.
@@ -228,7 +229,7 @@ outputs a STRING - an LLM node, a text loader, a spreadsheet export - into
 | input | type | default | notes |
 |---|---|---|---|
 | `script` | STRING | # TIME | MOOD | CAMERA | PROMPT     (... | One beat per line: TIME / MOOD / CAMERA / PROMPT. TIME 0s, 4.5s, 00:09 or f96. CAMERA a move (dolly_in, orbit_left, crane_up...) plus slow / fast, small / large, 35mm, an easing. '4s / key: label' adds a key. Lines without a time are spread evenly. |
-| `file` | STRING |  | A .txt / .csv / .json in ComfyUI/input (e.g. shots/scene01.txt). Re-read whenever it changes. Overrides the box. |
+| `file` | STRING |  | A .txt / .csv / .json in ComfyUI/input (e.g. shots/scene01.txt), or a shipped example: examples/01_infinite_zoom.txt. Re-read whenever it changes. Overrides the box. |
 | `params` *(optional)* | DIFFORUM_PARAMS |  | From Setup: converts seconds to frames and flags beats past the end. |
 | `script_in` *(optional)* | STRING |  | Text from another node (an LLM, a text file loader, a spreadsheet export). Overrides the box and the file. Feed the llm_instructions output to the LLM as its prompt. |
 
@@ -936,5 +937,6 @@ node (or its group) to deliver at render size.
 | `sharpen` | FLOAT | 0.15 | Light unsharp after resizing. |
 | `chunk` | INT | 16 | Frames per model pass; lower it if VRAM runs out. |
 | `upscale_model` *(optional)* | UPSCALE_MODEL |  | Load Upscale Model (RealESRGAN, 4x-UltraSharp, Remacri...). Empty = resize only. |
+| `model_use` *(optional)* | choice (auto (when enlarging 2x or more), always, never) | auto (when enlarging 2x or more) | auto: the model runs only when the clip grows 2x or more (640 -> 2K); a clip that is already large (1280 -> 2K) is resized and sharpened, many times faster. always / never force it. |
 
 **Outputs:** `frames` (IMAGE), `info` (STRING)

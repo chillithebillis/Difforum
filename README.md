@@ -167,6 +167,7 @@ Deforum hard to use:
 
 | | |
 |---|---|
+| [Recipes](docs/EXAMPLES.md) | Ten short projects with shot scripts; fast settings for long pieces |
 | [Bridges](docs/BRIDGES.md) | MiniMax H3, LTX-2, keyframes, H3 prompts, depth, After Effects, Blender |
 | [Node reference](docs/NODES.md) | Every input and output |
 | [Performance](docs/PERFORMANCE.md) | Speed vs. quality, Apple Silicon |

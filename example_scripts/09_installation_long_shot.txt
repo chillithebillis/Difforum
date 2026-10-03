@@ -1,0 +1,9 @@
+# One minute, one continuous shot with moments that must land. Template 12.
+# Setup: 60 s at 12 fps, long edge 640, turbo model, cadence 2-3 - then interpolate / upscale.
+0s  | calm    | zoom_in slow small   | an empty white gallery, soft daylight, concrete floor
+10s | dream   | drift                | the walls breathe, ink blooms across the plaster
+10s | key: first bloom
+22s | build   | pan_right slow       | a forest grows out of the ink, roots on the floor
+36s | climax  | vortex fast          | the forest burns into light, a nebula fills the room
+36s | key: ignition
+50s | resolve | zoom_out slow small  | stars settle into an empty white gallery

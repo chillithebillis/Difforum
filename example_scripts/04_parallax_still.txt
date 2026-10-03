@@ -1,0 +1,4 @@
+# One still, real depth: a 2.5D camera move on a photo or a key visual. 5 s.
+# Template 03 (depth from Depth Anything 3). Director camera_mode: 3d. Low energy keeps the picture.
+0s | calm | dolly_in slow small 35mm | energy 0.25
+3s | calm | orbit_right slow small   | energy 0.25

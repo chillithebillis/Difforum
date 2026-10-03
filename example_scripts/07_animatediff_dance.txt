@@ -1,0 +1,6 @@
+# The AnimateDiff look on footage you shot. Template 15 (AnimateLCM): load the clip, write the style.
+# No timeline needed there: this list is a set of style prompts to try, one per run.
+painterly animation, thick brush strokes, glowing colours, dreamlike
+ink and watercolour, loose lines, paper texture, soft bleeding colour
+claymation, handmade, fingerprints in the clay, studio light
+neon line art on black, glowing edges, minimal

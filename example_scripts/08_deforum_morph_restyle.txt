@@ -1,0 +1,6 @@
+# Deforum morph over any clip (H3, LTX, live action). Template 13.
+# Restyle style: deforum morph, denoise 0.6-0.7 with the Structure (ControlNet) block on.
+# Scenes change what the clip turns into over time; the camera stays the clip's own.
+0s | dream  | oil paint, impasto, swirling brush strokes
+3s | build  | stained glass, lead lines, light through colour
+6s | climax | molten metal and embers, glowing edges

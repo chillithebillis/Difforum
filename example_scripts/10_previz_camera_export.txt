@@ -1,0 +1,6 @@
+# Previz and camera hand-off, no model: block the shot, show it, export it. 8 s.
+# Template 01 (animatic + contact sheet), then 09 (camera to After Effects / Blender).
+0s | calm  | crane_up slow          | establishing: the valley at dawn
+3s | build | dolly_in 35mm          | approach the cabin door
+6s | tense | handheld small         | inside, a hand reaches for the lamp
+6s | key: lamp on

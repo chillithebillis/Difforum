@@ -1,0 +1,7 @@
+# Music video, camera on the beat. 12 s. Template 04 (connect the track in Audio).
+# Director look: music_video. Reactions: beat_pulse / onset_shake / bass_speed ride the audio.
+0s  | calm   | drift beat_pulse          | a dancer silhouette in neon haze, slow smoke
+3s  | build  | orbit_left bass_speed     | chrome flowers opening around her, magenta and cyan light
+6s  | climax | spiral fast onset_shake   | an explosion of confetti and laser beams
+6s  | key: the drop
+9s  | resolve | zoom_out slow beat_pulse | the empty stage, dust floating in one spotlight

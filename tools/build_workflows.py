@@ -228,6 +228,14 @@ class Graph:
         self._cur["ids"].append(node["id"])
         return node["id"]
 
+    def off(self, title):
+        """Ship a block switched off (bypassed or muted, as Workflow Switches would do it)."""
+        mode = 4 if title in BYPASS_BLOCKS else 2
+        blk = next(b for b in self.blocks if b["title"] == title)
+        for i in blk["ids"]:
+            if self.nodes[i - 1]["type"] != "MarkdownNote":
+                self.nodes[i - 1]["mode"] = mode
+
     def note(self, text, size=(420, 260)):
         return self.add("MarkdownNote", size=size, text=text)
 
@@ -736,11 +744,13 @@ def h3_loaders(g, unet):
     return un, cl, vv, va
 
 
-def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=20):
-    """Official MiniMax H3 sampling tail, with a switchable TAEH3 live preview."""
+def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=4):
+    """Official MiniMax H3 sampling tail, with a switchable TAEH3 live preview.
+    Ships fast: Turbo LoRA on at 4 steps, the two-stage latent upscale off."""
     with g.block("3 · Render · MiniMax H3", C_RENDER, col=col):
-        lo = g.add("LoraLoaderModelOnly", size=(360, 90), title="Turbo LoRA (Ctrl+B to enable, then steps 4-8)",
-                   mode=4, lora_name=lora, strength_model=1.0)
+        lo = g.add("LoraLoaderModelOnly", size=(360, 90),
+                   title=f"Turbo LoRA ({steps} steps) · Ctrl+B + steps 20 for the base model",
+                   lora_name=lora, strength_model=1.0)
         g.link(un, "MODEL", lo, "model")
     with g.block(B_LIVE, C_LIVE, col=col, row=1):
         g.note("## Live preview while H3 samples\n\n**Model Preview Override** (KJNodes) shows the video "
@@ -772,9 +782,10 @@ def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=20):
                "steps at full size: new detail that holds over time, no decode / re-encode.\n\n"
                "- Needs [Comfyui_Minimax_h3_latent_Upscaler](https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler) "
                "and `minimax_h3_latent_upscaler_3d_fp16.safetensors` in `models/latent_upscale_models`.\n"
-               "- Refine sigmas: 4 steps from 0.63 for the base model; with the Turbo LoRA on use "
-               "`0.6316, 0.3158, 0.0000`. Start higher (0.8-0.9) for more new detail, lower (0.5) to keep "
-               "the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x "
+               "- Off by default: it is the quality pass, about as long again as the render.\n"
+               "- Refine sigmas: `0.6316, 0.3158, 0.0000` with the Turbo LoRA; for the base model use "
+               "`0.6316, 0.4737, 0.3158, 0.1579, 0.0000`. Start higher (0.8-0.9) for more new detail, lower "
+               "(0.5) to keep the motion exactly.\n- **H3 Refine Guides** rebuilds the guides / first-last frames at the 2x "
                "size (the first pass encoded them small).\n- Saves time, not VRAM: the refine runs at the 2x size. Switch off to decode "
                "the small render directly.", size=(380, 360))
         sep = g.add("LTXVSeparateAVLatent", size=(240, 70))
@@ -796,13 +807,14 @@ def h3_render(g, conditioning, latent, un, vv, va, lora, col, steps=20):
         g.link(lo, "MODEL", gd2, "model")
         g.link(rg, "positive", gd2, "conditioning")
         ks2 = g.add("KSamplerSelect", size=(260, 60), sampler_name="euler")
-        sg2 = g.add("ManualSigmas", size=(300, 60), title="Refine sigmas", sigmas="0.6316, 0.4737, 0.3158, 0.1579, 0.0000")
+        sg2 = g.add("ManualSigmas", size=(300, 60), title="Refine sigmas", sigmas="0.6316, 0.3158, 0.0000")
         sa2 = g.add("SamplerCustomAdvanced", size=(260, 120), title="Refine at 2x")
         g.link(nz, "NOISE", sa2, "noise")
         g.link(gd2, "GUIDER", sa2, "guider")
         g.link(ks2, "SAMPLER", sa2, "sampler")
         g.link(sg2, "SIGMAS", sa2, "sigmas")
         g.link(cat, "latent", sa2, "latent_image")
+    g.off(B_H3UP)
     with g.block("3 · Render · MiniMax H3", C_RENDER, col=col):
         dv = g.add("VAEDecode", size=(200, 60))
         g.link(sa2, "output", dv, "samples")
@@ -912,7 +924,8 @@ def wf_h3():
             "camera uncovers. **H3 Shot** hands H3 the first frame, that last frame, the length (17k+5), the "
             "size and a prompt with the camera move and the Director's **look**.\n\n- **Switches**: Previz, "
             "Fill Reveal, Live Preview (TAEH3), Render, Upscale 2K.\n- Fill model: an inpaint checkpoint "
-            "gives the cleanest seams.\n- Turbo LoRA: Ctrl+B, steps 6-8. Live preview needs KJNodes.")
+            "gives the cleanest seams.\n- Ships fast: Turbo LoRA on (8 steps), H3 Latent Upscale off. Live "
+            "preview needs KJNodes.")
     s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="3d",
                                 timeline=tl_json(124, **H3_TIMELINE))
     dp = depth_block(g, (img, "IMAGE"))
@@ -945,7 +958,7 @@ def wf_h3():
         for k in ("prompt", "width", "height", "length"):
             g.link(h3, k, i2v, k)
     video, audio = h3_render(g, (i2v, "positive"), (i2v, "LATENT"), un, vv, va,
-                             "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors", col=5)
+                             "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors", col=5, steps=8)
     up = upscale(g, video, col=6)
     output(g, up, col=7, prefix="video/difforum_h3", audio=audio)
     return g
@@ -999,7 +1012,7 @@ def wf_h3_guides():
             "paints what the camera uncovers, and **H3 Guides** anchors them inside the generation (core "
             "`MiniMaxH3AddGuide`).\n\n- The anchor is also `<Picture 1>`; **Camera → Prompt** adds the move "
             "and the **look**.\n- **Switches**: Previz, Fill Reveal, Live Preview (TAEH3), Render, Upscale "
-            "2K.\n- Turbo LoRA: Ctrl+B, steps 4. Live preview needs KJNodes.")
+            "2K.\n- Ships fast: Turbo LoRA on (4 steps), H3 Latent Upscale off. Live preview needs KJNodes.")
     s, img, d = direction_block(g, 124, target="MiniMax H3", long_edge=640, camera_mode="3d",
                                 timeline=tl_json(124, **H3_TIMELINE),
                                 image_title="Anchor image (also the H3 reference)")
@@ -1028,10 +1041,11 @@ def wf_h3_deforum():
     control(g, "## Deforum / AnimateDiff / Disco look, H3 motion\n\nThree stages, each on a switch:\n\n"
             "1. **Look pass** - a turbo **Feedback Sampler** renders the shot the Deforum way; its frames "
             "guide H3 (**H3 Guides**, one per second), so the morphs and dissolves happen in H3.\n"
-            "2. **Restyle** - the same image model re-paints every H3 frame in the look, carried along H3's "
-            "motion (`deforum morph`, `animatediff boil`, `disco flicker`).\n"
-            "3. **Look Mix** - optional grain / flicker cuts from the look pass.\n\nThen **Upscale 2K**. "
-            "Change the Director's `look` to steer all of it.", size=(480, 400))
+            "2. **Restyle** (off by default, the slow stage) - the same image model re-paints every H3 frame "
+            "in the look, carried along H3's motion (`deforum morph`, `animatediff boil`, `disco flicker`).\n"
+            "3. **Look Mix** - grain / flicker cuts from the look pass, compositing only.\n\nThen **Upscale "
+            "2K**. Ships fast: H3 Turbo LoRA at 4 steps, latent upscale and Restyle off. Switch them on for "
+            "the final render. Change the Director's `look` to steer all of it.", size=(480, 440))
     tl = tl_json(124, scenes=[
         {"start": 0, "mood": "dream", "prompt": "misty ancient forest at dawn, painterly, volumetric light"},
         {"start": 40, "mood": "build", "prompt": "the forest dissolves into glowing bioluminescent coral"},
@@ -1065,6 +1079,7 @@ def wf_h3_deforum():
     video, audio = h3_render(g, cond, lat, un, vv, va,
                              "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors", col=5)
     rs = restyle_block(g, video, ck, pos, neg, d, col=6)
+    g.off(B_RESTYLE)                  # the heavy stage: one image-model pass per H3 frame
     with g.block(B_LOOKMIX, C_STYLE, col=6, row=1):
         lm = g.add("Difforum_LookMix", size=(300, 300), blend="detail transfer", amount=0.5)
         g.link(rs[0], rs[1], lm, "video")
