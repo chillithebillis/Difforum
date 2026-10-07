@@ -21,7 +21,7 @@ let CATALOG = {
         "still", "zoom_in", "zoom_out", "pan_left", "pan_right", "pan_up", "pan_down",
         "roll_cw", "roll_ccw", "dolly_in", "dolly_out", "orbit_left", "orbit_right",
         "tilt_up", "tilt_down", "rise", "crane_up", "dolly_zoom", "spiral", "vortex",
-        "sway", "breathe", "drift", "handheld", "shake",
+        "sway", "breathe", "drift", "handheld", "shake", "free",
     ].map((id) => ({ id, label: id.replace(/_/g, " "), group: "basic", hint: "", depth: false })),
     moods: [
         { id: "calm", color: "#4a90d9", strength: 0.44 },
@@ -135,6 +135,10 @@ function drawGlyph(ctx, id, x, y, s, color) {
             ctx.beginPath(); ctx.moveTo(3, 12);
             for (let i = 1; i <= 9; i++) ctx.lineTo(3 + i * 2, 12 + (i % 2 ? -5 : 5));
             ctx.stroke(); break;
+        case "free":
+            ctx.setLineDash([2, 2]); R(18, 13); ctx.setLineDash([]);
+            ctx.save(); ctx.translate(13.5, 11); ctx.rotate(0.3); ctx.strokeRect(-5.5, -4, 11, 8); ctx.restore();
+            break;
         default: R(14, 10);
     }
     ctx.restore();
@@ -185,7 +189,8 @@ function injectStyles() {
 .dfx-grp { font-size: 9px; color: var(--dim); grid-column: 1 / -1; margin-top: 2px; }
 .dfx-sl { display: flex; align-items: center; gap: 6px; min-width: 150px; flex: 1; }
 .dfx-sl input[type=range] { flex: 1; accent-color: var(--acc); }
-.dfx-sl b { font-weight: 500; min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+.dfx-sl .dfx-lbl { white-space: nowrap; }
+.dfx-sl b { font-weight: 500; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
 .dfx select, .dfx textarea { background: #242424; color: var(--txt); border: 1px solid #3a3a3a;
   border-radius: 5px; padding: 3px 6px; font: inherit; }
 .dfx textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 44px; user-select: text; }
@@ -206,6 +211,35 @@ const el = (tag, cls, text) => {
     return e;
 };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// 2x3 affines as [a00 a01 a02 a10 a11 a12]
+const IDENT = [1, 0, 0, 0, 1, 0];
+const amul = (p, q) => [p[0] * q[0] + p[1] * q[3], p[0] * q[1] + p[1] * q[4], p[0] * q[2] + p[1] * q[5] + p[2],
+                        p[3] * q[0] + p[4] * q[3], p[3] * q[1] + p[4] * q[4], p[3] * q[2] + p[4] * q[5] + p[5]];
+const ainv = (m) => {
+    const d = m[0] * m[4] - m[1] * m[3] || 1e-9;
+    return [m[4] / d, -m[1] / d, (m[1] * m[5] - m[4] * m[2]) / d,
+            -m[3] / d, m[0] / d, (m[3] * m[2] - m[0] * m[5]) / d];
+};
+/** Same curve as the renderer (core/schedule.py). */
+function easeAt(u, mode) {
+    if (u <= 0) return 0;
+    if (u >= 1) return 1;
+    if (mode === "linear") return u;
+    if (mode === "ease_in") return u * u;
+    if (mode === "ease_out") return 1 - (1 - u) * (1 - u);
+    if (mode === "step") return 0;
+    return u * u * (3 - 2 * u);
+}
+/** A free pose at progress u, in pixels (mirrors core/direction.py pose_matrix). */
+function poseMatrix(c, u, w, h, k = 1) {
+    const cx = (w - 1) / 2, cy = (h - 1) / 2;
+    const s = Math.pow(Math.max(1e-6, Math.pow(c.zoom ?? 1, k)), u);
+    const a = ((c.roll || 0) * k * u * Math.PI) / 180;
+    const ca = Math.cos(a) * s, sa = Math.sin(a) * s;
+    const tx = (c.dx || 0) * k * w * u, ty = (c.dy || 0) * k * h * u;
+    return [ca, -sa, cx + tx - ca * cx + sa * cy, sa, ca, cy + ty - sa * cx - ca * cy];
+}
 
 function emptyTimeline() {
     return { version: 2, scenes: [], camera: [], keys: [], energy: [], guidance: [] };
@@ -354,6 +388,61 @@ function buildEditor(node, tw) {
     }
     const thumbAt = (f) => { const im = thumbs.get(f); return im && im.complete && im.width ? im : null; };
 
+    /** The pictures the Director will pin, with their frames: the last run's, or
+     *  (before any run) whatever the linked image nodes are showing. */
+    function pictures() {
+        let imgs = [...thumbs.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]);
+        if (!imgs.length) {
+            for (const name of ["images", "image_1", "image_2", "image_3", "image_4", "image_5", "image_6"]) {
+                const slot = node.inputs?.findIndex((i) => i.name === name) ?? -1;
+                if (slot < 0 || node.inputs[slot].link == null) continue;
+                const src = node.getInputNode ? node.getInputNode(slot) : null;
+                for (const im of src?.imgs || []) imgs.push(im);
+            }
+        }
+        imgs = imgs.filter((im) => im && im.complete && (im.naturalWidth || im.width));
+        if (!imgs.length) return [];
+        const at = String(node.widgets?.find((x) => x.name === "images_at")?.value || "scene starts");
+        let frames;
+        if (at.startsWith("scene") && tl.scenes.length) frames = tl.scenes.map((x) => x.start);
+        else if (at.startsWith("Keys") && tl.keys.length) frames = tl.keys.map((x) => x.start);
+        else frames = imgs.map((_, i) => Math.round((i * (N() - 1)) / Math.max(1, imgs.length - 1)));
+        const n = Math.min(frames.length, imgs.length);
+        return frames.slice(0, n).map((f, i) => ({ frame: clamp(f, 0, N() - 1), img: imgs[i] }));
+    }
+
+    // ---- camera path at a frame (server preview, or the pose being dragged) ----
+    let gz = null;                      // preview drag in progress
+    let live = -1;                      // camera block edited since the last server preview
+    let liveRev = 0;
+    const camScale = () => Number(node.widgets?.find((x) => x.name === "camera_scale")?.value ?? 1) || 1;
+    function serverAffine(f) {
+        if (!preview?.affines?.length) return IDENT;
+        let best = preview.affines[0];
+        for (const row of preview.affines) { if (row[0] <= f) best = row; else break; }
+        return best.slice(1);
+    }
+    function cameraAt(f) {
+        const c = live >= 0 ? tl.camera[live] : null;
+        if (c && c.move === "free" && f >= c.start && f < blockEnd(tl.camera, live)) {
+            const first = Math.max(c.start, 1), steps = blockEnd(tl.camera, live) - first;
+            if (steps > 0 && f >= first) {
+                const u = easeAt((f - first + 1) / steps, c.ease || "ease_in_out");
+                return amul(poseMatrix(c, u, setup.width, setup.height, camScale()), serverAffine(first - 1));
+            }
+        }
+        return serverAffine(f);
+    }
+    const camIndexAt = (f) => { let i = -1; tl.camera.forEach((c, k) => { if (c.start <= f) i = k; }); return i; };
+    const freeAt = (f) => { const i = camIndexAt(f); return i >= 0 && tl.camera[i].move === "free" ? i : -1; };
+    /** Show the framing a free block ends on: that is what dragging edits. */
+    function editFree(i) {
+        live = i; liveRev++;
+        sel = { track: "camera", i };
+        playing = false; playBtn.classList.remove("on");
+        playhead = clamp(blockEnd(tl.camera, i) - 1, 0, N() - 1);
+    }
+
     // ---- data -----------------------------------------------------------
     function load() {
         try { tl = normalise(JSON.parse(tw.value || "{}")); } catch { tl = emptyTimeline(); }
@@ -381,6 +470,7 @@ function buildEditor(node, tw) {
     }
     async function fetchPreview() {
         const w = (n) => node.widgets?.find((x) => x.name === n)?.value;
+        const rev = liveRev;
         try {
             const r = await api.fetchApi("/difforum/preview", {
                 method: "POST", headers: { "Content-Type": "application/json" },
@@ -391,7 +481,7 @@ function buildEditor(node, tw) {
                 }),
             });
             const j = await r.json();
-            if (j.error) { previewErr = j.error; } else { preview = j; previewErr = ""; }
+            if (j.error) { previewErr = j.error; } else { preview = j; previewErr = ""; if (!gz && rev === liveRev) live = -1; }
         } catch (e) { previewErr = "preview offline (server restart needed?)"; }
         warn.textContent = [extNote(), previewErr || (preview?.warnings || []).map((x) => "⚠ " + x).join("   ")]
             .filter(Boolean).join("   ");
@@ -524,7 +614,10 @@ function buildEditor(node, tw) {
             ctx.fillStyle = "#e6e6e6"; ctx.font = "600 10px sans-serif";
             clipText(ctx, mv.label, x0 + 31, y + 15, x1 - x0 - 36);
             ctx.fillStyle = "#ffffff88"; ctx.font = "9px sans-serif";
-            const sub = `x${(+c.speed).toFixed(2)} · ${c.ease.replace(/_/g, " ")}` +
+            const head = c.move === "free"
+                ? `to ${(+(c.zoom ?? 1)).toFixed(2)}x  ${Math.round((c.dx || 0) * 100)},${Math.round((c.dy || 0) * 100)}%  ${Math.round(c.roll || 0)}°`
+                : `x${(+c.speed).toFixed(2)}`;
+            const sub = `${head} · ${c.ease.replace(/_/g, " ")}` +
                         (c.react && c.react !== "none" ? " · ♪" : "");
             clipText(ctx, sub, x0 + 31, y + 27, x1 - x0 - 36);
             grip(ctx, x0, y, h);
@@ -582,35 +675,55 @@ function buildEditor(node, tw) {
         const [ctx, W, H] = sizeCanvas(pc);
         ctx.fillStyle = "#0b0b0b"; ctx.fillRect(0, 0, W, H);
         const sx = W / setup.width, sy = H / setup.height;
-        // the "world": a grid of the first frame, carried by the camera
-        let a = [1, 0, 0, 0, 1, 0];
-        if (preview?.affines?.length) {
-            let best = preview.affines[0];
-            for (const row of preview.affines) { if (row[0] <= playhead) best = row; else break; }
-            a = best.slice(1);
-        }
-        // canvas = scale(view) . affine(camera) ; a = [a00 a01 a02 a10 a11 a12]
+        // the "world": the pinned picture (or a grid of the first frame), carried by the camera
+        let a = cameraAt(playhead);
+        let pic = null;
+        for (const p of pictures()) if (p.frame <= playhead) pic = p;
+        if (pic) a = amul(a, ainv(cameraAt(pic.frame)));        // each pinned picture starts square
+        // canvas = scale(view) . affine(camera)
         const dpr = window.devicePixelRatio || 1;
         ctx.save();
         ctx.setTransform(a[0] * sx * dpr, a[3] * sy * dpr, a[1] * sx * dpr,
                          a[4] * sy * dpr, a[2] * sx * dpr, a[5] * sy * dpr);
         const gw = setup.width, gh = setup.height;
-        const g = ctx.createLinearGradient(0, 0, gw, gh);
-        g.addColorStop(0, "#1e3a5f"); g.addColorStop(0.5, "#2b1e4a"); g.addColorStop(1, "#4a2a1e");
-        ctx.fillStyle = g; ctx.fillRect(0, 0, gw, gh);
-        ctx.strokeStyle = "#ffffff30"; ctx.lineWidth = Math.max(1, gw / 300);
+        if (pic) {
+            const iw = pic.img.naturalWidth || pic.img.width, ih = pic.img.naturalHeight || pic.img.height;
+            const k = Math.max(gw / iw, gh / ih);
+            ctx.save();
+            ctx.beginPath(); ctx.rect(0, 0, gw, gh); ctx.clip();
+            ctx.drawImage(pic.img, (gw - iw * k) / 2, (gh - ih * k) / 2, iw * k, ih * k);
+            ctx.restore();
+        } else {
+            const g = ctx.createLinearGradient(0, 0, gw, gh);
+            g.addColorStop(0, "#1e3a5f"); g.addColorStop(0.5, "#2b1e4a"); g.addColorStop(1, "#4a2a1e");
+            ctx.fillStyle = g; ctx.fillRect(0, 0, gw, gh);
+        }
+        ctx.strokeStyle = pic ? "#ffffff14" : "#ffffff30"; ctx.lineWidth = Math.max(1, gw / 300);
         for (let i = 0; i <= 12; i++) {
             ctx.beginPath(); ctx.moveTo((i / 12) * gw, 0); ctx.lineTo((i / 12) * gw, gh); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, (i / 12) * gh); ctx.lineTo(gw, (i / 12) * gh); ctx.stroke();
         }
-        ctx.strokeStyle = "#ffffffa0"; ctx.lineWidth = Math.max(1.5, gw / 200);
-        ctx.beginPath(); ctx.arc(gw / 2, gh / 2, gh * 0.18, 0, 7); ctx.stroke();
+        if (!pic) {
+            ctx.strokeStyle = "#ffffffa0"; ctx.lineWidth = Math.max(1.5, gw / 200);
+            ctx.beginPath(); ctx.arc(gw / 2, gh / 2, gh * 0.18, 0, 7); ctx.stroke();
+        }
         ctx.restore();
         // frame guides
         ctx.strokeStyle = "#ffffff40"; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
         ctx.strokeStyle = "#ffffff18";
         ctx.beginPath(); ctx.moveTo(W / 3, 0); ctx.lineTo(W / 3, H); ctx.moveTo(2 * W / 3, 0); ctx.lineTo(2 * W / 3, H);
         ctx.moveTo(0, H / 3); ctx.lineTo(W, H / 3); ctx.moveTo(0, 2 * H / 3); ctx.lineTo(W, 2 * H / 3); ctx.stroke();
+
+        const fi = freeAt(playhead);
+        pc.style.cursor = fi >= 0 ? (gz ? "grabbing" : "grab") : "default";
+        pc.title = fi >= 0 ? "Drag: move the frame · scroll: zoom · shift-drag: roll. The block ends on this framing."
+            : "Double-click to turn the camera block under the playhead into a free pose you can drag";
+        if (fi >= 0) {
+            const t = "drag · scroll · shift-drag";
+            ctx.font = "9px sans-serif";
+            ctx.fillStyle = "#000000a0"; ctx.fillRect(4, H - 17, ctx.measureText(t).width + 8, 13);
+            ctx.fillStyle = "#ffffffd0"; ctx.fillText(t, 8, H - 7);
+        }
 
         const sc = [...tl.scenes].reverse().find((s) => s.start <= playhead);
         const cm = [...tl.camera].reverse().find((c) => c.start <= playhead);
@@ -668,6 +781,62 @@ function buildEditor(node, tw) {
         if (y < RULER) return { track: "ruler" };
         return null;
     }
+
+    // ---- preview: drag the framing of a free-pose block ----------------------
+    const r4 = (v) => Math.round(v * 10000) / 10000;
+    pc.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        const i = freeAt(playhead);
+        if (i < 0 || e.button !== 0) return;
+        e.preventDefault();
+        pc.setPointerCapture(e.pointerId);
+        editFree(i);
+        const c = tl.camera[i], r = pc.getBoundingClientRect();
+        const ang = (ev) => Math.atan2(ev.clientY - (r.top + r.height / 2), ev.clientX - (r.left + r.width / 2));
+        gz = { i, x: e.clientX, y: e.clientY, W: r.width, H: r.height, dx: c.dx || 0, dy: c.dy || 0,
+               rot: e.shiftKey, ang, last: ang(e), k: Math.max(0.05, Math.abs(camScale())) };
+        renderInspector(); draw();
+    });
+    pc.addEventListener("pointermove", (e) => {
+        if (!gz) return;
+        e.stopPropagation();
+        const c = tl.camera[gz.i];
+        if (!c) { gz = null; return; }
+        if (gz.rot) {
+            const now = gz.ang(e);
+            let d = now - gz.last;
+            if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+            gz.last = now;
+            c.roll = r4(clamp((c.roll || 0) + (d * 180) / Math.PI / gz.k, -720, 720));
+        } else {
+            c.dx = r4(clamp(gz.dx + (e.clientX - gz.x) / gz.W / gz.k, -4, 4));
+            c.dy = r4(clamp(gz.dy + (e.clientY - gz.y) / gz.H / gz.k, -4, 4));
+        }
+        draw();
+    });
+    const endGizmo = () => { if (!gz) return; gz = null; save(); renderInspector(); draw(); };
+    pc.addEventListener("pointerup", endGizmo);
+    pc.addEventListener("pointercancel", endGizmo);
+    let wheelSave = null;
+    pc.addEventListener("wheel", (e) => {
+        const i = freeAt(playhead);
+        if (i < 0) return;
+        e.preventDefault(); e.stopPropagation();
+        const c = tl.camera[i];
+        editFree(i);
+        c.zoom = r4(clamp((c.zoom ?? 1) * Math.exp(-e.deltaY * 0.0015), 0.05, 20));
+        draw();
+        clearTimeout(wheelSave);
+        wheelSave = setTimeout(() => { save(); renderInspector(); }, 250);
+    }, { passive: false });
+    pc.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        const i = camIndexAt(playhead);
+        if (i < 0 || tl.camera[i].move === "free") return;
+        Object.assign(tl.camera[i], { move: "free", dx: 0, dy: 0, zoom: 1, roll: 0 });
+        editFree(i);
+        save(); renderInspector(); draw();
+    });
 
     tc.addEventListener("pointerdown", (e) => {
         const r = tc.getBoundingClientRect();
@@ -922,12 +1091,38 @@ function buildEditor(node, tw) {
                 const g = cv.getContext("2d"); g.scale(2, 2); drawGlyph(g, mv.id, 0, 0, 22, mv.id === c.move ? "#fff" : "#bdbdbd");
                 b.append(cv, el("span", null, mv.label));
                 if (mv.depth) b.append(el("i", null, "3D"));
-                b.addEventListener("click", () => { c.move = mv.id; save(); renderInspector(); draw(); });
+                b.addEventListener("click", () => {
+                    c.move = mv.id;
+                    if (mv.id === "free") {
+                        c.dx ??= 0; c.dy ??= 0; c.zoom ??= 1; c.roll ??= 0;
+                        editFree(sel.i);
+                    }
+                    save(); renderInspector(); draw();
+                });
                 grid.append(b);
             }
         }
         const r2 = el("div", "dfx-row");
-        r2.append(
+        let r2b = "";
+        if (c.move === "free") {
+            const set = (k) => (v) => { c[k] = v; editFree(sel.i); };
+            const reset = el("button", "dfx-btn", "Reset");
+            reset.type = "button";
+            reset.onclick = () => {
+                Object.assign(c, { dx: 0, dy: 0, zoom: 1, roll: 0 });
+                editFree(sel.i); save(); renderInspector(); draw();
+            };
+            r2.append(
+                slider("Shift X", c.dx || 0, -1, 1, 0.01, set("dx")),
+                slider("Shift Y", c.dy || 0, -1, 1, 0.01, set("dy")),
+            );
+            r2b = el("div", "dfx-row");
+            r2b.append(
+                slider("Zoom", c.zoom ?? 1, 0.25, 4, 0.01, set("zoom")),
+                slider("Roll", c.roll || 0, -180, 180, 1, set("roll")),
+                reset,
+            );
+        } else r2.append(
             slider("Speed", c.speed, 0.1, 4, 0.05, (v) => { c.speed = v; }),
             slider("Amount", c.intensity, 0, 3, 0.05, (v) => { c.intensity = v; }),
         );
@@ -943,7 +1138,7 @@ function buildEditor(node, tw) {
         const head = el("div", "dfx-head");
         head.append(el("b", null, `${moveOf(c.move).label} @ ${secs(c.start)}`),
                     el("span", "dfx-hint", "  " + (moveOf(c.move).hint || "")));
-        ins.append(head, grid, r2, r3);
+        ins.append(head, grid, r2, r2b, r3);
     }
 
     // ---- toolbar -----------------------------------------------------------

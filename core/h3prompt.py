@@ -37,6 +37,9 @@ MODES = ("T2VA (text only)", "I2VA (first frame)", "FL2VA (first + last frame)",
 
 def camera_clause(block: dict) -> str:
     move = block.get("move", "still")
+    if move == "free":
+        from .direction import free_phrase
+        return free_phrase(block)
     phrase = H3_MOVE.get(move, move.replace("_", " "))
     if move in _NO_MODIFIERS:
         return phrase

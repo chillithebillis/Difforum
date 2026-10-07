@@ -25,8 +25,10 @@ back control over the **camera and the timing**:
 
 1. **Direct.** In the **Director** node you lay out *scenes* (prompt + mood), *camera
    moves* (picked from 25 visual presets), *keys* (exact frames where something
-   must happen) and an *energy curve*. Press ▶ to preview the move; the preview
-   uses the same engine that renders. The mouse wheel zooms the timeline, so a
+   must happen) and an *energy curve*. Press ▶ to preview the move on your own
+   picture; the preview uses the same engine that renders. Double-click the
+   preview to frame a move by hand: drag, scroll and shift-drag set where the
+   block ends. The mouse wheel zooms the timeline, so a
    60-second shot is as easy to edit as a 5-second one.
 2. **Previz.** Every template has an **Animatic**: the whole shot, with timecode,
    prompt, camera move, energy and keys burnt in, in a few seconds. The

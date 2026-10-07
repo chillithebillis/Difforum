@@ -5,6 +5,14 @@
 Difforum becomes a direction layer: a visual timeline drives any renderer.
 
 ### New
+- **Free pose** camera block: frame the end of a move by hand in the Director preview (drag
+  = shift, scroll = zoom, shift-drag = roll), or type it (`free dx -0.2 zoom 1.5 roll 12`).
+  The block ends exactly on that framing in the renderer.
+- **Director preview shows the pinned pictures** under the camera, before the first run when
+  a Load Image is linked.
+- **Script parser** reads markdown tables, numbered / bold lines, labelled fields, fenced
+  answers and plain camera phrases (English, Portuguese, Spanish); unknown cameras are
+  reported instead of dropped silently; text ↔ timeline keeps guidance and free poses.
 - **Director picture inputs** (`images`, `image_1..6`, `images_at`): pictures pinned to scene
   starts / Keys, thumbnails on the timeline, carried on the `direction` wire (Feedback Sampler,
   H3 / LTX Guides and Animatic use them without extra wiring); `keyframes` + `indices` outputs.

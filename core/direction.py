@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import dataclass, field
 
 from .camera_keys import DEFAULT_LENS, EASINGS, keys_list_to_axis_values
@@ -205,7 +206,7 @@ def parse_timeline(raw) -> dict:
     for c in raw.get("camera", []) or []:
         if isinstance(c, dict):
             move = str(c.get("move", "still")).lower()
-            camera.append({
+            block = {
                 "start": max(0, int(_num(c.get("start", 0), 0))),
                 "move": move if move in CAMERA_PRESETS else "still",
                 "speed": _num(c.get("speed"), 1.0),
@@ -213,7 +214,13 @@ def parse_timeline(raw) -> dict:
                 "lens": _num(c.get("lens"), 0.0),
                 "ease": c.get("ease") if c.get("ease") in EASINGS else "ease_in_out",
                 "react": c.get("react") if c.get("react") in REACTIONS else "none",
-            })
+            }
+            if block["move"] == "free":      # where the frame ends up: shift (frame fractions), zoom, roll
+                block.update(dx=max(-4.0, min(4.0, _num(c.get("dx"), 0.0))),
+                             dy=max(-4.0, min(4.0, _num(c.get("dy"), 0.0))),
+                             zoom=max(0.05, min(20.0, _num(c.get("zoom"), 1.0))),
+                             roll=max(-720.0, min(720.0, _num(c.get("roll"), 0.0))))
+            camera.append(block)
 
     keys = []
     for k in raw.get("keys", []) or []:
@@ -302,6 +309,77 @@ def mood_energy(scenes: list[dict], strength_bias: float = 0.0) -> list[tuple[in
     return pts
 
 
+def pose_matrix(dx: float, dy: float, zoom: float, roll: float, u: float, w: int, h: int):
+    """Pixel-space 3x3 of a free pose at progress u (0..1): the picture is scaled
+    and rolled about the frame centre and shifted by (dx, dy) frame fractions."""
+    cx, cy = (w - 1) / 2.0, (h - 1) / 2.0
+    s = max(1e-6, float(zoom)) ** u
+    a = math.radians(float(roll) * u)
+    ca, sa = math.cos(a) * s, math.sin(a) * s
+    tx, ty = float(dx) * w * u, float(dy) * h * u
+    return [[ca, -sa, cx + tx - ca * cx + sa * cy],
+            [sa, ca, cy + ty - sa * cx - ca * cy],
+            [0.0, 0.0, 1.0]]
+
+
+def _free_poses(axes: dict, blocks: list[dict], n: int, w: int, h: int, scale: float = 1.0):
+    """Write exact per-frame steps for `free` blocks, so the block ends on the framing it stores."""
+    from .schedule import _ease
+    cx, cy = (w - 1) / 2.0, (h - 1) / 2.0
+    for i, b in enumerate(blocks):
+        if b["move"] != "free":
+            continue
+        start = min(b["start"], n)
+        end = min(blocks[i + 1]["start"], n) if i + 1 < len(blocks) else n
+        first = max(start, 1)                    # frame 0 is the picture itself
+        steps = end - first
+        if steps <= 0:
+            continue
+        k = float(scale)
+        pose = (b["dx"] * k, b["dy"] * k, b["zoom"] ** k, b["roll"] * k)
+        prev = pose_matrix(*pose, 0.0, w, h)
+        for f in range(first, end):
+            cur = pose_matrix(*pose, _ease((f - first + 1) / steps, b.get("ease", "ease_in_out")), w, h)
+            # step = cur . prev^-1  (both are similarities)
+            a, bb, c0 = prev[0]
+            d, e, f0 = prev[1]
+            det = a * e - bb * d
+            inv = [[e / det, -bb / det, (bb * f0 - e * c0) / det],
+                   [-d / det, a / det, (d * c0 - a * f0) / det]]
+            m00 = cur[0][0] * inv[0][0] + cur[0][1] * inv[1][0]
+            m10 = cur[1][0] * inv[0][0] + cur[1][1] * inv[1][0]
+            m01 = cur[0][0] * inv[0][1] + cur[0][1] * inv[1][1]
+            m11 = cur[1][0] * inv[0][1] + cur[1][1] * inv[1][1]
+            bx = cur[0][0] * inv[0][2] + cur[0][1] * inv[1][2] + cur[0][2]
+            by = cur[1][0] * inv[0][2] + cur[1][1] * inv[1][2] + cur[1][2]
+            axes["zoom"][f] = math.sqrt(max(1e-12, m00 * m11 - m01 * m10))
+            axes["rotation_3d_z"][f] = math.degrees(math.atan2(m10, m00))
+            axes["translation_x"][f] = bx + m00 * cx + m01 * cy - cx
+            axes["translation_y"][f] = by + m10 * cx + m11 * cy - cy
+            for ax in ("translation_z", "rotation_3d_x", "rotation_3d_y"):
+                axes[ax][f] = 0.0
+            prev = cur
+
+
+def free_phrase(b: dict) -> str:
+    """A free pose in camera words (the picture moving left means the camera moving right)."""
+    parts = []
+    z, dx, dy, roll = float(b.get("zoom", 1)), float(b.get("dx", 0)), float(b.get("dy", 0)), float(b.get("roll", 0))
+    if z > 1.04:
+        parts.append("pushes in")
+    elif z < 0.96:
+        parts.append("pulls back")
+    if abs(dx) > 0.03:
+        parts.append("trucks right" if dx < 0 else "trucks left")
+    if abs(dy) > 0.03:
+        parts.append("pedestals down" if dy < 0 else "pedestals up")
+    if abs(roll) > 2.0:
+        parts.append("rolls clockwise" if roll > 0 else "rolls counterclockwise")
+    if not parts:
+        return "holds a static shot"
+    return parts[0] if len(parts) == 1 else parts[0] + " while it " + " and ".join(parts[1:])
+
+
 def _react(axes: dict, blocks: list[dict], n: int, curves: dict | None, warnings: list[str]):
     if not any(b.get("react", "none") != "none" for b in blocks):
         return
@@ -350,6 +428,8 @@ def build_direction(
     variation_seed: int = 0,
     audio_curves: dict | None = None,
     has_depth: bool | None = None,
+    width: int = 768,
+    height: int = 432,
 ) -> Direction:
     tl = parse_timeline(timeline)
     n = max(1, int(frames))
@@ -388,6 +468,7 @@ def build_direction(
             "ease": b["ease"],
         })
     axes, lens, _summary = keys_list_to_axis_values(keys, n, fps, extra_vars=audio_curves, blend=blend)
+    _free_poses(axes, blocks, n, int(width), int(height), camera_scale)
     _react(axes, blocks, n, audio_curves, warnings)
 
     depth_moves = sorted({MOVE_INFO[b["move"]][0] for b in blocks if needs_depth(b["move"])})
@@ -420,7 +501,9 @@ def build_direction(
     for b, k in zip(blocks, keys):
         summary.append(
             f"  camera {b['start'] / fps:5.2f}s  {MOVE_INFO[b['move']][0]:<11} "
-            f"x{k['speed']:<5g} amp {k['intensity']:<5g} lens {k['lens']:g}deg  {k['ease']}"
+            + (f"shift {b['dx']:+.2f},{b['dy']:+.2f}  zoom x{b['zoom']:g}  roll {b['roll']:g}deg  {k['ease']}"
+               if b["move"] == "free" else
+               f"x{k['speed']:<5g} amp {k['intensity']:<5g} lens {k['lens']:g}deg  {k['ease']}")
             + (f"  react:{b['react']}" if b.get("react", "none") != "none" else ""))
 
     return Direction(
@@ -471,9 +554,9 @@ def describe_blocks(blocks: list[dict], frames: int, fps: float) -> str:
     """One flowing sentence of camera direction, in shot order."""
     parts = []
     for i, b in enumerate(blocks):
-        phrase = _PHRASE.get(b["move"], b["move"].replace("_", " "))
+        phrase = free_phrase(b) if b["move"] == "free" else _PHRASE.get(b["move"], b["move"].replace("_", " "))
         sw = _speed_word(b.get("speed", 1.0), b.get("intensity", 1.0))
-        if sw and b["move"] not in ("still", "shake", "handheld"):
+        if sw and b["move"] not in ("still", "shake", "handheld", "free"):
             phrase = f"{phrase} {sw}"
         if i == 0:
             parts.append(f"The camera {phrase}")
@@ -490,8 +573,8 @@ def describe_timed(blocks: list[dict], frames: int, fps: float) -> str:
     lines = []
     for i, b in enumerate(blocks):
         end = blocks[i + 1]["start"] if i + 1 < len(blocks) else frames
-        phrase = _PHRASE.get(b["move"], b["move"])
-        sw = _speed_word(b.get("speed", 1.0), b.get("intensity", 1.0))
+        phrase = free_phrase(b) if b["move"] == "free" else _PHRASE.get(b["move"], b["move"])
+        sw = "" if b["move"] == "free" else _speed_word(b.get("speed", 1.0), b.get("intensity", 1.0))
         lines.append(f"[{b['start'] / fps:.1f}s-{end / fps:.1f}s] camera {phrase}"
                      + (f" {sw}" if sw else ""))
     return "\n".join(lines)

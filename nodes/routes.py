@@ -28,7 +28,7 @@ def compute_preview(body: dict) -> dict:
                         strength_bias=float(body.get("energy_bias", 0.0)),
                         blend=float(body.get("transition", 1.0)),
                         variation=float(body.get("variation", 0.0)),
-                        variation_seed=int(body.get("variation_seed", 0)))
+                        variation_seed=int(body.get("variation_seed", 0)), width=w, height=h)
     from .direction import _track
     cam = _track(d.axes, d.lens, frames, mode, [b["move"] for b in d.camera_blocks])
     eng = FeedbackEngine(cam, EngineConfig(width=w, height=h))

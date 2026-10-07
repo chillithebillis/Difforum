@@ -285,6 +285,34 @@ audio reaction), what is on screen, and what is heard. `sound` goes to video
 models that make audio: Camera → Prompt writes the scenes' sounds, in order, as
 the H3 `overall_soundscape` unless you type one there.
 
+The Script panel reads what people and language models actually write: a
+markdown table, numbered or bold lines, `mood:` / `camera:` / `prompt:` labels,
+a fenced block inside a longer answer, plain phrases ("the camera pushes in
+slowly", "zoom para dentro devagar"). A camera it does not know is reported
+under the box and left out, never guessed; a prompt is never read as a camera.
+Text → timeline → text keeps every field.
+
+### The preview and the free pose
+
+The preview shows the picture pinned at the playhead (after a run, or straight
+from a linked Load Image) moving under the camera the renderer will use; each
+pinned picture starts square at its own frame. Without pictures it shows a grid.
+
+A camera block can be a **Free pose** instead of a preset: double-click the
+preview (or pick *Free pose* in the move grid), then
+
+- **drag** to shift the frame,
+- **scroll** to zoom,
+- **shift-drag** to roll.
+
+The playhead jumps to the block's last frame, because the pose is where the
+block *ends*; the easing decides how it gets there, and the block starts from
+wherever the previous one left the frame. The same pose can be typed (Shift X/Y
+as fractions of the frame, Zoom, Roll in degrees) or written in a script:
+`36-119 | build | free dx -0.2 dy 0.1 zoom 1.5 roll 12 ease_out | ...`.
+`camera_scale` scales it like any other move. A free pose is a flat move (shift,
+zoom, roll); for parallax combine it with blocks from the SPACE group.
+
 ### Where each look gets its motion
 
 | you want | what makes the motion | template |

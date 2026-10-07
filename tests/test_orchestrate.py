@@ -252,3 +252,84 @@ def test_script_ranges_sound_and_roundtrip():
     p = setup(seconds=12.5)[0]
     d = director(p, tl=tl)[0]
     assert scene_sounds(d.direction) == "Rain on glass, then trickling water."
+
+
+def _cams(text, frames=120):
+    tl, notes = script_to_timeline(text, 24, frames)
+    return tl, [(c["start"], c["move"]) for c in tl["camera"]], notes
+
+
+def test_script_accepts_what_language_models_write():
+    table = ("| Frames | Mood | Camera | Prompt |\n|---|---|---|---|\n"
+             "| 0-35 | calm | zoom in slow | a quiet lake |\n| 36-90 | build | pan right | wind rises |")
+    tl, cams, notes = _cams(table)
+    assert cams == [(0, "zoom_in"), (36, "pan_right")] and not notes
+    assert [s["prompt"] for s in tl["scenes"]] == ["a quiet lake", "wind rises"]
+
+    tl, cams, notes = _cams("1. **0-35** | calm | zoom_in | a lake\n2. **36-90** | tense | orbit left, fast | storm")
+    assert cams == [(0, "zoom_in"), (36, "orbit_left")] and tl["camera"][1]["speed"] == 1.5 and not notes
+
+    tl, cams, _ = _cams("0-35 | mood: calm | camera: pan left | prompt: a lake | sound: wind")
+    assert cams == [(0, "pan_left")] and tl["scenes"][0] == {"start": 0, "mood": "calm", "prompt": "a lake",
+                                                             "sound": "wind"}
+
+    tl, cams, notes = _cams("Here you go:\n```\n0-35 | calm | the camera pushes in slowly | a lake\n```\nEnjoy!")
+    assert cams == [(0, "dolly_in")] and tl["scenes"][0]["prompt"] == "a lake" and not notes
+
+    tl, cams, notes = _cams("do frame 0 ao frame 35 | calmo | zoom para dentro devagar | um lago\n"
+                            "36-90 | tenso | girar para a direita rápido | tempestade")
+    assert cams == [(0, "zoom_in"), (36, "roll_cw")] and not notes
+    assert [s["mood"] for s in tl["scenes"]] == ["calm", "tense"]
+
+
+def test_script_warns_instead_of_guessing():
+    tl, cams, notes = _cams("0-35 | calm | somersault | a lake")
+    assert not cams and tl["scenes"][0]["prompt"] == "a lake"
+    assert "somersault" in notes[0] and "not a known move" in notes[0]
+    # a prompt is never mistaken for a camera, and long text is never dropped
+    tl, cams, notes = _cams("0 | rise of the machines\n40 | calm | a lake at dawn in the mist | birds")
+    assert not cams and not notes
+    assert [s["prompt"] for s in tl["scenes"]] == ["rise of the machines", "a lake at dawn in the mist, birds"]
+
+
+def test_script_round_trip_keeps_everything():
+    from difforum.core.script import timeline_to_script
+    text = ("0-35 | calm | still | zoom lens on a table, red | blue cloth | sound: a clock\n"
+            "36-119 | build | free dx -0.2 dy 0.1 zoom 1.5 roll 12 ease_out | the room tilts\n"
+            "20 | guidance 5.5\n10 | energy 0.4\n60 | key: the drop")
+    tl, notes = script_to_timeline(text, 24, 120)
+    assert not notes
+    assert tl["camera"][1] == {"start": 36, "move": "free", "speed": 1.0, "intensity": 1.0, "lens": 0.0,
+                               "ease": "ease_out", "react": "none", "dx": -0.2, "dy": 0.1, "zoom": 1.5,
+                               "roll": 12.0}
+    again, notes = script_to_timeline(timeline_to_script(tl, 120), 24, 120)
+    assert not notes
+    for track in ("scenes", "camera", "keys", "energy", "guidance"):
+        assert again[track] == tl[track], track
+
+
+def test_free_pose_ends_on_its_framing():
+    import torch
+
+    from difforum.core.direction import build_direction, pose_matrix
+    from difforum.core.engine import EngineConfig, FeedbackEngine
+    from difforum.core.h3prompt import camera_clause
+    from difforum.nodes.direction import _track
+    w, h, n = 640, 360, 60
+    tl = {"version": 2, "scenes": [{"start": 0, "mood": "calm", "prompt": "x"}],
+          "camera": [{"start": 0, "move": "still"},
+                     {"start": 10, "move": "free", "dx": -0.25, "dy": 0.1, "zoom": 1.6, "roll": 20, "ease": "ease_out"},
+                     {"start": 40, "move": "still"}]}
+    d = build_direction(json.dumps(tl), n, 24.0, width=w, height=h)
+    cam = _track(d.axes, d.lens, n, "2d", [b["move"] for b in d.camera_blocks])
+    eng = FeedbackEngine(cam, EngineConfig(width=w, height=h))
+    acc, at = torch.eye(3, dtype=torch.float64), {}
+    for f in range(1, n):
+        acc = eng._affine_for(f) @ acc
+        at[f] = acc.clone()
+    want = torch.tensor(pose_matrix(-0.25, 0.1, 1.6, 20, 1.0, w, h), dtype=torch.float64)
+    assert torch.allclose(at[39], want, atol=1e-2)           # the block ends exactly on the stored framing
+    assert torch.allclose(at[59], want, atol=1e-2)           # and the still after it holds it
+    assert torch.allclose(at[9], torch.eye(3, dtype=torch.float64), atol=1e-6)
+    phrase = camera_clause(d.camera_blocks[1])
+    assert "pushes in" in phrase and "trucks right" in phrase

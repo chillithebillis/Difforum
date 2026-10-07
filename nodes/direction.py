@@ -93,7 +93,7 @@ def _pin_images(images, slots, images_at, d, params):
     return keys, ",".join(map(str, frames)), lines
 
 
-def _thumbs(keys, key_idx, size: int = 96):
+def _thumbs(keys, key_idx, size: int = 320):
     """Small JPEG previews of the pinned images for the timeline editor."""
     if keys is None:
         return []
@@ -192,6 +192,7 @@ class DifforumDirector:
             timeline, n, fps, mode=camera_mode, camera_scale=camera_scale,
             strength_bias=energy_bias + LOOKS.get(look, LOOKS["cinematic"])["energy"], blend=transition, variation=variation,
             variation_seed=variation_seed, audio_curves=audio_vars(audio),
+            width=int(params["width"]), height=int(params["height"]),
         )
         camera = _track(d.axes, d.lens, n, camera_mode, [b["move"] for b in d.camera_blocks])
         strength = Schedule(values=d.strength, fps=fps, source="director energy")

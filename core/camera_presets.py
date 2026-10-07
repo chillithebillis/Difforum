@@ -15,11 +15,13 @@ CAMERA_PRESETS = (
     "orbit_left", "orbit_right", "roll_cw", "roll_ccw",
     "spiral", "sway", "dolly_zoom", "rise", "shake",
     "tilt_up", "tilt_down", "crane_up", "handheld", "drift", "breathe", "vortex",
+    "free",
 )
 
 # UI metadata for the Director timeline: label, group, one-line description.
 MOVE_INFO = {
     "still":      ("Still", "basic", "Locked-off frame; the diffusion still evolves."),
+    "free":       ("Free pose", "basic", "Drag, scroll and shift-drag the preview: the block ends on that framing."),
     "zoom_in":    ("Zoom in", "basic", "Lens magnifies toward the centre."),
     "zoom_out":   ("Zoom out", "basic", "Lens pulls back from the centre."),
     "pan_left":   ("Pan left", "basic", "Frame slides left."),
@@ -98,7 +100,7 @@ def preset_schedules(preset: str, speed: float = 1.0, intensity: float = 1.0) ->
         p = max(2.0, period)
         return f"0:({amp:.4g}*sin(2*pi*t/{p:.4g}))"
 
-    if preset == "still":
+    if preset in ("still", "free"):          # free: the Director writes the axes from the block's pose
         pass
     elif preset == "zoom_in":
         out["zoom"] = c(1.0 + 0.015 * i * s)

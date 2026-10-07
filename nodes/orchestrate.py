@@ -118,7 +118,7 @@ class DifforumShotScript:
             text, source = script, "text box"
         tl, notes = script_to_timeline(text, fps, frames)
         secs = (frames or 120) / fps
-        moves = ", ".join(sorted(m for m in CAMERA_PRESETS if m != "custom"))
+        moves = ", ".join(sorted(m for m in CAMERA_PRESETS if m not in ("custom", "free")))
         guide = LLM_GUIDE.format(seconds=secs, moves=moves)
         info = "\n".join([
             f"[Shot Script] from {source}: {len(tl['scenes'])} scenes, {len(tl['camera'])} camera blocks, "
